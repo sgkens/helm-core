@@ -1,0 +1,34 @@
+# =====================================================================
+# HELM DISPLAY CONFIGURATION: HYPERDRIVE SPOOL & WARP FIELD
+# Warp capacitor charging, hyperdrive coil alignment, and navigation lock
+# =====================================================================
+@bind jump_core  = group("Hyper Jump Drives", agg: min)
+@bind nav_lock   = group("Navigation Antennas", agg: min)
+@bind warp_caps  = group("Warp Field Capacitors", agg: avg)
+@bind sub_rel    = group("Relativistic Dampeners", agg: avg)
+
+@screen jump_drive_spool
+output: "Navigation Deck LCD", 0
+layout: grid(2, 2)
+bg: #090611
+border_color: #a855f7
+boot_duration: 3.0s
+boot_color: magenta
+boot_gradient(blue, magenta, white)
+boot_log: "aligning hyperdrive graviton coils..."
+boot_log: "charging hyper-capacitor arrays..."
+boot_log: "warp flight coordinates locked -- READY TO SPOOL"
+
+@panel warp_core at(0, 0, 1, 2) title: "WARP SPOOL & CHARGE" orientation: vertical
+line: "SPOOL " bar(jump_core.percent) gradient(blue, cyan, magenta) dir: up
+line: "COILS " led(warp_caps.percent) gradient(cyan, magenta, white)
+line: "CHG_FL" flow(warp_caps.percent) flat(magenta)
+line: "GRAV  " dots(jump_core.percent) flat(cyan)
+line: "JUMP  " status(jump_core.percent) flat(lime)
+
+@panel nav_sync at(1, 0, 1, 2) title: "NAVIGATION INTERLOCK"
+line: "WARP_VEC" balance(sub_rel.percent) gradient(cyan, white, cyan)
+line: "SAFETY  " toggle(jump_core.percent) flat(magenta)
+line: "NAV_LOCK" checkbox(nav_lock.percent) flat(cyan)
+line: "SURGE_HZ" hazard(warp_caps.percent) gradient(magenta, red)
+line: "BEACON  " status(nav_lock.percent) flat(lime)

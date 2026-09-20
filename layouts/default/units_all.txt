@@ -1,0 +1,27 @@
+# Units All
+# Every engineering unit in one panel, for measurement-mode formatting.
+@bind mw    = dynamic("u.mw", default: 14.2)
+@bind kw    = dynamic("u.kw", default: 730)
+@bind kl    = dynamic("u.kl", default: 420)
+@bind ms    = dynamic("u.ms", default: 104.4)
+@bind km    = dynamic("u.km", default: 1.2)
+@bind kn    = dynamic("u.kn", default: 5400)
+@bind rpm   = dynamic("u.rpm", default: 30)
+@bind deg   = dynamic("u.deg", default: 45)
+
+@screen Units
+output: "Units LCD", 0
+profile: standard
+layout: grid(1, 1)
+bg: #0a0c11
+border_color: #22c55e
+
+@panel p at(0, 0, 1, 1) title: "UNITS"
+line: "POWER   " text(mw.val) unit("MW") flat(#facc15)
+line: "SOLAR   " text(kw.val) unit("kW") flat(#facc15)
+line: "TANK    " text(kl.val) unit("kL") flat(#38bdf8)
+line: "SPEED   " text(ms.val) unit("m/s") flat(#22c55e)
+line: "RANGE   " text(km.val) unit("km") flat(#a78bfa)
+line: "THRUST  " text(kn.val) unit("kN") flat(#f97316)
+line: "ROTOR   " text(rpm.val) unit("rpm") flat(#eab308)
+line: "ANGLE   " text(deg.val) unit("deg") flat(#38bdf8)

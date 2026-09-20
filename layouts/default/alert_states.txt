@@ -1,0 +1,25 @@
+# Alert States
+# Values at and past alert thresholds: hazard bars, status badges and ammo counters.
+@bind crit = dynamic("a.crit", default: 8)
+@bind warn = dynamic("a.warn", default: 32)
+@bind ok   = dynamic("a.ok", default: 88)
+@bind mags = dynamic("a.mags", default: 3)
+
+@screen Alerts
+output: "Alert LCD", 0
+profile: auto
+layout: grid(2, 1)
+bg: #0a0708
+border_color: #ef4444
+
+@panel low at(0, 0, 1, 1) title: "CRITICAL / LOW"
+line: "REACTOR " hazard(crit.val) gradient(yellow, red)
+line: "STATUS  " status(crit.val) flat(#ef4444)
+line: "AMMO    " ammo(mags.val) flat(#f97316)
+line: "BATTERY " bar(crit.val) gradient(#ef4444, #eab308, #22c55e)
+
+@panel high at(1, 0, 1, 1) title: "WARN / NOMINAL"
+line: "REACTOR " hazard(warn.val) gradient(yellow, red)
+line: "STATUS  " status(warn.val) flat(#eab308)
+line: "SHIELDS " status(ok.val) flat(#22c55e)
+line: "BATTERY " bar(ok.val) gradient(#ef4444, #eab308, #22c55e)

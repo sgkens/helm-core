@@ -1,0 +1,20 @@
+# Long Labels
+# Edge case: labels and titles longer than the card, and long bind names.
+@bind very_long_bind_name_for_the_main_battery_bank = group("Main Battery Bank Section Alpha", agg: avg)
+@bind other = dynamic("some.very.long.dynamic.key.name", default: 47)
+
+@screen LongLabels
+output: "Overflow LCD", 0
+profile: standard
+layout: grid(2, 1)
+bg: #0b0d12
+border_color: #f43f5e
+
+@panel Left at(0, 0, 1, 1) title: "A PANEL TITLE THAT IS MUCH LONGER THAN THE CARD" title_align: center
+line: "BATTERY BANK ALPHA SECTION" bar(very_long_bind_name_for_the_main_battery_bank.percent) gradient(#ef4444, #22c55e)
+line: "X" bar(other.val) flat(#38bdf8)
+line: "LABEL WITH  SPACES" flow(other.val) flat(#eab308)
+
+@panel Right at(1, 0, 1, 1) title: "R" title_align: right
+line: "" bar(other.val) flat(#22c55e)
+line: "ÄÖÜ ÉÈ ñ" text(other.val) flat(#a78bfa)

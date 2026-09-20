@@ -1,0 +1,58 @@
+# Grid 4x4
+# Sixteen panels on one large screen: density and per-panel viewport limits.
+@bind v00 = dynamic("grid.v00", default: 10)
+@bind v01 = dynamic("grid.v01", default: 15)
+@bind v02 = dynamic("grid.v02", default: 20)
+@bind v03 = dynamic("grid.v03", default: 25)
+@bind v04 = dynamic("grid.v04", default: 30)
+@bind v05 = dynamic("grid.v05", default: 35)
+@bind v06 = dynamic("grid.v06", default: 40)
+@bind v07 = dynamic("grid.v07", default: 45)
+@bind v08 = dynamic("grid.v08", default: 50)
+@bind v09 = dynamic("grid.v09", default: 55)
+@bind v10 = dynamic("grid.v10", default: 60)
+@bind v11 = dynamic("grid.v11", default: 65)
+@bind v12 = dynamic("grid.v12", default: 70)
+@bind v13 = dynamic("grid.v13", default: 75)
+@bind v14 = dynamic("grid.v14", default: 80)
+@bind v15 = dynamic("grid.v15", default: 85)
+
+@screen Wall
+output: "Wall LCD", 0
+profile: auto
+layout: grid(4, 4)
+bg: #080a0e
+border_color: #475569
+
+@panel c00 at(0, 0, 1, 1) title: "CH 01"
+line: "LEVEL   " bar(v00.val) gradient(#ef4444, #eab308, #22c55e)
+@panel c01 at(1, 0, 1, 1) title: "CH 02"
+line: "LEVEL   " bar(v01.val) gradient(#ef4444, #eab308, #22c55e)
+@panel c02 at(2, 0, 1, 1) title: "CH 03"
+line: "LEVEL   " bar(v02.val) gradient(#ef4444, #eab308, #22c55e)
+@panel c03 at(3, 0, 1, 1) title: "CH 04"
+line: "LEVEL   " bar(v03.val) gradient(#ef4444, #eab308, #22c55e)
+@panel c04 at(0, 1, 1, 1) title: "CH 05"
+line: "LEVEL   " bar(v04.val) gradient(#ef4444, #eab308, #22c55e)
+@panel c05 at(1, 1, 1, 1) title: "CH 06"
+line: "LEVEL   " bar(v05.val) gradient(#ef4444, #eab308, #22c55e)
+@panel c06 at(2, 1, 1, 1) title: "CH 07"
+line: "LEVEL   " bar(v06.val) gradient(#ef4444, #eab308, #22c55e)
+@panel c07 at(3, 1, 1, 1) title: "CH 08"
+line: "LEVEL   " bar(v07.val) gradient(#ef4444, #eab308, #22c55e)
+@panel c08 at(0, 2, 1, 1) title: "CH 09"
+line: "LEVEL   " bar(v08.val) gradient(#ef4444, #eab308, #22c55e)
+@panel c09 at(1, 2, 1, 1) title: "CH 10"
+line: "LEVEL   " bar(v09.val) gradient(#ef4444, #eab308, #22c55e)
+@panel c10 at(2, 2, 1, 1) title: "CH 11"
+line: "LEVEL   " bar(v10.val) gradient(#ef4444, #eab308, #22c55e)
+@panel c11 at(3, 2, 1, 1) title: "CH 12"
+line: "LEVEL   " bar(v11.val) gradient(#ef4444, #eab308, #22c55e)
+@panel c12 at(0, 3, 1, 1) title: "CH 13"
+line: "LEVEL   " bar(v12.val) gradient(#ef4444, #eab308, #22c55e)
+@panel c13 at(1, 3, 1, 1) title: "CH 14"
+line: "LEVEL   " bar(v13.val) gradient(#ef4444, #eab308, #22c55e)
+@panel c14 at(2, 3, 1, 1) title: "CH 15"
+line: "LEVEL   " bar(v14.val) gradient(#ef4444, #eab308, #22c55e)
+@panel c15 at(3, 3, 1, 1) title: "CH 16"
+line: "LEVEL   " bar(v15.val) gradient(#ef4444, #eab308, #22c55e)

@@ -1,0 +1,19 @@
+# Piston Crane
+# Piston extension and rotor angle for a crane arm.
+@bind lift  = block("Crane Lift Piston")
+@bind reach = block("Crane Reach Piston")
+@bind swing = block("Crane Swing Rotor")
+@bind grip  = block("Crane Landing Gear")
+
+@screen Crane
+output: "Crane LCD", 0
+profile: standard
+layout: grid(1, 1)
+bg: #0a0c10
+border_color: #f97316
+
+@panel p at(0, 0, 1, 1) title: "CRANE"
+line: "LIFT    " bar(lift.percent) gradient(#38bdf8, #22c55e)
+line: "REACH   " bar(reach.percent) gradient(#38bdf8, #22c55e)
+line: "SWING   " balance(swing.percent) gradient(cyan, white, cyan)
+line: "GRIP    " led(grip.locked) flat(#22c55e)

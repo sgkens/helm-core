@@ -1,0 +1,35 @@
+# =====================================================================
+# HELM DISPLAY CONFIGURATION: REACTOR CORE MONOLITH
+# Full-screen monolithic nuclear power station display (1x1 or 1x2 LCD)
+# =====================================================================
+@bind reactor  = reactor("Main Fusion Reactor")
+@bind coolant  = gastank("Heavy Coolant Reservoir")
+@bind rods     = group("Control Rod Servos", agg: avg)
+@bind containment = group("Containment Field Emitters", agg: min)
+
+@screen reactor_monolith
+output: "Reactor Monolith LCD", 0
+profile: standard
+layout: grid(2, 2)
+bg: #060911
+border_color: #f59e0b
+boot_duration: 3.0s
+boot_color: orange
+boot_gradient(yellow, orange, red)
+boot_log: "pre-heating magnetic containment bottles..."
+boot_log: "aligning deuterium-tritium fuel injectors..."
+boot_log: "reactor core online -- CRITICALITY ACHIEVED"
+
+@panel core at(0, 0, 1, 2) title: "CONTAINMENT & FLOW" orientation: vertical
+line: "OUTPUT" bar(reactor.output) gradient(green, yellow, red) dir: up unit("GW")
+line: "COOLNT" led(coolant.percent) gradient(cyan, yellow, red) unit("kL")
+line: "FLOW  " flow(reactor.flow) flat(cyan)
+line: "TEMP  " spark(reactor.temp) flat(orange)
+line: "STATUS" status(containment.status) flat(lime)
+
+@panel control at(1, 0, 1, 2) title: "SAFETY & ROD TRIM"
+line: "ROD_BAL" balance(rods.trim) gradient(cyan, white, cyan)
+line: "MAGNETS" toggle(containment.enabled) flat(cyan)
+line: "ISOLATE" checkbox(reactor.scram) flat(red)
+line: "CORE_HZ" hazard(reactor.percent) gradient(yellow, red)
+line: "SAFETY " status(reactor.safety) flat(lime)

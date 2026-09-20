@@ -1,0 +1,29 @@
+# =====================================================================
+# HELM DISPLAY CONFIGURATION: ROVER COCKPIT
+# Ground vehicle powertrain, chassis, and logistics cockpit layout
+# =====================================================================
+@bind batt = battery("Rover Battery Bank")
+@bind eng  = engine("Hydrogen Engine Aux")
+@bind susp = suspension("Wheel Suspensions")
+@bind ore  = cargo("Ore Hopper Hold")
+
+@screen rover_dash
+output: "Rover Cockpit LCD", 0
+layout: grid(2, 2)
+bg: #0b0f17
+border_color: #38bdf8
+boot_msg: "SURFACE VEHICLE DIAGNOSTICS READY"
+
+@panel pwr at(0, 0, 1, 1) title: "POWERTRAIN [HV-4]"
+line: "BATT" bar(batt.percent) gradient(red, yellow, green)
+line: "ENGN" led(eng.percent) gradient(green, yellow, cyan)
+
+@panel susp at(0, 1, 1, 1) title: "CHASSIS & BRAKES"
+line: "SUSP" dots(susp.percent) flat(#38bdf8)
+line: "TRAC" chevron(susp.percent) gradient(cyan, lime)
+
+@panel cargo at(1, 0, 1, 2) title: "LOGISTICS MANIFEST"
+line: "ORE " bar(ore.percent) gradient(green, yellow, red)
+line: "AMMO" dots(batt.percent) flat(yellow)
+line: "RATE" spark(ore.percent) flat(cyan)
+line: "WARN" hazard(batt.percent) flat(red)

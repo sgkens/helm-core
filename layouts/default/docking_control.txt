@@ -1,0 +1,27 @@
+# Docking Control
+# Connector status, landing gear and docking sensors for a dock arm.
+@bind conn1  = block("Dock Connector 1")
+@bind conn2  = block("Dock Connector 2")
+@bind gear   = group("Dock Landing Gear", agg: min)
+@bind sens   = block("Dock Approach Sensor")
+@bind cam    = block("Dock Camera")
+@bind cargo  = group("Dock Cargo", agg: avg)
+
+@screen Dock
+output: "Dock LCD", 0
+profile: auto
+layout: grid(2, 1)
+bg: #090b0f
+border_color: #38bdf8
+
+@panel ports at(0, 0, 1, 1) title: "PORTS"
+line: "PORT 1  " checkbox(conn1.connected) flat(#38bdf8)
+line: "PORT 2  " checkbox(conn2.connected) flat(#38bdf8)
+line: "LOCK 1  " status(conn1.locked) flat(#22c55e)
+line: "LOCK 2  " status(conn2.locked) flat(#22c55e)
+line: "GEAR    " led(gear.locked) flat(#22c55e)
+
+@panel approach at(1, 0, 1, 1) title: "APPROACH"
+line: "SENSOR  " status(sens.detected) flat(#eab308)
+line: "CAMERA  " toggle(cam.active) flat(#38bdf8)
+line: "CARGO   " bar(cargo.percent) gradient(#22c55e, #eab308, #ef4444)

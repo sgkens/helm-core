@@ -1,0 +1,57 @@
+# Survival Essentials HUD
+@bind batts = group("Main Batteries", agg: avg)
+@bind solar = group("Solar Panels", agg: avg)
+@bind o2tank = block("O2 Tank")
+@bind h2tank = block("H2 Tank")
+@bind vent = block("Cockpit Vent")
+@bind med = block("Survival Kit")
+@bind cargo = block("Large Cargo")
+@bind ore = block("Ore Container")
+@bind comp = block("Component Cargo")
+@bind conv = group("Conveyor System", agg: min)
+@bind conn = block("Ship Connector")
+@bind gear = group("Landing Gears", agg: min)
+@bind asm = block("Basic Assembler")
+@bind rx = block("Small Reactor")
+
+@screen SurvivalHUD
+output: "Cockpit LCD 1", 0
+profile: auto
+layout: grid(2, 2)
+bg: #090b0f
+border_color: #38bdf8
+boot_duration: 2s
+boot_msg: "SURVIVAL SYSTEMS ONLINE"
+boot_gradient(#38bdf8, #0284c7, #082f49)
+boot_log: "Checking life support..."
+boot_log: "Battery levels nominal."
+boot_log: "Cargo manifest loaded."
+boot_log: "Ready for operations."
+
+@panel Power at(0, 0, 1, 1) title: "POWER STATUS"
+font: Blue
+line: "BATTERY " bar(batts.percent) gradient(#38bdf8, #7dd3fc)
+line: "FLOW    " flow(batts.current) gradient(#0ea5e9, #38bdf8)
+line: "SOLAR   " spark(solar.output) gradient(#7dd3fc, #0284c7)
+line: "TREND   " spark(batts.output) gradient(#38bdf8, #0ea5e9)
+
+@panel LifeSupp at(1, 0, 1, 1) title: "LIFE SUPPORT"
+font: Blue
+line: "O2 TANK " bar(o2tank.percent) gradient(#38bdf8, #bae6fd)
+line: "H2 TANK " bar(h2tank.percent) gradient(#0ea5e9, #0284c7)
+line: "O2 VENT " balance(vent.percent) gradient(#7dd3fc, #38bdf8)
+line: "MEDICAL " status(med.enabled) flat(#38bdf8)
+
+@panel Cargo at(0, 1, 1, 1) title: "CARGO & SUPPLY"
+font: Blue
+line: "MAIN CAR" bar(cargo.percent) gradient(#38bdf8, #0ea5e9)
+line: "ORE FILL" dots(ore.percent) flat(#7dd3fc)
+line: "COMPNT  " dots(comp.percent) flat(#0ea5e9)
+line: "CONVEYOR" toggle(conv.enabled) flat(#38bdf8)
+
+@panel Health at(1, 1, 1, 1) title: "SYSTEM HEALTH"
+font: Blue
+line: "CONNECT " checkbox(conn.connected) flat(#38bdf8)
+line: "LANDING " led(gear.locked) flat(#7dd3fc)
+line: "ASSMBLER" dots(asm.percent) flat(#0ea5e9)
+line: "REACTOR " chevron(rx.output) flat(#38bdf8)

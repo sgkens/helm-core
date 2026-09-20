@@ -1,0 +1,26 @@
+# Trading Station
+# Cargo values and connector traffic for a trade dock.
+@bind stock   = group("Trade Cargo", agg: avg)
+@bind vol     = group("Trade Cargo", agg: sum)
+@bind ore     = block("Trade Ore Container")
+@bind ports   = group("Trade Connectors", agg: max)
+@bind port1   = block("Trade Connector 1")
+@bind beacon  = block("Trade Beacon")
+
+@screen Trade
+output: "Trade LCD", 0
+profile: standard
+layout: grid(1, 2)
+bg: #0a0c10
+border_color: #22c55e
+
+@panel stock at(0, 0, 1, 1) title: "STOCK"
+line: "HOLD    " bar(stock.percent) gradient(#22c55e, #eab308, #ef4444)
+line: "VOLUME  " bar(vol.volume) gradient(#38bdf8, #22c55e) unit("kL")
+line: "ORE     " spark(ore.percent) flat(#eab308)
+line: "STATE   " text(stock.percent) color(stock.percent > 90 : red, stock.percent > 75 : yellow, default: green)
+
+@panel traffic at(0, 1, 1, 1) title: "TRAFFIC"
+line: "BERTHS  " status(ports.connected) flat(#22c55e)
+line: "BERTH 1 " checkbox(port1.connected) flat(#38bdf8)
+line: "BEACON  " bar(beacon.range) gradient(#38bdf8, #22c55e) unit("km")

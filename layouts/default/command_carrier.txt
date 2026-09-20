@@ -1,0 +1,76 @@
+# Capital carrier/dreadnought flagship
+@bind reactor = group("Main Reactors", agg: avg)
+@bind batts = group("Reserve Batteries", agg: avg)
+@bind dist = group("Power Distribution", agg: avg)
+@bind conn = group("Hangar Connectors", agg: min)
+@bind vent = group("Hangar Vents", agg: avg)
+@bind clamp = group("Magnetic Clamps", agg: min)
+@bind turrets = group("Main Battery", agg: min)
+@bind rail = group("Railgun Array", agg: min)
+@bind nuke = group("Warheads", agg: min)
+@bind pdc = group("PDC Gatlings", agg: min)
+@bind missile = group("Missile Bays", agg: min)
+@bind ecm = group("ECM Jammers", agg: min)
+@bind maindrv = group("Forward Drives", agg: avg)
+@bind rcs = group("RCS Thrusters", agg: avg)
+@bind jump = group("Jump Drives", agg: min)
+@bind ant = block("Command Antenna")
+@bind laser = group("Laser Comms", agg: min)
+@bind igc = dynamic("IGC_TARGET")
+
+@screen CarrierCmd
+output: "Bridge Screen", 0
+profile: auto
+layout: grid(3, 2)
+bg: #080510
+border_color: #7c3aed
+boot_duration: 4s
+boot_msg: "FLEET CARRIER COMMAND NET ACTIVE"
+boot_gradient(#7c3aed, #4c1d95, #2e1065)
+boot_log: "Authenticating command protocols..."
+boot_log: "Main reactor ignition confirmed."
+boot_log: "Tactical network synchronized."
+boot_log: "Weapons systems hot."
+boot_log: "Awaiting fleet orders."
+
+@panel FleetPwr at(0, 0, 1, 1) title: "FLEET POWER"
+font: Monospace
+line: "REACTOR " bar(reactor.output) gradient(#7c3aed, #a78bfa) unit("GW")
+line: "BATTERY " spark(batts.percent) gradient(#8b5cf6, #c4b5fd)
+line: "DISTRIB " flow(dist.current) flat(#7c3aed)
+line: "R-STATUS" status(reactor.enabled) flat(#8b5cf6)
+
+@panel Hangar at(1, 0, 1, 1) title: "HANGAR OPS"
+font: Monospace
+line: "DOCKED  " ammo(conn.locked) gradient(#7c3aed, #4c1d95)
+line: "ATMO    " balance(vent.percent) gradient(#8b5cf6, #a78bfa)
+line: "CLAMPS  " toggle(clamp.locked) flat(#7c3aed)
+line: "H-SEAL  " checkbox(vent.enabled) flat(#c4b5fd)
+
+@panel WepBatt at(2, 0, 1, 1) title: "WEAPONS BATTERY"
+font: Red
+line: "TURRETS " ammo(turrets.percent) gradient(#ef4444, #7c3aed)
+line: "RAILGUN " hazard(rail.percent) gradient(#7c3aed, #c4b5fd, #f43f5e)
+line: "WARHEAD " hazard(nuke.armed) gradient(#f43f5e, #9f1239)
+line: "W-STAT  " status(turrets.enabled) flat(#7c3aed)
+
+@panel PDefense at(0, 1, 1, 1) title: "POINT DEFENSE"
+font: Monospace
+line: "PDC GAT " dots(pdc.percent) flat(#8b5cf6)
+line: "MISSILE " ammo(missile.percent) gradient(#7c3aed, #a78bfa)
+line: "ECM NET " toggle(ecm.enabled) flat(#c4b5fd)
+line: "PD-STAT " led(pdc.enabled) flat(#7c3aed)
+
+@panel Propel at(1, 1, 1, 1) title: "PROPULSION"
+font: Monospace
+line: "MAIN DRV" chevron(maindrv.output) flat(#8b5cf6)
+line: "RCS NET " flow(rcs.output) gradient(#7c3aed, #4c1d95)
+line: "JUMP DRV" bar(jump.percent) gradient(#c4b5fd, #7c3aed, #2e1065)
+line: "J-READY " status(jump.enabled) flat(#a78bfa)
+
+@panel CmdNet at(2, 1, 1, 1) title: "COMMAND NET"
+font: Monospace
+line: "ANTENNA " spark(ant.max) gradient(#7c3aed, #8b5cf6)
+line: "LASER   " status(laser.connected) flat(#c4b5fd)
+line: "TARGET  " text(igc.val) flat(#8b5cf6)
+line: "C-UPLINK" led(ant.enabled) flat(#7c3aed)

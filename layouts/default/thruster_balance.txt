@@ -1,0 +1,32 @@
+# =====================================================================
+# HELM DISPLAY CONFIGURATION: FLIGHT VECTOR & THRUSTER BALANCE
+# Dual-panel flight dynamics HUD with zero-centered horizon balance charts
+# =====================================================================
+@bind gyro   = gyro("Flight Gyroscope Array")
+@bind th_fwd = thrusters("Forward Thruster Bank")
+@bind th_lat = thrusters("Lateral Thruster Bank")
+@bind fuel   = gastank("Hydrogen Propulsion Tanks")
+
+@screen flight_hud
+output: "Flight Center LCD", 0
+layout: grid(2, 1)
+bg: #0a0d14
+border_color: #38bdf8
+boot_duration: 2.5s
+boot_color: cyan
+boot_gradient(cyan, blue, magenta)
+boot_log: "flight gyro telemetry locked..."
+boot_log: "rcs thruster vectors calibrated..."
+boot_log: "horizon & trim computer ready."
+
+@panel attitude at(0, 0, 1, 1) title: "ATTITUDE & HORIZON"
+line: "PITCH" balance(gyro.pitch) gradient(cyan, white, cyan)
+line: "ROLL " balance(gyro.roll) gradient(cyan, white, cyan)
+line: "YAW  " balance(gyro.yaw) gradient(cyan, white, cyan)
+line: "TRIM " balance(gyro.trim) flat(#38bdf8)
+
+@panel propulsion at(1, 0, 1, 1) title: "PROPULSION DYNAMICS"
+line: "FWD " bar(th_fwd.percent) gradient(green, yellow, red)
+line: "LAT " balance(th_lat.percent) gradient(red, yellow, green, yellow, red)
+line: "FUEL" led(fuel.percent) gradient(red, yellow, green)
+line: "BURN" spark(th_fwd.percent) flat(cyan)

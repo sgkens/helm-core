@@ -1,0 +1,24 @@
+# Panel Spans
+# Panels spanning several columns and rows on a 3x3 grid.
+@bind a = dynamic("span.a", default: 72)
+@bind b = dynamic("span.b", default: 41)
+@bind c = dynamic("span.c", default: 88)
+
+@screen Spans
+output: "Span LCD", 0
+profile: auto
+layout: grid(3, 3)
+bg: #090b10
+border_color: #64748b
+
+@panel wide at(0, 0, 3, 1) title: "FULL WIDTH (3x1)"
+line: "TOTAL   " bar(a.val) gradient(#ef4444, #eab308, #22c55e)
+@panel tall at(0, 1, 1, 2) title: "TALL (1x2)"
+line: "ALPHA   " bar(a.val) flat(#38bdf8)
+line: "BETA    " bar(b.val) flat(#a78bfa)
+line: "GAMMA   " bar(c.val) flat(#22c55e)
+@panel block at(1, 1, 2, 2) title: "BLOCK (2x2)"
+line: "ALPHA   " bar(a.val) gradient(#38bdf8, #7dd3fc)
+line: "BETA    " flow(b.val) gradient(#a78bfa, #c4b5fd)
+line: "GAMMA   " spark(c.val) flat(#22c55e)
+line: "DELTA   " dots(a.val) flat(#eab308)

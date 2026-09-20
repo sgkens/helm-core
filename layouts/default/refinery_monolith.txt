@@ -1,0 +1,34 @@
+# =====================================================================
+# HELM DISPLAY CONFIGURATION: INDUSTRIAL REFINERY MONOLITH
+# Smelting furnace throughput, arc blast furnace loads, and slag flow
+# =====================================================================
+@bind refinery   = group("Blast Furnaces", agg: avg)
+@bind crushers   = group("Ore Crushers", agg: avg)
+@bind slag_flow  = group("Slag Sorters", agg: avg)
+@bind power_bus  = group("Refinery Capacitors", agg: avg)
+
+@screen refinery_monolith
+output: "Smelting Facility LCD", 0
+layout: grid(2, 2)
+bg: #0f0b07
+border_color: #f59e0b
+boot_duration: 3.0s
+boot_color: orange
+boot_gradient(yellow, orange, red)
+boot_log: "pre-heating blast furnace coils..."
+boot_log: "calibrating induction slag flow..."
+boot_log: "refinery complex ready -- THERMAL CRITICALITY REACHED"
+
+@panel blast at(0, 0, 1, 2) title: "FURNACE CORE & FLOW" orientation: vertical
+line: "HEAT  " bar(refinery.percent) gradient(yellow, orange, red) dir: up
+line: "CRUSH " led(crushers.percent) gradient(green, yellow, red)
+line: "SLAG  " flow(slag_flow.percent) flat(orange)
+line: "LOAD  " spark(refinery.percent) flat(yellow)
+line: "FURNCE" status(refinery.percent) flat(lime)
+
+@panel control at(1, 0, 1, 2) title: "POWER & AUTOMATION"
+line: "BUS_BAL" balance(power_bus.percent) gradient(cyan, white, cyan)
+line: "INDUCT " toggle(refinery.percent) flat(yellow)
+line: "AUTO_CL" checkbox(slag_flow.percent) flat(lime)
+line: "VENT_HZ" hazard(refinery.percent) gradient(orange, red)
+line: "SAFETY " status(power_bus.percent) flat(lime)

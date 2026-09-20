@@ -1,0 +1,21 @@
+# =====================================================================
+# HELM DISPLAY CONFIGURATION: MINING RIG
+# Drill array load and ore extraction monitor
+# =====================================================================
+@bind ore = cargo("Mining Ore Hold")
+@bind drill = group("Drill Heads", agg: avg)
+
+@screen mining_dash
+output: "Drill Console LCD", 0
+layout: grid(1, 2)
+bg: #100f0a
+border_color: #f59e0b
+boot_msg: "DRILL TELEMETRY ENGAGED"
+
+@panel hold at(0, 0, 1, 1) title: "CARGO CAPACITY"
+line: "HOLD" bar(ore.percent) gradient(green, yellow, red)
+line: "FLOW" spark(ore.percent) flat(cyan)
+
+@panel drills at(0, 1, 1, 1) title: "DRILL ARRAY LOAD"
+line: "HEAD" led(drill.percent) gradient(cyan, yellow, red)
+line: "WARN" hazard(drill.percent) flat(yellow)

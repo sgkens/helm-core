@@ -1,0 +1,94 @@
+# =====================================================================
+# HELM MODULAR BORDER & FRAME TEMPLATES
+# =====================================================================
+# This file provides reusable panel and HUD templates showcasing custom
+# border styles, positional titles, independent title typography colors,
+# and procedural multi-stop border gradients.
+#
+# Directives supported:
+#   border: <heavy | double | single | rounded | minimal | ascii | graphic | none>
+#   border_color: <#hex | named_color>
+#   border_gradient: <stop1, stop2, ...>
+#   title_align: <left | center | right>
+#   title_color: <#hex | named_color>
+# =====================================================================
+
+# ---------------------------------------------------------------------
+# TEMPLATE 1: heavy_command
+# Heavy reinforced bulkhead border with centered high-visibility title
+# ---------------------------------------------------------------------
+@template heavy_command(screen="Command Screen", surf=0, core="Reactor*", batt="Battery*")
+@bind pwr_$screen = group("$core", agg: avg)
+@bind bat_$screen = group("$batt", agg: avg)
+@screen $screen
+output: "$screen", $surf
+border: heavy
+border_gradient: #38bdf8, #2563eb, #1e40af
+title_align: center
+title_color: #f8fafc
+layout: grid(1, 1)
+@panel pwr at(0, 0, 1, 1) title: "COMMAND POWER CORE" border: heavy title_align: center title_color: #38bdf8 border_gradient: #38bdf8, #1e40af
+line: "REACTOR " bar(pwr_$screen.percent) gradient(#38bdf8, #60a5fa) unit("GW")
+line: "BATTERY " bar(bat_$screen.percent) gradient(#22c55e, #15803d) unit("MW")
+line: "DRAIN   " spark(pwr_$screen.percent) flat(#38bdf8)
+line: "STATUS  " status(pwr_$screen.percent) flat(#22c55e)
+@end
+
+# ---------------------------------------------------------------------
+# TEMPLATE 2: double_tactical
+# Double-line crisp military tactical border with right-aligned titles
+# ---------------------------------------------------------------------
+@template double_tactical(screen="Tactical HUD", surf=0, guns="Gatling*", ammo="Ammo*")
+@bind wpn_$screen = group("$guns", agg: min)
+@bind am_$screen  = group("$ammo", agg: avg)
+@screen $screen
+output: "$screen", $surf
+border: double
+border_color: #ef4444
+title_align: right
+title_color: #fca5a5
+layout: grid(1, 1)
+@panel combat at(0, 0, 1, 1) title: "WEAPONS FIRE CONTROL" border: double title_align: right title_color: #ef4444 border_color: #b91c1c
+line: "TURRETS " hazard(wpn_$screen.percent) gradient(#ef4444, #7f1d1d)
+line: "MUNITION" ammo(am_$screen.percent) gradient(#f59e0b, #ef4444)
+line: "STATUS  " status(wpn_$screen.percent) flat(#ef4444)
+@end
+
+# ---------------------------------------------------------------------
+# TEMPLATE 3: rounded_avionics
+# Sleek curved rounded border with cyan gradient and yellow title accent
+# ---------------------------------------------------------------------
+@template rounded_avionics(screen="Flight Deck", surf=0, gyro="Gyro*", fuel="Hydrogen*")
+@bind gyr_$screen = group("$gyro", agg: avg)
+@bind h2_$screen  = group("$fuel", agg: min)
+@screen $screen
+output: "$screen", $surf
+border: rounded
+border_gradient: #06b6d4, #3b82f6
+title_align: center
+title_color: #fef08a
+layout: grid(1, 1)
+@panel nav at(0, 0, 1, 1) title: "AVIONICS & STABILIZATION" border: rounded title_align: center title_color: #fde047 border_gradient: #06b6d4, #3b82f6
+line: "PITCH   " balance(gyr_$screen.percent) gradient(#06b6d4, #3b82f6)
+line: "FUEL H2 " bar(h2_$screen.percent) gradient(#06b6d4, #3b82f6)
+line: "BURN    " flow(h2_$screen.percent) flat(#06b6d4)
+@end
+
+# ---------------------------------------------------------------------
+# TEMPLATE 4: minimal_telemetry
+# Zero horizontal clutter, clean divider borders for high-density HUDs
+# ---------------------------------------------------------------------
+@template minimal_telemetry(screen="Compact Monitor", surf=0, cargo="Cargo*")
+@bind crg_$screen = group("$cargo", agg: avg)
+@screen $screen
+output: "$screen", $surf
+border: minimal
+border_color: #94a3b8
+title_align: left
+title_color: #38bdf8
+layout: grid(1, 1)
+@panel data at(0, 0, 1, 1) title: "MINIMAL LOGISTICS" border: minimal title_align: left title_color: #38bdf8 border_color: #64748b
+line: "CAPACITY" bar(crg_$screen.percent) gradient(#38bdf8, #0284c7)
+line: "VOLUME  " dots(crg_$screen.percent) flat(#38bdf8)
+line: "FLOW    " spark(crg_$screen.percent) flat(#64748b)
+@end

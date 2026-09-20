@@ -1,0 +1,57 @@
+# Deep Space Explorer
+@bind jump = block("Jump Drive")
+@bind h2 = group("Hydrogen Tanks", agg: min)
+@bind gyro = group("Gyroscopes", agg: avg)
+@bind batts = group("Battery Bank", agg: avg)
+@bind rx = group("Reactors", agg: avg)
+@bind solar = group("Solar Sails", agg: avg)
+@bind ore = block("Ore Detector")
+@bind cam = block("Front Camera")
+@bind ant = block("Long Range Antenna")
+@bind beacon = block("Emergency Beacon")
+@bind conn = block("Docking Connector")
+@bind cargo = group("Hold Cargo", agg: avg)
+@bind gear = group("Landing Gear", agg: min)
+@bind med = block("Cryo Pod")
+
+@screen ExplorerHUD
+output: "Main LCD", 0
+profile: auto
+layout: grid(2, 2)
+bg: #07090f
+border_color: #6366f1
+boot_duration: 3s
+boot_msg: "DEEP SPACE NAVIGATION SYSTEMS ACTIVE"
+boot_gradient(#6366f1, #4f46e5, #312e81)
+boot_log: "Star chart calibration complete."
+boot_log: "Sensor array sweeping sector..."
+boot_log: "Jump drive capacitors charged."
+boot_log: "Charting course..."
+
+@panel Nav at(0, 0, 1, 1) title: "NAVIGATION"
+font: Monospace
+line: "JUMP CHG" bar(jump.percent) gradient(#6366f1, #818cf8, #3730a3)
+line: "J-RANGE " spark(jump.max) gradient(#818cf8, #4f46e5)
+line: "H2 RANGE" flow(h2.percent) gradient(#6366f1, #4338ca)
+line: "GYRO TRM" balance(gyro.percent) gradient(#a5b4fc, #6366f1)
+
+@panel Power at(1, 0, 1, 1) title: "POWER & RANGE"
+font: Monospace
+line: "BATTERY " bar(batts.percent) gradient(#6366f1, #818cf8)
+line: "REACTOR " chevron(rx.output) flat(#4f46e5)
+line: "SOLAR   " spark(solar.output) gradient(#a5b4fc, #6366f1)
+line: "PWR TRND" spark(batts.output) gradient(#6366f1, #3730a3)
+
+@panel Sensor at(0, 1, 1, 1) title: "SURVEY & SENSORS"
+font: Monospace
+line: "ORE DET " bar(ore.max) gradient(#818cf8, #4f46e5)
+line: "CAMERA  " status(cam.enabled) flat(#6366f1)
+line: "ANTENNA " spark(ant.max) gradient(#6366f1, #312e81)
+line: "BEACON  " led(beacon.enabled) flat(#a5b4fc)
+
+@panel Docking at(1, 1, 1, 1) title: "DOCKING & SUPPLY"
+font: Monospace
+line: "CONNECT " checkbox(conn.connected) flat(#6366f1)
+line: "CARGO % " dots(cargo.percent) flat(#818cf8)
+line: "L-GEAR  " toggle(gear.locked) flat(#4f46e5)
+line: "CRYO POD" status(med.enabled) flat(#6366f1)

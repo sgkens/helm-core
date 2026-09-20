@@ -1,0 +1,24 @@
+# Hangar Bay
+# Doors, connector, landing gear and pressure for a hangar.
+@bind outer = block("Hangar Outer Door")
+@bind inner = block("Hangar Inner Door")
+@bind vent  = block("Hangar Vent")
+@bind conn  = block("Hangar Connector")
+@bind gear  = group("Hangar Landing Gear", agg: min)
+
+@screen Hangar
+output: "Hangar LCD", 0
+profile: auto
+layout: grid(2, 1)
+bg: #090b0f
+border_color: #f59e0b
+
+@panel doors at(0, 0, 1, 1) title: "DOORS"
+line: "OUTER   " bar(outer.open) gradient(#22c55e, #eab308, #ef4444)
+line: "INNER   " bar(inner.open) gradient(#22c55e, #eab308, #ef4444)
+line: "PRESSURE" balance(vent.percent) gradient(cyan, white, cyan)
+
+@panel dock at(1, 0, 1, 1) title: "DOCKING"
+line: "CONNECT " checkbox(conn.connected) flat(#38bdf8)
+line: "GEAR    " led(gear.locked) flat(#22c55e)
+line: "STATUS  " status(conn.connected) flat(#22c55e)

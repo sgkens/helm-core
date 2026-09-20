@@ -1,0 +1,21 @@
+# Boot Custom
+# Custom boot message, log lines, color and gradient, with a longer duration.
+@bind batts = group("Main Batteries", agg: avg)
+
+@screen Boot
+output: "Boot LCD", 0
+profile: standard
+layout: grid(1, 1)
+bg: #06080c
+border_color: #a78bfa
+boot_duration: 4s
+boot_msg: "SYSTEM COLD START"
+boot_color: #a78bfa
+boot_gradient(#a78bfa, #7c3aed, #4c1d95)
+boot_log: "Power bus check..."
+boot_log: "Sensor sweep complete."
+boot_log: "Telemetry link up."
+boot_log: "All systems nominal."
+
+@panel p at(0, 0, 1, 1) title: "POWER"
+line: "BATTERY " bar(batts.percent) gradient(#ef4444, #eab308, #22c55e)

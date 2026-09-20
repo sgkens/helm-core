@@ -1,0 +1,18 @@
+# Template Stamp
+# A user-defined template stamped out for two ships with single-line @use calls.
+@template engine_pod($screen, $batt_group, $tank_group)
+@bind pwr_$screen = group("$batt_group", agg: avg)
+@bind h2_$screen  = group("$tank_group", agg: avg)
+@screen $screen
+output: "$screen LCD", 0
+profile: standard
+layout: grid(1, 1)
+bg: #090c11
+border_color: #38bdf8
+@panel pod at(0, 0, 1, 1) title: "$screen"
+line: "POWER   " bar(pwr_$screen.percent) gradient(#ef4444, #eab308, #22c55e)
+line: "HYDROGEN" bar(h2_$screen.percent) gradient(#f97316, #eab308)
+@end
+
+@use engine_pod(screen="Port Nacelle", batt_group="Port Batteries", tank_group="Port H2")
+@use engine_pod(screen="Starboard Nacelle", batt_group="Starboard Batteries", tank_group="Starboard H2")

@@ -1,0 +1,34 @@
+# =====================================================================
+# HELM DISPLAY CONFIGURATION: MEDBAY & ENVIRONMENTAL LIFE SUPPORT
+# O2 pressurization, cryo pod telemetry, medical bay biometrics, and vent flow
+# =====================================================================
+@bind o2_tanks   = group("Oxygen Tank Reserves", agg: avg)
+@bind cryo_pods  = group("Cryo Pod Chambers", agg: avg)
+@bind air_vents  = group("Environmental Vents", agg: min)
+@bind med_units  = group("Medical Stations", agg: min)
+
+@screen medical_life_support
+output: "Medbay Center LCD", 0
+layout: grid(2, 2)
+bg: #050e0f
+border_color: #06b6d4
+boot_duration: 2.0s
+boot_color: cyan
+boot_gradient(teal, cyan, white)
+boot_log: "sterilizing environmental scrubbers..."
+boot_log: "verifying cryo-suspension chamber biometrics..."
+boot_log: "life support telemetry grid nominal -- ATMOSPHERE STABLE"
+
+@panel atmosphere at(0, 0, 1, 2) title: "LIFE SUPPORT MATRIX" orientation: vertical
+line: "O2_RES" bar(o2_tanks.percent) gradient(red, yellow, cyan) dir: up
+line: "VENT_P" led(air_vents.percent) gradient(cyan, lime, white)
+line: "O2_FLW" flow(air_vents.percent) flat(cyan)
+line: "CRYO  " dots(cryo_pods.percent) flat(teal)
+line: "BIO_ST" status(cryo_pods.percent) flat(lime)
+
+@panel isolation at(1, 0, 1, 2) title: "SECURITY & PRESSURIZATION"
+line: "VENT_BAL" balance(air_vents.percent) gradient(cyan, white, cyan)
+line: "SCRUB   " toggle(air_vents.percent) flat(cyan)
+line: "QUARANT " checkbox(med_units.percent) flat(red)
+line: "BIO_HZ  " hazard(o2_tanks.percent) gradient(yellow, red)
+line: "STATION " status(med_units.percent) flat(lime)

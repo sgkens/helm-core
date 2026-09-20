@@ -1,0 +1,27 @@
+# Sensor Security
+# Sensors, cameras, turrets and door interlocks for a perimeter.
+@bind gate   = block("Security Sensor Gate")
+@bind yard   = block("Security Sensor Yard")
+@bind cam    = block("Security Camera")
+@bind door   = block("Security Door")
+@bind lock   = block("Security Airlock Door")
+@bind guns   = group("Security Turrets", agg: avg)
+
+@screen Security
+output: "Security LCD", 0
+profile: auto
+layout: grid(2, 1)
+bg: #0b0a0a
+border_color: #ef4444
+
+@panel detect at(0, 0, 1, 1) title: "DETECTION"
+line: "GATE    " status(gate.detected) flat(#ef4444)
+line: "YARD    " status(yard.detected) flat(#ef4444)
+line: "CAMERA  " toggle(cam.active) flat(#38bdf8)
+line: "RANGE   " bar(cam.range) gradient(#22c55e, #eab308, #ef4444) unit("m")
+
+@panel access at(1, 0, 1, 1) title: "ACCESS"
+line: "DOOR    " checkbox(door.open) flat(#eab308)
+line: "AIRLOCK " checkbox(lock.open) flat(#eab308)
+line: "TURRETS " hazard(guns.percent) gradient(#ef4444, #7f1d1d)
+line: "TARGET  " led(guns.target) flat(#ef4444)

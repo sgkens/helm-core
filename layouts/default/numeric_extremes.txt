@@ -1,0 +1,24 @@
+# Numeric Extremes
+# Edge case: values at and beyond the gauge range (0, 100, negative, above 100).
+@bind zero = dynamic("x.zero", default: 0)
+@bind full = dynamic("x.full", default: 100)
+@bind neg  = dynamic("x.neg", default: -25)
+@bind over = dynamic("x.over", default: 150)
+@bind tiny = dynamic("x.tiny", default: 0.4)
+
+@screen Extremes
+output: "Edge LCD", 0
+profile: standard
+layout: grid(1, 1)
+bg: #0a0c11
+border_color: #a78bfa
+
+@panel Range at(0, 0, 1, 1) title: "VALUE RANGE"
+line: "ZERO    " bar(zero.val) gradient(#ef4444, #22c55e)
+line: "FULL    " bar(full.val) gradient(#ef4444, #22c55e)
+line: "NEGATIVE" bar(neg.val) gradient(#ef4444, #22c55e)
+line: "OVER 100" bar(over.val) gradient(#ef4444, #22c55e)
+line: "TINY    " bar(tiny.val) gradient(#ef4444, #22c55e)
+line: "TOGGLE0 " toggle(zero.val) flat(#22c55e)
+line: "TOGGLE1 " toggle(full.val) flat(#22c55e)
+line: "TEXT NEG" text(neg.val) unit("MW") flat(#fbbf24)

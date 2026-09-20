@@ -1,0 +1,39 @@
+# All Gauges Showcase
+# Every gauge kind on one screen, one kind per line, for renderer regression checks.
+@bind a = dynamic("demo.a", default: 72)
+@bind b = dynamic("demo.b", default: 35)
+@bind c = dynamic("demo.c", default: 88)
+@bind d = dynamic("demo.d", default: 12)
+@bind e = dynamic("demo.e", default: 55)
+@bind f = dynamic("demo.f", default: 64)
+
+@screen Showcase
+output: "Showcase LCD", 0
+profile: auto
+layout: grid(2, 2)
+bg: #080a0f
+border_color: #64748b
+
+@panel Fill at(0, 0, 1, 1) title: "FILL"
+line: "BAR     " bar(a.val) gradient(#ef4444, #eab308, #22c55e)
+line: "LED     " led(b.val) flat(#38bdf8)
+line: "DOTS    " dots(c.val) flat(#a78bfa)
+line: "SPARK   " spark(e.val) flat(#facc15)
+
+@panel Motion at(1, 0, 1, 1) title: "MOTION"
+line: "FLOW    " flow(a.val) gradient(#0ea5e9, #38bdf8) dir: up
+line: "CHEVRON " chevron(f.val) flat(#22c55e)
+line: "BALANCE " balance(e.val) gradient(cyan, white, cyan)
+line: "HAZARD  " hazard(d.val) gradient(yellow, red)
+
+@panel State at(0, 1, 1, 1) title: "STATE"
+line: "TOGGLE  " toggle(a.val) flat(#22c55e)
+line: "TOGGLE  " toggle(d.val) flat(#22c55e)
+line: "CHECK   " checkbox(c.val) flat(#38bdf8)
+line: "STATUS  " status(f.val) flat(#22c55e)
+
+@panel Text at(1, 1, 1, 1) title: "TEXT"
+line: "AMMO    " ammo(f.val) flat(#f97316)
+line: "TEXT    " text(a.val) flat(#fbbf24)
+line: "TEXT    " text(b.val) unit("MW") flat(#fbbf24)
+line: "TEXT    " text(c.val) unit("kL") flat(#fbbf24)

@@ -1,0 +1,32 @@
+# Multi Screen One PB
+# Three screens driven by one Programmable Block; one screen is redrawn per run (round-robin).
+@bind batts = group("Main Batteries", agg: avg)
+@bind h2    = group("Hydrogen Tanks", agg: avg)
+@bind cargo = group("Cargo Containers", agg: avg)
+
+@screen Power
+output: "Power LCD", 0
+profile: standard
+layout: grid(1, 1)
+bg: #0a0d12
+border_color: #eab308
+@panel p at(0, 0, 1, 1) title: "POWER"
+line: "BATTERY " bar(batts.percent) gradient(#ef4444, #eab308, #22c55e)
+
+@screen Fuel
+output: "Fuel LCD", 0
+profile: standard
+layout: grid(1, 1)
+bg: #0a0d12
+border_color: #f97316
+@panel f at(0, 0, 1, 1) title: "FUEL"
+line: "HYDROGEN" bar(h2.percent) gradient(#ef4444, #eab308, #22c55e)
+
+@screen Cargo
+output: "Cargo LCD", 0
+profile: standard
+layout: grid(1, 1)
+bg: #0a0d12
+border_color: #38bdf8
+@panel c at(0, 0, 1, 1) title: "CARGO"
+line: "CARGO   " bar(cargo.percent) gradient(#22c55e, #eab308, #ef4444)

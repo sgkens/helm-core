@@ -1,0 +1,32 @@
+# =====================================================================
+# HELM DISPLAY CONFIGURATION: CARGO WAREHOUSE MONOLITH
+# Full-screen monolithic automated logistics bay (1x1 or 1x2 LCD)
+# =====================================================================
+@bind ore_hold = cargo("Primary Ore Hold")
+@bind comp_bay = cargo("Component Storage Bay")
+@bind xfer     = group("Conveyor Sorters", agg: avg)
+@bind ejector  = group("Stone Ejectors", agg: min)
+
+@screen cargo_monolith
+output: "Cargo Warehouse LCD", 0
+layout: grid(2, 2)
+bg: #07090e
+border_color: #10b981
+boot_duration: 2.0s
+boot_color: lime
+boot_log: "indexing cargo volume containers..."
+boot_log: "conveyor network pressure nominal..."
+boot_log: "logistics bay ready."
+
+@panel storage at(0, 0, 1, 2) title: "WAREHOUSE SILOS" orientation: vertical
+line: "ORE_VOL" bar(ore_hold.percent) gradient(green, yellow, red) dir: up
+line: "COMP_VOL" bar(comp_bay.percent) gradient(cyan, yellow, red) dir: up
+line: "NET_RATE" flow(xfer.rate) flat(cyan)
+line: "STORAGE " dots(ore_hold.percent) flat(yellow)
+
+@panel logistics at(1, 0, 1, 2) title: "CONVEYOR ROUTING"
+line: "SORT_BAL" balance(xfer.balance) gradient(cyan, white, cyan)
+line: "SORTERS " toggle(xfer.enabled) flat(lime)
+line: "EJECTORS" checkbox(ejector.enabled) flat(orange)
+line: "BAY_STAT" status(ore_hold.status) flat(cyan)
+line: "HIST_DRAIN" spark(ore_hold.percent) flat(cyan)

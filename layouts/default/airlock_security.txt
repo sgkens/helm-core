@@ -1,0 +1,25 @@
+# =====================================================================
+# HELM DISPLAY CONFIGURATION: AIRLOCK SECURITY
+# Pressure cycle and bulkhead gate security monitor
+# =====================================================================
+@bind pres = airvent("Airlock Pressure Vent")
+@bind in_d = door("Inner Security Bulkhead")
+@bind out_d= door("Outer Airlock Gate")
+
+@screen airlock_panel
+output: "Airlock Control Screen", 0
+layout: grid(1, 2)
+bg: #090c10
+border_color: #10b981
+boot_msg: "ENVIRONMENTAL CYCLER ARMED"
+
+@panel atmo at(0, 0, 1, 1) title: "ATMOSPHERIC INTEGRITY"
+line: "PRES" bar(pres.percent) gradient(red, yellow, cyan)
+line: "VENT" dots(pres.percent) flat(lime)
+line: "CYCL" flow(pres.percent) flat(cyan)
+
+@panel doors at(0, 1, 1, 1) title: "SECURITY ACCESS GATES"
+line: "INNR" bar(in_d.percent) gradient(green, yellow, red)
+line: "OUTR" bar(out_d.percent) gradient(red, yellow, green)
+line: "LOCK" checkbox(out_d.percent) flat(yellow)
+line: "STAT" status(pres.percent) flat(lime)

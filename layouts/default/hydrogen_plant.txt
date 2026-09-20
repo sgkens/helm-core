@@ -1,0 +1,26 @@
+# Hydrogen Plant
+# Gas generators, tanks and hydrogen engines.
+@bind gen    = group("H2 Generators", agg: avg)
+@bind tanks  = group("H2 Tanks", agg: avg)
+@bind tank1  = block("H2 Tank 1")
+@bind eng    = group("H2 Engines", agg: sum)
+@bind engavg = group("H2 Engines", agg: avg)
+
+@screen Hydrogen
+output: "Hydrogen LCD", 0
+profile: standard
+layout: grid(1, 2)
+bg: #0a0c10
+border_color: #38bdf8
+
+@panel gas at(0, 0, 1, 1) title: "GAS"
+line: "GENERATE" status(gen.producing) flat(#22c55e)
+line: "AUTO    " toggle(gen.auto) flat(#38bdf8)
+line: "TANKS   " bar(tanks.percent) gradient(#ef4444, #eab308, #38bdf8)
+line: "TANK 1  " flow(tank1.percent) gradient(#38bdf8, #60a5fa)
+line: "STOCK   " toggle(tank1.stockpile) flat(#eab308)
+
+@panel power at(0, 1, 1, 1) title: "ENGINES"
+line: "OUTPUT  " bar(eng.output) gradient(#78350f, #f97316) unit("MW")
+line: "LOAD    " spark(engavg.percent) flat(#f97316)
+line: "STATE   " status(engavg.percent) flat(#22c55e)

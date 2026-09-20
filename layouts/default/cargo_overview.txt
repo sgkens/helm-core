@@ -1,0 +1,35 @@
+# =====================================================================
+# HELM DISPLAY CONFIGURATION: CARGO OVERVIEW
+# Dedicated station/ship logistics and material manifest display
+# =====================================================================
+@bind ore_hold = cargo("Ore Hopper Hold")
+@bind ingot_store = cargo("Refined Ingot Silo")
+@bind comp_store = cargo("Component Storage Bay")
+@bind ammo_mag = cargo("Ammunition Locker")
+
+@screen cargo_overview
+output: "Cargo Manifest LCD", 0
+layout: grid(2, 2)
+bg: #0a0d14
+border_color: #f59e0b
+boot_msg: "HELM LOGISTICS SYSTEM ONLINE"
+
+@panel ores at(0, 0, 1, 1) title: "RAW ORE SILOS"
+line: "IRON" bar(ore_hold.percent) gradient(red, yellow, green)
+line: "NICK" dots(ore_hold.percent) flat(cyan)
+line: "SILV" spark(ore_hold.percent) flat(white)
+
+@panel ingots at(1, 0, 1, 1) title: "REFINED INGOTS"
+line: "FE  " bar(ingot_store.percent) gradient(green, yellow, red)
+line: "NI  " led(ingot_store.percent) flat(cyan)
+line: "PT  " chevron(ingot_store.percent) gradient(cyan, lime)
+
+@panel comps at(0, 1, 1, 1) title: "COMPONENT STORES"
+line: "PLTE" bar(comp_store.percent) gradient(red, yellow, cyan)
+line: "MOTR" dots(comp_store.percent) flat(yellow)
+line: "GRID" led(comp_store.percent) gradient(green, yellow, red)
+
+@panel munitions at(1, 1, 1, 1) title: "ORDNANCE & AMMO"
+line: "NATO" bar(ammo_mag.percent) gradient(red, yellow, green)
+line: "MSLE" hazard(ammo_mag.percent) flat(yellow)
+line: "FLOW" spark(ammo_mag.percent) flat(cyan)

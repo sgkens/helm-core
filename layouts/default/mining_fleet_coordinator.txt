@@ -1,0 +1,76 @@
+# Mining Fleet Operations Coordinator
+@bind mina_c = dynamic("miner_a.cargo")
+@bind mina_d = dynamic("miner_a.drill")
+@bind mina_p = dynamic("miner_a.power")
+@bind minb_c = dynamic("miner_b.cargo")
+@bind minb_d = dynamic("miner_b.drill")
+@bind minb_p = dynamic("miner_b.power")
+@bind ore = group("Fleet Ore Cargo", agg: avg)
+@bind comp = group("Component Cargo", agg: avg)
+@bind vol = group("Total Cargo Vol", agg: sum)
+@bind ref = group("Industrial Refineries", agg: min)
+@bind asm = group("Fleet Assemblers", agg: min)
+@bind sorter = group("Drain Sorters", agg: min)
+@bind batts = group("Fleet Batteries", agg: avg)
+@bind rx = group("Fleet Reactors", agg: avg)
+@bind solar = group("Fleet Solar", agg: avg)
+@bind ops_p = dynamic("ops.progress")
+@bind ops_e = dynamic("ops.eta")
+@bind conn = block("Tender Connector")
+@bind ant = block("Tender Antenna")
+
+@screen MiningFleet
+output: "Ops Board", 0
+profile: auto
+layout: grid(2, 3)
+bg: #080a06
+border_color: #f59e0b
+boot_duration: 3s
+boot_msg: "MINING FLEET COORDINATION NETWORK ONLINE"
+boot_gradient(#f59e0b, #b45309, #78350f)
+boot_log: "Establishing IGC handshake..."
+boot_log: "Linking miner telemetry..."
+boot_log: "Cargo manifest syncing..."
+boot_log: "Ready for excavation."
+
+@panel MinerA at(0, 0, 1, 1) title: "MINER ALPHA"
+font: Monospace
+line: "CARGO % " flow(mina_c.val) gradient(#f59e0b, #fbbf24)
+line: "DRILLS  " ammo(mina_d.val) gradient(#d97706, #f59e0b)
+line: "POWER   " status(mina_p.val) flat(#fcd34d)
+line: "UPLINK  " led(mina_p.val) flat(#f59e0b)
+
+@panel MinerB at(1, 0, 1, 1) title: "MINER BETA"
+font: Monospace
+line: "CARGO % " flow(minb_c.val) gradient(#f59e0b, #fbbf24)
+line: "DRILLS  " ammo(minb_d.val) gradient(#d97706, #f59e0b)
+line: "POWER   " status(minb_p.val) flat(#fcd34d)
+line: "UPLINK  " led(minb_p.val) flat(#f59e0b)
+
+@panel FleetCargo at(0, 1, 1, 1) title: "FLEET CARGO"
+font: Monospace
+line: "ORE HAUL" bar(ore.percent) gradient(#f59e0b, #b45309)
+line: "COMPNT  " bar(comp.percent) gradient(#fbbf24, #d97706)
+line: "VOL SPK " spark(vol.percent) gradient(#f59e0b, #78350f, #fcd34d)
+line: "CAPACITY" dots(vol.max) flat(#f59e0b)
+
+@panel Process at(1, 1, 1, 1) title: "PROCESSING"
+font: Monospace
+line: "REFINING" status(ref.producing) flat(#f59e0b)
+line: "ASSMBLER" dots(asm.percent) flat(#fbbf24)
+line: "DRAIN-AL" toggle(sorter.enabled) flat(#d97706)
+line: "P-STATUS" led(ref.enabled) flat(#f59e0b)
+
+@panel FleetPwr at(0, 2, 1, 1) title: "FLEET POWER"
+font: Monospace
+line: "BATTERY " bar(batts.percent) gradient(#f59e0b, #fbbf24)
+line: "REACTOR " chevron(rx.output) flat(#d97706)
+line: "SOLAR   " spark(solar.output) gradient(#fcd34d, #f59e0b)
+line: "GRID PWR" flow(batts.output) gradient(#b45309, #f59e0b)
+
+@panel Ops at(1, 2, 1, 1) title: "OPERATIONS"
+font: Monospace
+line: "PROGRESS" bar(ops_p.val) gradient(#f59e0b, #b45309)
+line: "ETA     " text(ops_e.val) flat(#fbbf24)
+line: "DOCKING " checkbox(conn.connected) flat(#f59e0b)
+line: "ANTENNA " spark(ant.max) gradient(#d97706, #78350f)

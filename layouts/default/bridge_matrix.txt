@@ -1,0 +1,38 @@
+# =====================================================================
+# HELM DISPLAY CONFIGURATION: BRIDGE MATRIX
+# Capital ship 4-quadrant command matrix
+# =====================================================================
+@bind main_pwr = group("Capacitor Array", "Main Reactors", agg: avg)
+@bind o2_life  = airvent("Bridge Life Support")
+@bind jump_sp  = jumpdrive("Hyper Jump Core")
+@bind h2_prop  = group("Hydrogen Reserves", agg: min)
+
+@screen fleet_bridge
+output: "Bridge Main Multi-Matrix", 0
+layout: grid(2, 2)
+bg: #0a0d14
+border_color: #2563eb
+boot_msg: "FLEET COMMAND HELM INITIALIZED"
+boot_duration: 3s
+boot_gradient(cyan, blue, magenta)
+boot_log: "initiating fleet command bus..."
+boot_log: "polling bridge telemetry matrix..."
+boot_log: "synchronizing reactor core..."
+boot_log: "warp flight deck ready"
+boot_log: "helm-core online -- FLEET COMMAND READY"
+
+@panel pwr at(0, 0, 1, 1) title: "ENERGY CORE MATRIX"
+line: "GRID" bar(main_pwr.percent) gradient(red, yellow, green)
+line: "DRAIN" spark(main_pwr.percent) flat(cyan)
+
+@panel nav at(1, 0, 1, 1) title: "PROPULSION DYNAMICS"
+line: "H2  " bar(h2_prop.percent) gradient(red, yellow, cyan)
+line: "THR " chevron(h2_prop.percent) gradient(blue, cyan, white)
+
+@panel o2 at(0, 1, 1, 1) title: "LIFE SUPPORT SYSTEMS"
+line: "O2  " bar(o2_life.percent) flat(cyan)
+line: "VENT" dots(o2_life.percent) gradient(red, yellow, green)
+
+@panel fsd at(1, 1, 1, 1) title: "WARP FLIGHT DECK"
+line: "JUMP" led(jump_sp.percent) flat(magenta)
+line: "WARN" hazard(jump_sp.percent) flat(yellow)

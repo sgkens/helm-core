@@ -1,0 +1,19 @@
+# Gradient Stress
+# Edge case: gradients with many stops, two identical stops (a single-stop gradient is a parse error), and named versus hex colors.
+@bind v = dynamic("g.v", default: 58)
+@bind w = dynamic("g.w", default: 91)
+
+@screen Gradients
+output: "Gradient LCD", 0
+profile: standard
+layout: grid(1, 1)
+bg: #090b10
+border_gradient: #ef4444, #f97316, #eab308, #22c55e, #38bdf8, #a78bfa
+
+@panel p at(0, 0, 1, 1) title: "GRADIENT STOPS"
+line: "SIX     " bar(v.val) gradient(#ef4444, #f97316, #eab308, #22c55e, #38bdf8, #a78bfa)
+line: "SIX HI  " bar(w.val) gradient(#ef4444, #f97316, #eab308, #22c55e, #38bdf8, #a78bfa)
+line: "SAME    " bar(v.val) gradient(#38bdf8, #38bdf8)
+line: "NAMED   " bar(v.val) gradient(red, yellow, green)
+line: "FLAT HEX" bar(v.val) flat(#a78bfa)
+line: "FLAT NAME" bar(v.val) flat(orange)

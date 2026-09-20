@@ -1,0 +1,20 @@
+# Solar Farm
+# Many solar panels aggregated, with battery storage and wind support.
+@bind solar = group("Solar Panels", agg: sum)
+@bind avg   = group("Solar Panels", agg: avg)
+@bind wind  = group("Wind Turbines", agg: sum)
+@bind batts = group("Main Batteries", agg: avg)
+
+@screen Solar
+output: "Solar LCD", 0
+profile: standard
+layout: grid(1, 1)
+bg: #0a0c10
+border_color: #facc15
+
+@panel p at(0, 0, 1, 1) title: "SOLAR FARM"
+line: "SOLAR   " bar(solar.output) gradient(#78350f, #facc15) unit("MW")
+line: "PANELS  " spark(avg.output) flat(#facc15)
+line: "WIND    " bar(wind.output) gradient(#0ea5e9, #38bdf8) unit("MW")
+line: "STORAGE " bar(batts.percent) gradient(#ef4444, #eab308, #22c55e)
+line: "CHARGE  " flow(batts.current) gradient(#22c55e, #16a34a)

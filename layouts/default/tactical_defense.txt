@@ -1,0 +1,34 @@
+# =====================================================================
+# HELM DISPLAY CONFIGURATION: TACTICAL BATTLESTATION DEFENSE
+# Full-screen combat bridge display with weapons, ammo, shields, and toggles
+# =====================================================================
+@bind gatling  = group("PDC Gatling Turrets", agg: min)
+@bind missile  = group("Torpedo Launch Tubes", agg: min)
+@bind shields  = group("Defense Shield Array", agg: avg)
+@bind targeting = group("Targeting Radar", agg: min)
+
+@screen tactical_defense
+output: "Combat Bridge LCD", 0
+layout: grid(2, 2)
+bg: #0d0606
+border_color: #ef4444
+boot_duration: 2.5s
+boot_color: red
+boot_gradient(yellow, orange, red)
+boot_log: "fire control computer armed..."
+boot_log: "point defense radar tracking engaged..."
+boot_log: "tactical grid -- LIVE & READY."
+
+@panel ordinance at(0, 0, 1, 2) title: "MUNITIONS & FIREPOWER"
+line: "PDC_AMMO" ammo(gatling.ammo) flat(yellow)
+line: "TORP_BAY" led(missile.percent) gradient(red, yellow, cyan)
+line: "AMMO_FLW" flow(gatling.rate) flat(orange)
+line: "FEED_BAL" balance(gatling.balance) gradient(cyan, white, cyan)
+line: "FIRE_CTL" toggle(gatling.enabled) flat(red)
+
+@panel defense at(1, 0, 1, 2) title: "GRID INTEGRITY & RADAR"
+line: "SHIELDS " bar(shields.percent) gradient(red, yellow, cyan)
+line: "RADAR_TR" checkbox(targeting.enabled) flat(cyan)
+line: "ECM_MODE" toggle(targeting.ecm) flat(magenta)
+line: "GRID_STS" status(shields.status) flat(lime)
+line: "ALERT_HZ" hazard(shields.alert) gradient(yellow, red)

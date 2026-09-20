@@ -1,0 +1,35 @@
+# =====================================================================
+# HELM DISPLAY CONFIGURATION: INDUSTRIAL FABRICATION PLANT MONOLITH
+# Full-screen automated manufacturing plant with active machinery spinners
+# =====================================================================
+@bind assembler = group("Assemblers*", agg: avg)
+@bind cargo     = group("Component Storage*", agg: sum)
+@bind power     = group("Factory Power*", agg: avg)
+@bind disasm    = group("Disassembly Sorters*", agg: avg)
+
+@screen assembler_monolith
+output: "Assembler Monolith LCD", 0
+profile: standard
+layout: grid(2, 2)
+bg: #0b0f14
+border_color: #38bdf8
+boot_duration: 2.5s
+boot_color: cyan
+boot_gradient(cyan, blue, indigo)
+boot_log: "initializing fabrication line servos..."
+boot_log: "spooling magnetic component extruders..."
+boot_log: "fabrication plant online -- MOTOR / ONLINE"
+
+@panel factory at(0, 0, 1, 2) title: "FABRICATION & MOTOR" orientation: vertical
+line: "MOTOR " spinner(assembler.producing) flat(lime)
+line: "LOAD  " bar(assembler.percent) gradient(cyan, yellow, red) dir: up
+line: "QUEUE " spark(assembler.percent) flat(cyan)
+line: "REPEAT" toggle(assembler.repeating) flat(yellow)
+line: "STATUS" status(assembler.producing) flat(lime)
+
+@panel logistics at(1, 0, 1, 2) title: "DISASSEMBLY & BUFFER"
+line: "DISASM" checkbox(assembler.disassembling) flat(orange)
+line: "POWER " bar(power.percent) gradient(red, yellow, green) unit("MW")
+line: "BUFFER" bar(cargo.volume) gradient(cyan, yellow, red) unit("kL")
+line: "TREND " spark(cargo.percent) flat(cyan)
+line: "GRID  " status(power.percent) flat(lime)

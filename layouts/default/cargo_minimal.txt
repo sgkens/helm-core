@@ -1,0 +1,15 @@
+# Cargo Minimal
+# Two-line strip for a slanted CornerLCD (4:1).
+@bind cargo = group("Cargo Containers", agg: avg)
+@bind ore   = block("Ore Container")
+
+@screen CargoStrip
+output: "Corner LCD", 0
+profile: corner
+layout: grid(1, 1)
+bg: #0b0e13
+border_color: #f59e0b
+
+@panel Cargo at(0, 0, 1, 1) title: "CARGO"
+line: "CARGO   " bar(cargo.percent) gradient(#22c55e, #eab308, #ef4444)
+line: "ORE     " bar(ore.percent) gradient(#22c55e, #eab308, #ef4444)

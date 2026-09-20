@@ -1,0 +1,29 @@
+# =====================================================================
+# HELM DISPLAY CONFIGURATION: DYNAMIC TELEMETRY & MICRO-API HUD
+# Demonstrates HELM acting as a micro-framework receiving IGC / CLI data
+# =====================================================================
+@bind lock     = dynamic("target.lock", default: 0)
+@bind dist     = dynamic("target.dist", default: 2450)
+@bind missiles = dynamic("missiles.ready", default: 8)
+@bind speed    = dynamic("ship.speed", default: 98.4)
+@bind grid_pwr = dynamic("reactor.output", default: 125)
+
+@screen dynamic_hud
+output: "Tactical HUD LCD", 0
+profile: standard
+layout: grid(2, 2)
+bg: #070a12
+border_color: #38bdf8
+boot_msg: "LINKING IGC TELEMETRY BUS"
+
+@panel fire_control at(0, 0, 1, 2) title: "FIRE CONTROL (IGC)" orientation: vertical
+line: "LOCK  " toggle(lock.val) flat(red)
+line: "RANGE " bar(dist.val) unit("m") gradient(green, yellow, red)
+line: "AMMO  " ammo(missiles.val) flat(orange)
+line: "STATUS" status(lock.val) flat(lime)
+
+@panel avionics at(1, 0, 1, 2) title: "AVIONICS & CORE"
+line: "SPEED " bar(speed.val) unit("m/s") gradient(cyan, white, cyan)
+line: "POWER " bar(grid_pwr.val) unit("MW") gradient(yellow, orange, red)
+line: "TREND " spark(dist.val) flat(cyan)
+line: "SYSTEM" status(grid_pwr.val) flat(lime)

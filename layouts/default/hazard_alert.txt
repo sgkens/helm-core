@@ -1,0 +1,24 @@
+# =====================================================================
+# HELM DISPLAY CONFIGURATION: HAZARD ALERT
+# Tactical defense and reactor criticality warning display
+# =====================================================================
+@bind reactor = reactor("Large Reactor Core")
+@bind weapon  = warhead("Forward Torpedo Bay")
+@bind vel     = thruster("Main Ion Thrusters")
+
+@screen alert_hud
+output: "Tactical HUD", 0
+layout: grid(1, 2)
+bg: #120909
+border_color: #ef4444
+boot_msg: "TACTICAL WARNING SYSTEM ACTIVE"
+
+@panel weapons at(0, 0, 1, 1) title: "TACTICAL DEFENSE [LIVE]"
+line: "ARMD" hazard(weapon.percent) flat(yellow)
+line: "CORE" hazard(reactor.percent) gradient(yellow, red)
+line: "SPIN" chevron(vel.percent) gradient(cyan, lime, white)
+
+@panel sensors at(0, 1, 1, 1) title: "SYSTEM CELL TELEMETRY"
+line: "CELL" dots(reactor.percent) gradient(red, yellow, green)
+line: "GRID" led(weapon.percent) gradient(green, yellow, red)
+line: "TRAC" spark(vel.percent) flat(cyan)

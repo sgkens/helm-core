@@ -1,0 +1,36 @@
+# =====================================================================
+# HELM DISPLAY CONFIGURATION: SPLIT FLIGHT DECK (2x1 HORIZONTAL SPLIT)
+# Ultra-widescreen split cockpit monitor (1x2 LCD or 5x3 Bridge Display)
+# =====================================================================
+@bind bat_port   = group("Port Batteries", agg: avg)
+@bind bat_stbd   = group("Starboard Batteries", agg: avg)
+@bind h2_port    = group("Port Fuel Cells", agg: min)
+@bind h2_stbd    = group("Starboard Fuel Cells", agg: min)
+@bind thr_trim   = gyro("Flight Attitude Gyro")
+@bind rcs_burst  = group("RCS Thrusters", agg: avg)
+
+@screen split_flight_deck
+output: "Cockpit Center LCD", 0
+layout: grid(2, 1)
+bg: #070a10
+border_color: #38bdf8
+boot_duration: 2.5s
+boot_color: cyan
+boot_gradient(cyan, blue, magenta)
+boot_log: "calibrating port & starboard avionics..."
+boot_log: "linking dual-redundant power buses..."
+boot_log: "split avionics deck online -- READY."
+
+@panel port_avionics at(0, 0, 1, 1) title: "PORT AVIONICS [BUS A]"
+line: "BAT_P" bar(bat_port.percent) gradient(red, yellow, green)
+line: "H2_P " bar(h2_port.percent) gradient(red, yellow, cyan)
+line: "FLOW " flow(h2_port.percent) flat(cyan)
+line: "CELL " dots(bat_port.percent) flat(lime)
+line: "PWR_A" toggle(bat_port.percent) flat(cyan)
+
+@panel stbd_avionics at(1, 0, 1, 1) title: "STARBOARD AVIONICS [BUS B]"
+line: "TRIM " balance(thr_trim.roll) gradient(cyan, white, cyan)
+line: "BAT_S" bar(bat_stbd.percent) gradient(red, yellow, green)
+line: "H2_S " bar(h2_stbd.percent) gradient(red, yellow, cyan)
+line: "FLOW " flow(h2_stbd.percent) flat(cyan)
+line: "PWR_B" toggle(bat_stbd.percent) flat(cyan)

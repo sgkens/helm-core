@@ -1,0 +1,57 @@
+# Atmospheric Lander / Dropship HUD
+@bind gyro = block("Main Gyroscope")
+@bind atmo = group("Atmo Thrusters", agg: avg)
+@bind h2res = group("Hydrogen Tanks", agg: min)
+@bind speed = dynamic("craft.speed")
+@bind gear = group("Landing Gear", agg: min)
+@bind conn = block("Bottom Connector")
+@bind susp = group("Wheel Suspensions", agg: avg)
+@bind drill = group("Surface Drills", agg: min)
+@bind cargo = group("Dropship Cargo", agg: avg)
+@bind solar = group("Top Solar Panels", agg: avg)
+@bind batts = group("Craft Batteries", agg: avg)
+@bind med = block("Survival Kit")
+@bind o2 = block("O2 Generator")
+@bind ant = block("Telemetry Antenna")
+
+@screen LanderHUD
+output: "Cockpit LCD", 0
+profile: auto
+layout: grid(2, 2)
+bg: #0a0800
+border_color: #d97706
+boot_duration: 3s
+boot_msg: "ATMOSPHERIC ENTRY SYSTEMS ARMED"
+boot_gradient(#d97706, #92400e, #451a03)
+boot_log: "Heat shield integrity check... PASS"
+boot_log: "Retro thruster priming..."
+boot_log: "Landing gear deployment sequence initialized."
+boot_log: "Surface topology acquired."
+
+@panel Descent at(0, 0, 1, 1) title: "DESCENT VECTOR"
+font: Monospace
+line: "PITCH   " balance(gyro.percent) gradient(#d97706, #f59e0b)
+line: "THRUST  " chevron(atmo.output) flat(#b45309)
+line: "H2 RESRV" bar(h2res.percent) gradient(#f59e0b, #d97706, #92400e)
+line: "SPEED   " spark(speed.val) gradient(#fcd34d, #d97706)
+
+@panel LandSys at(1, 0, 1, 1) title: "LANDING SYSTEMS"
+font: Monospace
+line: "L-GEAR  " hazard(gear.locked) gradient(#d97706, #f59e0b, #78350f)
+line: "CONNECT " checkbox(conn.connected) flat(#d97706)
+line: "SUSPENSN" balance(susp.percent) gradient(#f59e0b, #b45309)
+line: "L-STATUS" led(gear.enabled) flat(#fcd34d)
+
+@panel SurfOps at(0, 1, 1, 1) title: "SURFACE OPS"
+font: Monospace
+line: "DRILLS  " flow(drill.enabled) gradient(#d97706, #92400e)
+line: "CARGO % " bar(cargo.percent) gradient(#f59e0b, #d97706)
+line: "SOLAR   " spark(solar.output) gradient(#fcd34d, #f59e0b)
+line: "D-STATUS" toggle(drill.enabled) flat(#d97706)
+
+@panel CraftInt at(1, 1, 1, 1) title: "CRAFT INTEGRITY"
+font: Monospace
+line: "BATTERY " bar(batts.percent) gradient(#d97706, #b45309)
+line: "MEDICAL " status(med.enabled) flat(#f59e0b)
+line: "O2 SUPP " dots(o2.percent) flat(#fcd34d)
+line: "ANTENNA " spark(ant.max) gradient(#d97706, #92400e)

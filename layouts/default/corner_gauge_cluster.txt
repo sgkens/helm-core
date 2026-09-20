@@ -1,0 +1,19 @@
+# Corner Gauge Cluster
+# Density limit for a 256x128 cockpit corner surface: four short lines.
+@bind h2   = block("H2 Tank")
+@bind o2   = block("O2 Tank")
+@bind gear = group("Landing Gears", agg: min)
+@bind conn = block("Ship Connector")
+
+@screen Cluster
+output: "Cockpit", 3
+profile: corner
+layout: grid(1, 1)
+bg: #090c10
+border_color: #38bdf8
+
+@panel Cluster at(0, 0, 1, 1) title: "SYSTEMS"
+line: "H2  " bar(h2.percent) gradient(#f97316, #eab308)
+line: "O2  " bar(o2.percent) gradient(#38bdf8, #22c55e)
+line: "GEAR" led(gear.locked) flat(#22c55e)
+line: "CONN" led(conn.connected) flat(#38bdf8)

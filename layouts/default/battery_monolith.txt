@@ -1,0 +1,21 @@
+# =====================================================================
+# HELM DISPLAY CONFIGURATION: BATTERY MONOLITH
+# High-impact full-screen liquid power bank display (1x1 or Wide LCD)
+# =====================================================================
+@bind main_bank = group("Main Battery Bank", agg: avg)
+
+@screen battery_monolith
+output: "Battery Monolith LCD", 0
+profile: standard
+layout: grid(1, 1)
+bg: #050811
+border_color: #10b981
+boot_msg: "CAPACITOR CELL CALIBRATION"
+
+@panel power_core at(0, 0, 1, 1) title: "MAIN POWER CORE" orientation: vertical
+line: "ENERGY" bar(main_bank.percent) gradient(red, yellow, lime) dir: up unit("MW")
+line: "FLOW  " flow(main_bank.rate) flat(cyan)
+line: "CELLS " dots(main_bank.percent) gradient(red, yellow, green)
+line: "TREND " spark(main_bank.percent) flat(cyan)
+line: "RECHG " toggle(main_bank.recharge) flat(lime)
+line: "STATUS" status(main_bank.status) flat(lime)

@@ -1,0 +1,26 @@
+# =====================================================================
+# HELM DISPLAY CONFIGURATION: FIGHTER HUD
+# Combat strike craft flight dynamics and tactical status
+# =====================================================================
+@bind batt = battery("Fighter Battery")
+@bind h2   = tank("H2 Fuel Tank")
+@bind thr  = thruster("Ion Thrusters")
+
+@screen fighter_cockpit
+output: "Cockpit HUD", 0
+layout: grid(1, 2)
+bg: #05080c
+border_color: #38bdf8
+boot_msg: "FIGHTER FCS CALIBRATED"
+
+@panel flight at(0, 0, 1, 1) title: "PROPULSION DYNAMICS"
+line: "PWR " bar(batt.percent) gradient(red, yellow, green)
+line: "H2  " bar(h2.percent) gradient(red, yellow, cyan)
+line: "VECT" chevron(thr.percent) gradient(blue, cyan, white)
+
+@panel tactical at(0, 1, 1, 1) title: "SYSTEMS & ORDNANCE"
+line: "AMMO" ammo(batt.percent) flat(yellow)
+line: "ARMD" toggle(thr.percent) flat(red)
+line: "CELL" dots(batt.percent) flat(cyan)
+line: "WARN" hazard(h2.percent) flat(yellow)
+line: "FLOW" flow(h2.percent) flat(cyan)

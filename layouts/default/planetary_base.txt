@@ -1,0 +1,77 @@
+# Planetary Outpost Master Control
+@bind solar = group("Solar Farm", agg: avg)
+@bind wind = group("Wind Turbine Array", agg: avg)
+@bind batts = group("Base Batteries", agg: avg)
+@bind o2h2 = group("O2/H2 Generators", agg: avg)
+@bind air = group("Base Air Vents", agg: avg)
+@bind med = block("Medical Room")
+@bind drills = group("Excavation Drills", agg: min)
+@bind cargo = group("Base Cargo Silos", agg: avg)
+@bind sorter = group("Conveyor Sorters", agg: min)
+@bind ref = group("Refineries", agg: min)
+@bind blast = group("Blast Furnaces", agg: min)
+@bind asm = group("Assemblers", agg: min)
+@bind turrets = group("Gatling Turrets", agg: min)
+@bind sensor = group("Perimeter Sensors", agg: max)
+@bind ant = block("Base Antenna")
+@bind gears = group("Landing Pads", agg: min)
+@bind rotors = group("Solar Rotors", agg: min)
+@bind proj = block("Base Projector")
+@bind conn = group("Base Connectors", agg: min)
+
+@screen BaseControl
+output: "Main LCD", 0
+profile: auto
+layout: grid(2, 3)
+bg: #060a08
+border_color: #22c55e
+boot_duration: 3s
+boot_msg: "BASE STATION SYSTEMS INITIALIZING"
+boot_gradient(#22c55e, #166534, #052e16)
+boot_log: "Loading planetary grid data..."
+boot_log: "Syncing power management network..."
+boot_log: "Initializing perimeter defense..."
+boot_log: "Life support stabilized."
+
+@panel Power at(0, 0, 1, 1) title: "SURFACE POWER"
+font: Green
+line: "SOLAR   " bar(solar.output) gradient(#22c55e, #15803d) unit("kW")
+line: "WIND    " bar(wind.output) gradient(#22c55e, #15803d) unit("kW")
+line: "BATTERY " spark(batts.percent) gradient(#22c55e, #4ade80, #166534)
+line: "CHARGE  " flow(batts.current) gradient(#4ade80, #15803d)
+line: "STATUS  " status(batts.enabled) flat(#22c55e)
+
+@panel LifeSupp at(1, 0, 1, 1) title: "LIFE SUPPORT"
+font: Green
+line: "O2/H2   " toggle(o2h2.enabled) flat(#22c55e)
+line: "AIRVENT " balance(air.percent) gradient(#4ade80, #15803d)
+line: "MEDICAL " status(med.enabled) flat(#22c55e)
+line: "O2 FLOW " dots(o2h2.output) flat(#22c55e)
+
+@panel Excavate at(0, 1, 1, 1) title: "EXCAVATION"
+font: Green
+line: "DRILLS  " status(drills.enabled) flat(#22c55e)
+line: "SILO %  " bar(cargo.percent) gradient(#22c55e, #bbf7d0, #166534)
+line: "SORTER  " toggle(sorter.enabled) flat(#4ade80)
+line: "M-FLOW  " chevron(cargo.current) flat(#22c55e)
+
+@panel Process at(1, 1, 1, 1) title: "ORE PROCESSING"
+font: Green
+line: "REFINER " status(ref.producing) flat(#22c55e)
+line: "FURNACE " status(blast.producing) flat(#4ade80)
+line: "ASSMBLE " toggle(asm.enabled) flat(#22c55e)
+line: "QUEUE   " dots(asm.percent) flat(#22c55e)
+
+@panel Defense at(0, 2, 1, 1) title: "BASE DEFENSE"
+font: Green
+line: "TURRETS " hazard(turrets.armed) gradient(#22c55e, #ef4444)
+line: "SENSOR  " bar(sensor.max) gradient(#22c55e, #15803d)
+line: "ANTENNA " spark(ant.max) gradient(#4ade80, #22c55e)
+line: "PAD LOCK" checkbox(gears.locked) flat(#22c55e)
+
+@panel Infra at(1, 2, 1, 1) title: "INFRASTRUCTURE"
+font: Green
+line: "ROTORS  " toggle(rotors.enabled) flat(#22c55e)
+line: "PROJCTR " bar(proj.percent) gradient(#22c55e, #15803d)
+line: "CONNECT " checkbox(conn.connected) flat(#4ade80)
+line: "LINK    " led(conn.locked) flat(#22c55e)

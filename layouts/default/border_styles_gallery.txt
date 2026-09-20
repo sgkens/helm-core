@@ -1,0 +1,27 @@
+# Border Styles Gallery
+# One panel per border style. In game only the screen-level style matters (ascii and none differ); panel-level border: renders in helmv.ps1 only.
+@bind v = dynamic("demo.v", default: 64)
+
+@screen Borders
+output: "Gallery LCD", 0
+profile: auto
+layout: grid(4, 2)
+bg: #090b10
+border_color: #64748b
+
+@panel heavy at(0, 0, 1, 1) title: "HEAVY" border: heavy
+line: "VALUE   " bar(v.val) flat(#38bdf8)
+@panel double at(1, 0, 1, 1) title: "DOUBLE" border: double
+line: "VALUE   " bar(v.val) flat(#38bdf8)
+@panel single at(2, 0, 1, 1) title: "SINGLE" border: single
+line: "VALUE   " bar(v.val) flat(#38bdf8)
+@panel rounded at(3, 0, 1, 1) title: "ROUNDED" border: rounded
+line: "VALUE   " bar(v.val) flat(#38bdf8)
+@panel minimal at(0, 1, 1, 1) title: "MINIMAL" border: minimal
+line: "VALUE   " bar(v.val) flat(#38bdf8)
+@panel ascii at(1, 1, 1, 1) title: "ASCII" border: ascii
+line: "VALUE   " bar(v.val) flat(#38bdf8)
+@panel graphic at(2, 1, 1, 1) title: "GRAPHIC" border: graphic
+line: "VALUE   " bar(v.val) flat(#38bdf8)
+@panel none at(3, 1, 1, 1) title: "NONE" border: none
+line: "VALUE   " bar(v.val) flat(#38bdf8)

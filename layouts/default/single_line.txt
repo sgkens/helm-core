@@ -1,0 +1,13 @@
+# Single Line
+# Smallest useful configuration: one screen, one panel, one line.
+@bind batts = group("Main Batteries", agg: avg)
+
+@screen SingleLine
+output: "Status LCD", 0
+profile: standard
+layout: grid(1, 1)
+bg: #0b0f14
+border_color: #38bdf8
+
+@panel Power at(0, 0, 1, 1) title: "POWER"
+line: "BATTERY " bar(batts.percent) gradient(#ef4444, #eab308, #22c55e)

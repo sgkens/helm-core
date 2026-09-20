@@ -1,0 +1,14 @@
+# Transparent Background
+# Edge case: transparent screen background so the LCD's own background shows through.
+@bind v = dynamic("demo.v", default: 63)
+
+@screen Overlay
+output: "Overlay LCD", 0
+profile: standard
+layout: grid(1, 1)
+bg: transparent
+border_color: #38bdf8
+
+@panel p at(0, 0, 1, 1) title: "OVERLAY"
+line: "VALUE   " bar(v.val) gradient(#38bdf8, #7dd3fc)
+line: "FLOW    " flow(v.val) flat(#22c55e)
