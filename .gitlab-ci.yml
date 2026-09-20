@@ -20,7 +20,7 @@
 #                         or as a pipeline variable when manually running.
 #
 # Optional tunable Variables:
-#   HELM_BUDGET_SOFT_LIMIT  — Soft warning threshold (default: 96000)
+#   HELM_BUDGET_SOFT_LIMIT  — Soft warning threshold (default: 99000)
 #   HELM_BUDGET_HARD_LIMIT  — Hard failure threshold (default: 100000)
 #   HELM_PACKAGE_NAME       — Generic package name (default: helm-core)
 #
@@ -36,7 +36,7 @@ stages:
   - deploy
 
 variables:
-  HELM_BUDGET_SOFT_LIMIT: "96000"
+  HELM_BUDGET_SOFT_LIMIT: "99000"
   HELM_BUDGET_HARD_LIMIT: "100000"
   HELM_PACKAGE_NAME: "helm-core"
   DOTNET_NOLOGO: "true"

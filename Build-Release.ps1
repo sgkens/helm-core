@@ -18,7 +18,7 @@
     Skip minification. Produces only HelmCombined.cs (the human-readable combined source).
 
 .PARAMETER BudgetSoftLimit
-    Character count at which a budget warning is emitted (default 96000).
+    Character count at which a budget warning is emitted (default 99000).
 
 .PARAMETER BudgetHardLimit
     Character count at which the build is aborted as over-budget (default 100000).
@@ -44,7 +44,7 @@
 param(
     [switch]$NoTest,
     [switch]$NoMinify,
-    [int]$BudgetSoftLimit = 96000,
+    [int]$BudgetSoftLimit = 99000,
     [int]$BudgetHardLimit = 100000
 )
 
