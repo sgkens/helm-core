@@ -84,7 +84,7 @@ line: "<LABEL>" text(<bind>.<field>) [color(<conditions>, default: <color>)]
 | Directive               | Scope               | Description                                                        | Default         | Required?  |
 | ----------------------- | ------------------- | ------------------------------------------------------------------ | --------------- | ---------- |
 | `@template <name>(...)` | Global              | Declares a reusable macro template with parameter substitution     | —               | No         |
-| `@use <name>(...)`      | Global              | Instantiates a template with custom arguments or group renames     | —               | No         |
+| `@use <name>(...)`      | Global              | Instantiates a template with custom arguments; templates may nest 4 levels | —       | No         |
 | `@bind <name> = ...`    | Global              | Binds a hardware device or block group to an alias                 | —               | Yes        |
 | `@screen <name>`        | Global              | Starts a new physical screen configuration                         | —               | Yes        |
 | `output:`               | `@screen`           | Physical block name and surface index (0-indexed)                  | Surface 0       | **Yes**    |

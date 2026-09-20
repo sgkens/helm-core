@@ -2539,7 +2539,7 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
             return t;
         }
 
-        private static void ExpandTemplateCall(string line, Dictionary<string, TemplateDef> userTemplates, List<string> outLines, List<string> errors)
+        private static void ExpandTemplateCall(string line, Dictionary<string, TemplateDef> userTemplates, List<string> outLines, List<string> errors, int depth = 0)
         {
             // @use name(arg1, arg2, key=val, ...)
             string rest = line.Substring("@use".Length).Trim();
@@ -2586,7 +2586,12 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     expanded = expanded.Replace("$" + kv.Key, kv.Value)
                                        .Replace("{" + kv.Key + "}", kv.Value);
                 }
-                outLines.Add(expanded);
+                if (expanded.StartsWith("@use"))
+                {
+                    if (depth > 3) throw new FormatException("@use nested too deep");
+                    ExpandTemplateCall(expanded, userTemplates, outLines, errors, depth + 1);
+                }
+                else outLines.Add(expanded);
             }
         }
 

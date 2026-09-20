@@ -207,6 +207,26 @@ line: ""O2""  bar(o2_$screen.percent) flat(cyan)
         Check(cfgTmpl.Screens[1].Name == "Pod Beta", "screen 1 name = Pod Beta");
         Check(cfgTmpl.Screens[1].OutputBlockName == "Pod Beta LCD", "screen 1 output = Pod Beta LCD");
 
+        // --- Nested templates: a template body may call another template ---
+        string nestedSample = @"
+@template leaf($screen)
+@screen $screen
+output: ""$screen LCD"", 0
+@end
+@template pair($side)
+@use leaf(screen=""$side Fore"")
+@use leaf(screen=""$side Aft"")
+@end
+@use pair(side=""Port"")
+@use pair(side=""Starboard"")
+";
+        var cfgNested = HelmParser.Parse(nestedSample);
+        Check(cfgNested.Errors.Count == 0, "nested @use parses with zero errors: " + string.Join(" | ", cfgNested.Errors));
+        Check(cfgNested.Screens.Count == 4, "nested @use: 2 pairs x 2 leaves = 4 screens");
+        Check(cfgNested.Screens.Count == 4 && cfgNested.Screens[3].Name == "Starboard Aft", "nested @use: last screen = Starboard Aft");
+        var cfgLoop = HelmParser.Parse("@template a($x)\n@use a(x=\"$x\")\n@end\n@use a(x=\"1\")\n");
+        Check(cfgLoop.Errors.Count == 1 && cfgLoop.Errors[0].Contains("nested too deep"), "self-calling template stops with one 'nested too deep' error");
+
         // --- Epic 1: Predefined Built-In Template Gallery ---
         string gallerySample = @"
 @use fighter_hud(screen=""Fighter Cockpit"", pwr=""Fighter Batteries"", h2=""Hydrogen Tanks"")
