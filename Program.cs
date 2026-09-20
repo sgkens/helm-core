@@ -1341,7 +1341,8 @@ namespace IngameScript
                         dirty = true;
                     }
 
-                    if (dirty || valueChanged)
+                    if (valueChanged) dirty = true;
+                    if (dirty)
                     {
                         float pct = (float)Math.Max(0.0, Math.Min(1.0, slot.DisplayValue / 100.0));
                         float fillW = slot.BarMaxWidth * pct;
