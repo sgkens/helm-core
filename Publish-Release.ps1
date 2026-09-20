@@ -249,8 +249,7 @@ $includeItems = @(
     (Join-Path $ScriptDir "Build-Release.ps1"),
     (Join-Path $ScriptDir "Publish-Release.ps1"),
     (Join-Path $ScriptDir "Test-HelmLayout.ps1"),
-    (Join-Path $ScriptDir "helmv.ps1"),
-    (Join-Path $ScriptDir "logo-helm-core.svg")
+    (Join-Path $ScriptDir "helmv.ps1")
 )
 
 # Ensure OutDir exists
@@ -374,15 +373,15 @@ if ($Steam) {
     Copy-Item (Join-Path $ScriptDir "layouts") $workshopContent -Recurse
     Copy-Item (Join-Path $ScriptDir "WORKSHOP.md") $workshopContent
 
-    $previewSvg = Join-Path $ScriptDir "logo-helm-core.svg"
-    if (Test-Path $previewSvg) {
-        Copy-Item $previewSvg (Join-Path $workshopContent "preview.svg")
-    }
+    # Steam Workshop preview: PNG, JPG or GIF. A missing file must stop the publish, not skip it.
+    $previewSrc = Join-Path (Join-Path $ScriptDir "brand") "preview.png"
+    if (-not (Test-Path $previewSrc)) { throw "Workshop preview not found: $previewSrc (add a PNG, ideally 512x512 or larger)." }
+    Copy-Item $previewSrc (Join-Path $workshopContent "preview.png")
 
     # Generate VDF manifest
     $vdfPath = Join-Path ([System.IO.Path]::GetTempPath()) "helm_workshop.vdf"
     $workshopContentAbs = (Resolve-Path $workshopContent).Path
-    $previewAbs = Join-Path $workshopContentAbs "preview.svg"
+    $previewAbs = Join-Path $workshopContentAbs "preview.png"
 
     Set-Content -Path $vdfPath -Encoding UTF8 -Value @"
 "workshopitem"
