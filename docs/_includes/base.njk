@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="night">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }} | HELM Core Docs</title>
+  <meta name="description" content="{{ description or 'Documentation for HELM Core, a Space Engineers telemetry display script.' }}">
+  <meta name="helm-base" content="{{ '/' | url }}">
+  <link rel="icon" type="image/x-icon" href="/assets/helm-core-logo-256x256.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Share+Tech+Mono&display=swap">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/theme-syntax-highlighting.css">
+  <link rel="stylesheet" href="/assets/css/docs.css">
+  <script>
+    // Runs before first paint: restores the docs theme and picks the code theme
+    // ("auto" follows the docs theme; otherwise the saved code theme is used).
+    (function() {
+      var AUTO = { night: 'tokyonight', dark: 'zerodark', synthwave: 'cyberpink', cyberpunk: 'citrus',
+                   dim: 'macchiato', dracula: 'mocha', forest: 'gruvbox', black: 'umbra' };
+      window.helmApplySyntaxTheme = function () {
+        var root = document.documentElement, choice = 'auto';
+        try { choice = localStorage.getItem('helm_syntax_theme') || 'auto'; } catch (e) {}
+        root.setAttribute('data-syntax-theme', choice === 'auto' ? (AUTO[root.getAttribute('data-theme')] || 'tokyonight') : choice);
+      };
+      try {
+        var savedTheme = localStorage.getItem('helm_docs_theme');
+        if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+      } catch (e) {}
+      window.helmApplySyntaxTheme();
+    })();
+  </script>
+</head>
+<body class="min-h-screen bg-base-100 text-base-content antialiased font-sans" data-toc="open">
+  <div class="drawer {% if not splash %}lg:drawer-open {% endif %}min-h-screen">
+    <input id="docs-drawer" type="checkbox" class="drawer-toggle" />
+
+    <!-- Drawer Content (Navbar + Main Article + Footer) -->
+    <div class="drawer-content flex flex-col min-h-screen min-w-0">
+
+      <!-- Top Navbar: brand | search | links and theme -->
+      <header class="navbar bg-base-200/80 backdrop-blur border-b border-base-300 sticky top-0 z-30 px-4 gap-2">
+        {% if not splash %}<div class="flex-none lg:hidden">
+          <label for="docs-drawer" aria-label="open sidebar" class="btn btn-square btn-ghost btn-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-5 h-5 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+          </label>
+        </div>{% endif %}
+
+        <div class="flex-none">
+          <a href="/docs/" class="flex items-center gap-2 px-1">
+            <img src="/assets/helm-core-logo-256x256.webp" alt="" width="28" height="28" class="w-7 h-7 rounded">
+            <span class="font-mono font-black tracking-wider text-lg hidden sm:inline"><span class="text-primary">HELM</span> Core</span>
+            <span class="badge badge-sm badge-primary font-mono">{{ site.versionLabel }}</span>
+          </a>
+        </div>
+
+        <!-- Search -->
+        <div class="flex-1 flex justify-center min-w-0">
+          <div class="relative w-full max-w-md">
+            <input
+              type="search"
+              id="docs-search"
+              placeholder="Search docs   ( / )"
+              autocomplete="off"
+              aria-label="Search docs"
+              class="input input-sm input-bordered w-full font-mono text-xs bg-base-100/60"
+            />
+            <div id="docs-search-results" class="search-results menu bg-base-200 border border-base-300 rounded-box shadow-2xl p-0" role="listbox" hidden></div>
+          </div>
+        </div>
+
+        <div class="flex-none flex items-center gap-1">
+          <!-- Repository -->
+          <a href="{{ site.repoUrl }}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm btn-square" aria-label="GitLab repository" title="GitLab repository">
+            <svg role="img" viewBox="0 0 24 24" class="w-5 h-5 fill-current" xmlns="http://www.w3.org/2000/svg"><title>GitLab</title><path d="M23.6004 9.5927l-.0337-.0862L20.3.9814a.851.851 0 00-.3362-.405.8748.8748 0 00-.9997.0539.8748.8748 0 00-.29.4399l-2.2055 6.748H7.5375l-2.2057-6.748a.8573.8573 0 00-.29-.4412.8748.8748 0 00-.9997-.0537.8585.8585 0 00-.3362.4049L.4332 9.5015l-.0325.0862a6.0657 6.0657 0 002.0119 7.0105l.0113.0087.03.0213 4.976 3.7264 2.462 1.8633 1.4995 1.1321a1.0085 1.0085 0 001.2197 0l1.4995-1.1321 2.4619-1.8633 5.006-3.7466.0125-.01a6.0682 6.0682 0 002.0094-7.003z"/></svg>
+          </a>
+
+          <!-- Code Theme Selector -->
+          <div class="dropdown dropdown-end">
+            <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-square" aria-label="Code theme" title="Code theme">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>
+            </div>
+            <ul tabindex="0" class="dropdown-content z-50 menu menu-sm p-2 shadow-2xl bg-base-200 rounded-box w-52 border border-base-300 text-xs max-h-96 overflow-y-auto flex-nowrap">
+              <li class="menu-title">Code theme</li>
+              <li><button onclick="setSyntaxTheme('auto')">Auto (follow theme)</button></li>
+              {% for t in site.syntaxThemes %}
+              <li><button onclick="setSyntaxTheme('{{ t.id }}')">{{ t.label }}</button></li>
+              {% endfor %}
+            </ul>
+          </div>
+
+          <!-- Theme Selector -->
+          <div class="dropdown dropdown-end">
+            <div tabindex="0" role="button" class="btn btn-ghost btn-sm gap-1" aria-label="Theme">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+              </svg>
+              <span class="text-xs hidden md:inline">Theme</span>
+            </div>
+            <ul tabindex="0" class="dropdown-content z-50 menu p-2 shadow-2xl bg-base-200 rounded-box w-44 border border-base-300 text-xs">
+              <li><button onclick="setDocTheme('night')">Night (default)</button></li>
+              <li><button onclick="setDocTheme('dark')">Dark</button></li>
+              <li><button onclick="setDocTheme('synthwave')">Synthwave</button></li>
+              <li><button onclick="setDocTheme('cyberpunk')">Cyberpunk</button></li>
+              <li><button onclick="setDocTheme('dim')">Dim</button></li>
+              <li><button onclick="setDocTheme('dracula')">Dracula</button></li>
+              <li><button onclick="setDocTheme('forest')">Forest</button></li>
+              <li><button onclick="setDocTheme('black')">OLED Black</button></li>
+            </ul>
+          </div>
+
+          <!-- CLI Simulator Quick Launch Link -->
+          <a href="/docs/helmv-cli/" class="btn btn-primary btn-sm font-mono text-xs hidden lg:inline-flex shadow-sm">
+            <span>./helmv.ps1</span>
+          </a>
+        </div>
+      </header>
+
+      <!-- Page Main Content -->
+      <main class="flex-grow p-4 sm:p-6 lg:p-10 max-w-6xl mx-auto w-full min-w-0">
+        {{ content | safe }}
+      </main>
+
+      <!-- Global Docs Footer -->
+      <footer class="site-footer bg-base-200/50 border-t border-base-300 text-sm">
+        <div class="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-10 py-10 grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div class="col-span-2 md:col-span-1">
+            <a href="/docs/" class="flex items-center gap-2 mb-3">
+              <img src="/assets/helm-core-logo-256x256.webp" alt="" width="28" height="28" class="w-7 h-7 rounded" loading="lazy">
+              <span class="font-mono font-black tracking-wider text-base"><span class="text-primary">HELM</span> Core</span>
+            </a>
+            <p class="text-base-content/60 text-xs leading-relaxed">
+              A Programmable Block script that draws telemetry on Space Engineers LCDs and cockpit screens, configured with a text DSL in Custom Data.
+            </p>
+            <p class="mt-3 font-mono text-xs text-base-content/50">Version {{ site.versionLabel }}</p>
+          </div>
+
+          <nav aria-label="Documentation">
+            <h4 class="footer-title">Documentation</h4>
+            <ul class="space-y-2 text-xs">
+              <li><a class="link link-hover" href="/docs/getting-started/">Getting Started</a></li>
+              <li><a class="link link-hover" href="/docs/dsl-syntax/">DSL Syntax</a></li>
+              <li><a class="link link-hover" href="/docs/gauges/">Gauge Primitives</a></li>
+              <li><a class="link link-hover" href="/docs/hardware-profiles/">Hardware Screen Profiles</a></li>
+              <li><a class="link link-hover" href="/docs/presets-gallery/">Presets &amp; Layout Gallery</a></li>
+            </ul>
+          </nav>
+
+          <nav aria-label="Reference">
+            <h4 class="footer-title">Reference</h4>
+            <ul class="space-y-2 text-xs">
+              <li><a class="link link-hover" href="/docs/block-matrix/">Block Binding Matrix</a></li>
+              <li><a class="link link-hover" href="/docs/telemetry-units/">Telemetry Units</a></li>
+              <li><a class="link link-hover" href="/docs/inter-script-api/">Inter-Script API</a></li>
+              <li><a class="link link-hover" href="/docs/custom-borders/">Borders, Titles &amp; Gradients</a></li>
+              <li><a class="link link-hover" href="/docs/helmv-cli/">CLI Visualizer (helmv)</a></li>
+            </ul>
+          </nav>
+
+          <nav aria-label="Project">
+            <h4 class="footer-title">Project</h4>
+            <ul class="space-y-2 text-xs">
+              <li><a class="link link-hover" href="{{ site.repoUrl }}" target="_blank" rel="noopener">Repository</a></li>
+              <li><a class="link link-hover" href="{{ site.repoUrl }}/-/issues" target="_blank" rel="noopener">Issues</a></li>
+              <li><a class="link link-hover" href="{{ site.repoUrl }}/-/releases" target="_blank" rel="noopener">Releases</a></li>
+              <li><a class="link link-hover" href="{{ site.repoUrl }}/-/packages" target="_blank" rel="noopener">Packages</a></li>
+              <li><a class="link link-hover" href="{{ site.repoUrl }}/-/blob/{{ site.branch }}/DEVTRACKER-PENDING.md" target="_blank" rel="noopener">Roadmap</a></li>
+            </ul>
+          </nav>
+        </div>
+
+        <div class="border-t border-base-300">
+          <div class="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-10 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2 text-[11px] text-base-content/50">
+            <p>Space Engineers is a trademark of Keen Software House. HELM Core is an independent project and is not affiliated with or endorsed by Keen Software House.</p>
+            <p>Fonts: Inter, JetBrains Mono, Share Tech Mono (SIL OFL 1.1); IBM VGA 8x14 web font by VileR, <a class="link link-hover" href="https://int10h.org/oldschool-pc-fonts/" target="_blank" rel="noopener">int10h.org</a> (CC BY-SA 4.0).</p>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    {% if not splash %}
+    <!-- Drawer Sidebar Navigation -->
+    <div class="drawer-side z-40">
+      <label for="docs-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
+      <aside class="bg-base-200 w-72 min-h-full border-r border-base-300">
+        <!-- Sidebar Body: Auto-grouped from collections.docs -->
+        <nav class="overflow-y-auto p-4" aria-label="Documentation">
+          {% set groupedDocs = collections.docs | groupBySection %}
+          {% for group in groupedDocs %}
+          <div class="mb-6 sidebar-section">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-base-content/50 px-3 mb-2 font-mono flex items-center justify-between">
+              <span>{{ group.section }}</span>
+              <span class="badge badge-ghost badge-xs">{{ group.pages.length }}</span>
+            </h3>
+            <ul class="menu menu-sm p-0 gap-1 flex-nowrap w-full">
+              {% for docPage in group.pages %}
+              <li class="min-w-0">
+                <a
+                  href="{{ docPage.url }}"
+                  class="!flex w-full min-w-0 max-w-full items-center justify-between gap-2 py-2 px-3 rounded-lg text-xs font-medium transition-colors {% if page.url == docPage.url %}active bg-primary text-primary-content font-bold shadow-sm{% else %}hover:bg-base-300/60 text-base-content/80{% endif %}"
+                >
+                  <span class="truncate min-w-0 mr-2">{{ docPage.data.title }}</span>
+                  {% if docPage.data.badge %}
+                  <span class="badge badge-xs whitespace-nowrap shrink-0 {% if docPage.data.badge == 'New' %}badge-secondary{% elif docPage.data.badge == 'Core' %}badge-primary{% else %}badge-ghost{% endif %} font-mono">
+                    {{ docPage.data.badge }}
+                  </span>
+                  {% endif %}
+                </a>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endfor %}
+        </nav>
+      </aside>
+    </div>
+    {% endif %}
+  </div>
+
+  <script type="application/json" id="docs-search-data">{{ collections.docs | searchIndex | safe }}</script>
+  <script src="/assets/js/docs.js"></script>
+  <script type="module" src="/assets/js/help-visualizer.js"></script>
+</body>
+</html>

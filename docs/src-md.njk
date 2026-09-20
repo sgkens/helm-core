@@ -1,0 +1,15 @@
+---
+pagination:
+  data: collections.docs
+  size: 1
+  alias: docItem
+permalink: "/docs/src/{{ docItem.filePathStem | replace('/content/', '') }}.md"
+eleventyExcludeFromCollections: true
+eleventyImport:
+  collections: ["docs"]
+---
+# {{ docItem.data.title }}
+
+{{ docItem.data.description }}
+
+{{ docItem.rawInput | safe }}

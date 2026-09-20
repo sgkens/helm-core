@@ -1,0 +1,30 @@
+{
+  "name": "helm-core-docs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HELM Core documentation site (11ty + Tailwind + DaisyUI).",
+  "scripts": {
+    "dev": "concurrently -k \"bun run css:watch\" \"eleventy --watch\" \"bun serve.js\"",
+    "serve": "bun run css:build && concurrently -k \"eleventy --watch\" \"bun serve.js\"",
+    "build": "bun run css:build && eleventy",
+    "css:build": "tailwindcss -i ./css/input.css -o ../public/css/style.css --minify",
+    "css:watch": "tailwindcss -i ./css/input.css -o ../public/css/style.css --watch",
+    "frames": "node scripts/extract-examples.js && dotnet run --project ../tools/spritedump -- --out assets/frames --ticks 48 ../layouts/default .examples",
+    "examples": "node scripts/extract-examples.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@11ty/eleventy": "^3.1.6",
+    "@11ty/eleventy-plugin-syntaxhighlight": "^5.0.2",
+    "@tailwindcss/typography": "^0.5.20",
+    "concurrently": "^10.0.5",
+    "daisyui": "^4.12.24",
+    "tailwindcss": "^3.4.19"
+  },
+  "dependencies": {
+    "mermaid": "^12.0.0"
+  }
+}

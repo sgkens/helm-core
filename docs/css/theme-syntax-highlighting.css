@@ -1,0 +1,1053 @@
+/* ==========================================================================
+   theme-syntax-highlighting.css
+   One token layer -> four static-site-generator syntax highlighters.
+
+   Covers the default/common highlighter for each tool:
+     Astro     -> Shiki        (theme: 'css-variables')
+     Hugo      -> Chroma       (.chroma, Pygments-style short classes)
+     Eleventy  -> PrismJS      (.token.*, via @11ty/eleventy-plugin-syntaxhighlight)
+     Jekyll    -> Rouge        (.highlight, Pygments-style short classes)
+
+   HOW TO USE
+   ----------
+   1. Import this file once, site-wide.
+   2. Pick a theme by setting a data attribute anywhere above your code blocks
+      (usually <html> or <body>):
+
+        <html data-syntax-theme="tokyonight">
+        <html data-syntax-theme="mocha">
+        <html data-syntax-theme="gruvbox">
+
+   3. Done. Every adapter below reads from the same --syn-* custom properties,
+      so switching the data attribute re-themes Shiki, Chroma, Prism, and
+      Rouge output simultaneously -- no per-tool config beyond what's noted
+      per adapter section.
+
+   ASTRO-SPECIFIC SETUP (one line, in astro.config.mjs):
+        markdown: { shikiConfig: { theme: 'css-variables' } }
+     Shiki's css-variables theme intentionally exposes a SMALLER token set
+     (9 roles) than Chroma/Prism/Rouge (~20 roles) -- that's a real Shiki
+     limitation, not an oversight here. See the adapter comment below.
+
+   Available themes: zerodark, gruvbox, tokyonight, macchiato, mocha,
+                      cyberpink, bearded-arc, bearded-light, ember, inkviolet,
+                      citrus, rose, reef, marigold, voidcoral, graphitelime, saffron,
+                      charcoalorchid, basalt, peach, umbra, jetamber, smokefuchsia,
+                      paperindigo, linenteal, chalkcoral, creamslate, fogviolet
+                      (28 total: 22 dark, 6 light)
+   ========================================================================== */
+
+
+/* ==========================================================================
+   1. TOKEN LAYER -- one block per theme, one shared vocabulary
+   ========================================================================== */
+
+[data-syntax-theme="zerodark"] {
+  /* phellams house palette -- near-black + viridian accent, matches
+     color-reference.html's --bg/--text/--accent tokens for continuity */
+  --syn-bg: #0a0a0f;
+  --syn-bg-inline: #111117;
+  --syn-fg: #cdd6f4;
+  --syn-comment: #565a72;
+  --syn-keyword: #00c8a0;
+  --syn-string: #7fe0a7;
+  --syn-number: #f6c177;
+  --syn-boolean: #f6c177;
+  --syn-constant: #f6c177;
+  --syn-function: #7fd8ff;
+  --syn-variable: #cdd6f4;
+  --syn-parameter: #7fe0a7;
+  --syn-property: #7fd8ff;
+  --syn-type: #7fd8ff;
+  --syn-tag: #ff6b81;
+  --syn-attr: #f6c177;
+  --syn-operator: #8890b5;
+  --syn-punctuation: #565a72;
+  --syn-regex: #ff6b81;
+  --syn-link: #7fd8ff;
+  --syn-deleted: #ff6b81;
+  --syn-inserted: #7fe0a7;
+  --syn-keyword-weight: 400;
+  --syn-comment-style: italic;
+}
+
+[data-syntax-theme="gruvbox"] {
+  /* Gruvbox Dark -- verified base/bright hexes (morhetz/gruvbox),
+     role assignment follows the widely-used vim-gruvbox convention:
+     red statements, green strings, yellow/orange/purple accents */
+  --syn-bg: #282828;
+  --syn-bg-inline: #3c3836;
+  --syn-fg: #ebdbb2;
+  --syn-comment: #928374;
+  --syn-keyword: #fb4934;
+  --syn-string: #b8bb26;
+  --syn-number: #d3869b;
+  --syn-boolean: #d3869b;
+  --syn-constant: #d3869b;
+  --syn-function: #8ec07c;
+  --syn-variable: #ebdbb2;
+  --syn-parameter: #83a598;
+  --syn-property: #83a598;
+  --syn-type: #fabd2f;
+  --syn-tag: #fb4934;
+  --syn-attr: #8ec07c;
+  --syn-operator: #fe8019;
+  --syn-punctuation: #a89984;
+  --syn-regex: #fe8019;
+  --syn-link: #83a598;
+  --syn-deleted: #fb4934;
+  --syn-inserted: #b8bb26;
+  --syn-keyword-weight: 700;
+  --syn-comment-style: italic;
+}
+
+[data-syntax-theme="tokyonight"] {
+  /* Tokyo Night -- verified core palette (folke/tokyonight.nvim);
+     magenta keywords, blue functions, green strings, orange numbers */
+  --syn-bg: #1a1b26;
+  --syn-bg-inline: #1f2335;
+  --syn-fg: #c0caf5;
+  --syn-comment: #565f89;
+  --syn-keyword: #bb9af7;
+  --syn-string: #9ece6a;
+  --syn-number: #e0af68;
+  --syn-boolean: #bb9af7;
+  --syn-constant: #e0af68;
+  --syn-function: #7aa2f7;
+  --syn-variable: #c0caf5;
+  --syn-parameter: #e0af68;
+  --syn-property: #7aa2f7;
+  --syn-type: #7dcfff;
+  --syn-tag: #f7768e;
+  --syn-attr: #e0af68;
+  --syn-operator: #7dcfff;
+  --syn-punctuation: #a9b1d6;
+  --syn-regex: #f7768e;
+  --syn-link: #7aa2f7;
+  --syn-deleted: #f7768e;
+  --syn-inserted: #9ece6a;
+  --syn-keyword-weight: 400;
+  --syn-comment-style: italic;
+}
+
+[data-syntax-theme="macchiato"] {
+  /* Catppuccin Macchiato -- official palette, roles per Catppuccin's
+     published style guide (Keyword=Mauve, Strings=Green, etc.) */
+  --syn-bg: #24273a;
+  --syn-bg-inline: #1e2030;
+  --syn-fg: #cad3f5;
+  --syn-comment: #939ab7;
+  --syn-keyword: #c6a0f6;
+  --syn-string: #a6da95;
+  --syn-number: #f5a97f;
+  --syn-boolean: #f5a97f;
+  --syn-constant: #f5a97f;
+  --syn-function: #8aadf4;
+  --syn-variable: #cad3f5;
+  --syn-parameter: #ee99a0;
+  --syn-property: #8aadf4;
+  --syn-type: #eed49f;
+  --syn-tag: #ed8796;
+  --syn-attr: #f5a97f;
+  --syn-operator: #91d7e3;
+  --syn-punctuation: #939ab7;
+  --syn-regex: #f5bde6;
+  --syn-link: #8aadf4;
+  --syn-deleted: #ed8796;
+  --syn-inserted: #a6da95;
+  --syn-keyword-weight: 400;
+  --syn-comment-style: italic;
+}
+
+[data-syntax-theme="mocha"] {
+  /* Catppuccin Mocha -- official palette + official style-guide roles,
+     the flagship (darkest) Catppuccin flavor */
+  --syn-bg: #1e1e2e;
+  --syn-bg-inline: #181825;
+  --syn-fg: #cdd6f4;
+  --syn-comment: #9399b2;
+  --syn-keyword: #cba6f7;
+  --syn-string: #a6e3a1;
+  --syn-number: #fab387;
+  --syn-boolean: #fab387;
+  --syn-constant: #fab387;
+  --syn-function: #89b4fa;
+  --syn-variable: #cdd6f4;
+  --syn-parameter: #eba0ac;
+  --syn-property: #89b4fa;
+  --syn-type: #f9e2af;
+  --syn-tag: #f38ba8;
+  --syn-attr: #fab387;
+  --syn-operator: #89dceb;
+  --syn-punctuation: #9399b2;
+  --syn-regex: #f5c2e7;
+  --syn-link: #89b4fa;
+  --syn-deleted: #f38ba8;
+  --syn-inserted: #a6e3a1;
+  --syn-keyword-weight: 400;
+  --syn-comment-style: italic;
+}
+
+[data-syntax-theme="cyberpink"] {
+  /* Curated -- not a named public theme. Neon magenta/cyan/violet on
+     near-black, built to be legible, not just loud. */
+  --syn-bg: #0d0221;
+  --syn-bg-inline: #170a33;
+  --syn-fg: #f2ecff;
+  --syn-comment: #6e5a8c;
+  --syn-keyword: #ff2ee6;
+  --syn-string: #00e5ff;
+  --syn-number: #f6ff2b;
+  --syn-boolean: #f6ff2b;
+  --syn-constant: #f6ff2b;
+  --syn-function: #8a2eff;
+  --syn-variable: #f2ecff;
+  --syn-parameter: #00e5ff;
+  --syn-property: #8a2eff;
+  --syn-type: #ff6ec7;
+  --syn-tag: #ff2ee6;
+  --syn-attr: #00e5ff;
+  --syn-operator: #b967ff;
+  --syn-punctuation: #8a7ba8;
+  --syn-regex: #ff2ee6;
+  --syn-link: #00e5ff;
+  --syn-deleted: #ff2ee6;
+  --syn-inserted: #39ff14;
+  --syn-keyword-weight: 700;
+  --syn-comment-style: normal;
+}
+
+[data-syntax-theme="bearded-arc"] {
+  /* Bearded Theme -- Arc (dark). bg/fg/comment/keyword/type hexes are
+     pulled from BeardedBear/bearded-theme's real theme JSON + settings;
+     string/tag/deleted are a reasonable extension in the same family,
+     not scraped verbatim -- Bearded ships 29+ variants with no single
+     "official" token-role doc to copy from. */
+  --syn-bg: #111422;
+  --syn-bg-inline: #161a2c;
+  --syn-fg: #bcc1dc;
+  --syn-comment: #3c4776;
+  --syn-keyword: #a15def;
+  --syn-string: #3398db;
+  --syn-number: #d39e17;
+  --syn-boolean: #d39e17;
+  --syn-constant: #d39e17;
+  --syn-function: #eacd61;
+  --syn-variable: #bcc1dc;
+  --syn-parameter: #eacd61;
+  --syn-property: #8eb0e6;
+  --syn-type: #8eb0e6;
+  --syn-tag: #a15def;
+  --syn-attr: #d39e17;
+  --syn-operator: #8eb0e6;
+  --syn-punctuation: #3c4776;
+  --syn-regex: #a15def;
+  --syn-link: #8eb0e6;
+  --syn-deleted: #e05561;
+  --syn-inserted: #3398db;
+  --syn-keyword-weight: 400;
+  --syn-comment-style: italic;
+}
+
+[data-syntax-theme="bearded-light"] {
+  /* Bearded Theme -- Light companion. Bearded does ship real light
+     variants, but exact hexes weren't independently verified here --
+     this darkens the Arc accent hues (above) enough to hold contrast
+     on a warm paper background. Treat as a close aesthetic match,
+     not a byte-for-byte port. */
+  --syn-bg: #f7f4ef;
+  --syn-bg-inline: #ece7dc;
+  --syn-fg: #2b2e3d;
+  --syn-comment: #8489a8;
+  --syn-keyword: #7b3fc4;
+  --syn-string: #1f6fb2;
+  --syn-number: #b3690a;
+  --syn-boolean: #b3690a;
+  --syn-constant: #b3690a;
+  --syn-function: #a8790a;
+  --syn-variable: #2b2e3d;
+  --syn-parameter: #a8790a;
+  --syn-property: #3f6fc9;
+  --syn-type: #3f6fc9;
+  --syn-tag: #7b3fc4;
+  --syn-attr: #b3690a;
+  --syn-operator: #4a5fae;
+  --syn-punctuation: #6b7094;
+  --syn-regex: #7b3fc4;
+  --syn-link: #3f6fc9;
+  --syn-deleted: #c0392b;
+  --syn-inserted: #2e8b57;
+  --syn-keyword-weight: 400;
+  --syn-comment-style: italic;
+}
+
+
+
+/* ==========================================================================
+   1b. TOKEN LAYER -- 20 additional handcrafted themes (15 dark, 5 light)
+   These are original palettes, not ports of named public themes. Generated
+   from a per-theme hue-rotation system and verified against WCAG contrast
+   (fg/keyword/string/function all clear 4.5:1+ against bg; comments are
+   intentionally lower-contrast, as is conventional for de-emphasized text).
+   --syn-keyword-weight and --syn-comment-style are new: adapters below read
+   them so some themes render bold keywords or upright (non-italic) comments.
+   ========================================================================== */
+
+
+[data-syntax-theme="ember"] {
+  /* Obsidian Ember -- handcrafted, dark */
+  --syn-bg: #140f0d;
+  --syn-bg-inline: #221a16;
+  --syn-fg: #eae4e1;
+  --syn-comment: #8e7367;
+  --syn-keyword: #e89487;
+  --syn-string: #dad081;
+  --syn-number: #b3e18e;
+  --syn-boolean: #b3e18e;
+  --syn-constant: #b3e18e;
+  --syn-function: #e48bc2;
+  --syn-variable: #eae4e1;
+  --syn-parameter: #dfd89f;
+  --syn-property: #e48bc2;
+  --syn-type: #88dda2;
+  --syn-tag: #c783e2;
+  --syn-attr: #88ddd3;
+  --syn-operator: #c2b3ad;
+  --syn-punctuation: #ac9991;
+  --syn-regex: #c783e2;
+  --syn-link: #e48bc2;
+  --syn-deleted: #de7c85;
+  --syn-inserted: #70cd8f;
+  --syn-keyword-weight: 700;
+  --syn-comment-style: italic;
+}
+
+[data-syntax-theme="peach"] {
+  /* Onyx Peach -- handcrafted, dark */
+  --syn-bg: #140f0d;
+  --syn-bg-inline: #221a16;
+  --syn-fg: #eae4e1;
+  --syn-comment: #8e7467;
+  --syn-keyword: #e8ae87;
+  --syn-string: #cdda81;
+  --syn-number: #9de18e;
+  --syn-boolean: #9de18e;
+  --syn-constant: #9de18e;
+  --syn-function: #e48baa;
+  --syn-variable: #eae4e1;
+  --syn-parameter: #d6df9f;
+  --syn-property: #e48baa;
+  --syn-type: #88ddb8;
+  --syn-tag: #e083e2;
+  --syn-attr: #88d0dd;
+  --syn-operator: #c2b4ad;
+  --syn-punctuation: #ac9a91;
+  --syn-regex: #e083e2;
+  --syn-link: #e48baa;
+  --syn-deleted: #de7c85;
+  --syn-inserted: #70cd8f;
+  --syn-keyword-weight: 400;
+  --syn-comment-style: normal;
+}
+
+[data-syntax-theme="marigold"] {
+  /* Ash Marigold -- handcrafted, dark */
+  --syn-bg: #14110d;
+  --syn-bg-inline: #221d16;
+  --syn-fg: #eae6e1;
+  --syn-comment: #8e7e67;
+  --syn-keyword: #e8c887;
+  --syn-string: #b5da81;
+  --syn-number: #8ee195;
+  --syn-boolean: #8ee195;
+  --syn-constant: #8ee195;
+  --syn-function: #e48b93;
+  --syn-variable: #eae6e1;
+  --syn-parameter: #c5df9f;
+  --syn-property: #e48b93;
+  --syn-type: #88ddcf;
+  --syn-tag: #e283ca;
+  --syn-attr: #88badd;
+  --syn-operator: #c2b9ad;
+  --syn-punctuation: #aca091;
+  --syn-regex: #e283ca;
+  --syn-link: #e48b93;
+  --syn-deleted: #de7c85;
+  --syn-inserted: #70cd8f;
+  --syn-keyword-weight: 400;
+  --syn-comment-style: italic;
+}
+
+[data-syntax-theme="saffron"] {
+  /* Midnight Saffron -- handcrafted, dark */
+  --syn-bg: #0d0f14;
+  --syn-bg-inline: #161a22;
+  --syn-fg: #e1e4ea;
+  --syn-comment: #67748e;
+  --syn-keyword: #e8e287;
+  --syn-string: #9dda81;
+  --syn-number: #8ee1ab;
+  --syn-boolean: #8ee1ab;
+  --syn-constant: #8ee1ab;
+  --syn-function: #e49c8b;
+  --syn-variable: #e1e4ea;
+  --syn-parameter: #b4df9f;
+  --syn-property: #e49c8b;
+  --syn-type: #88d4dd;
+  --syn-tag: #e283b1;
+  --syn-attr: #88a3dd;
+  --syn-operator: #adb4c2;
+  --syn-punctuation: #919aac;
+  --syn-regex: #e283b1;
+  --syn-link: #e49c8b;
+  --syn-deleted: #de7c85;
+  --syn-inserted: #70cd8f;
+  --syn-keyword-weight: 400;
+  --syn-comment-style: italic;
+}
+
+[data-syntax-theme="jetamber"] {
+  /* Jet Amber -- handcrafted, dark */
+  --syn-bg: #14110d;
+  --syn-bg-inline: #221c16;
+  --syn-fg: #eae6e1;
+  --syn-comment: #8e7a67;
+  --syn-keyword: #d8e887;
+  --syn-string: #88da81;
+  --syn-number: #8ee1bf;
+  --syn-boolean: #8ee1bf;
+  --syn-constant: #8ee1bf;
+  --syn-function: #e4b08b;
+  --syn-variable: #eae6e1;
+  --syn-parameter: #a5df9f;
+  --syn-property: #e4b08b;
+  --syn-type: #88c1dd;
+  --syn-tag: #e2839b;
+  --syn-attr: #888fdd;
+  --syn-operator: #c2b8ad;
+  --syn-punctuation: #ac9e91;
+  --syn-regex: #e2839b;
+  --syn-link: #e4b08b;
+  --syn-deleted: #de7c85;
+  --syn-inserted: #70cd8f;
+  --syn-keyword-weight: 700;
+  --syn-comment-style: italic;
+}
+
+[data-syntax-theme="citrus"] {
+  /* Slate Citrus -- handcrafted, dark */
+  --syn-bg: #0d1114;
+  --syn-bg-inline: #161d22;
+  --syn-fg: #e1e6ea;
+  --syn-comment: #677e8e;
+  --syn-keyword: #b4e887;
+  --syn-string: #81da9a;
+  --syn-number: #8ee1dd;
+  --syn-boolean: #8ee1dd;
+  --syn-constant: #8ee1dd;
+  --syn-function: #e4d18b;
+  --syn-variable: #e1e6ea;
+  --syn-parameter: #9fdfb1;
+  --syn-property: #e4d18b;
+  --syn-type: #88a2dd;
+  --syn-tag: #e28e83;
+  --syn-attr: #a088dd;
+  --syn-operator: #adb9c2;
+  --syn-punctuation: #91a0ac;
+  --syn-regex: #e28e83;
+  --syn-link: #e4d18b;
+  --syn-deleted: #de7c85;
+  --syn-inserted: #70cd8f;
+  --syn-keyword-weight: 400;
+  --syn-comment-style: italic;
+}
+
+[data-syntax-theme="graphitelime"] {
+  /* Graphite Lime -- handcrafted, dark */
+  --syn-bg: #0f140d;
+  --syn-bg-inline: #1a2216;
+  --syn-fg: #e4eae1;
+  --syn-comment: #748e67;
+  --syn-keyword: #8ae887;
+  --syn-string: #81dac1;
+  --syn-number: #8ec1e1;
+  --syn-boolean: #8ec1e1;
+  --syn-constant: #8ec1e1;
+  --syn-function: #d1e48b;
+  --syn-variable: #e4eae1;
+  --syn-parameter: #9fdfcd;
+  --syn-property: #d1e48b;
+  --syn-type: #9488dd;
+  --syn-tag: #e2b783;
+  --syn-attr: #c588dd;
+  --syn-operator: #b4c2ad;
+  --syn-punctuation: #9aac91;
+  --syn-regex: #e2b783;
+  --syn-link: #d1e48b;
+  --syn-deleted: #de7c85;
+  --syn-inserted: #70cd8f;
+  --syn-keyword-weight: 700;
+  --syn-comment-style: italic;
+}
+
+[data-syntax-theme="reef"] {
+  /* Deep Reef -- handcrafted, dark */
+  --syn-bg: #0d1214;
+  --syn-bg-inline: #161f22;
+  --syn-fg: #e1e8ea;
+  --syn-comment: #67848e;
+  --syn-keyword: #87e8e8;
+  --syn-string: #8197da;
+  --syn-number: #b18ee1;
+  --syn-boolean: #b18ee1;
+  --syn-constant: #b18ee1;
+  --syn-function: #8be4a1;
+  --syn-variable: #e1e8ea;
+  --syn-parameter: #9fafdf;
+  --syn-property: #8be4a1;
+  --syn-type: #dd88cf;
+  --syn-tag: #abe283;
+  --syn-attr: #dd889d;
+  --syn-operator: #adbdc2;
+  --syn-punctuation: #91a5ac;
+  --syn-regex: #abe283;
+  --syn-link: #8be4a1;
+  --syn-deleted: #de7c85;
+  --syn-inserted: #70cd8f;
+  --syn-keyword-weight: 400;
+  --syn-comment-style: italic;
+}
+
+[data-syntax-theme="basalt"] {
+  /* Basalt Teal -- handcrafted, dark */
+  --syn-bg: #0d1214;
+  --syn-bg-inline: #161e22;
+  --syn-fg: #e1e7ea;
+  --syn-comment: #67818e;
+  --syn-keyword: #87c8e8;
+  --syn-string: #8881da;
+  --syn-number: #cc8ee1;
+  --syn-boolean: #cc8ee1;
+  --syn-constant: #cc8ee1;
+  --syn-function: #8be4bf;
+  --syn-variable: #e1e7ea;
+  --syn-parameter: #a59fdf;
+  --syn-property: #8be4bf;
+  --syn-type: #dd88b2;
+  --syn-tag: #8be283;
+  --syn-attr: #dd8f88;
+  --syn-operator: #adbbc2;
+  --syn-punctuation: #91a3ac;
+  --syn-regex: #8be283;
+  --syn-link: #8be4bf;
+  --syn-deleted: #de7c85;
+  --syn-inserted: #70cd8f;
+  --syn-keyword-weight: 700;
+  --syn-comment-style: normal;
+}
+
+[data-syntax-theme="umbra"] {
+  /* Umbra Sky -- handcrafted, dark */
+  --syn-bg: #0d0f14;
+  --syn-bg-inline: #161922;
+  --syn-fg: #e1e3ea;
+  --syn-comment: #67718e;
+  --syn-keyword: #87a1e8;
+  --syn-string: #ac81da;
+  --syn-number: #e18ed5;
+  --syn-boolean: #e18ed5;
+  --syn-constant: #e18ed5;
+  --syn-function: #8be4e2;
+  --syn-variable: #e1e3ea;
+  --syn-parameter: #be9fdf;
+  --syn-property: #8be4e2;
+  --syn-type: #dd8891;
+  --syn-tag: #83e2a1;
+  --syn-attr: #ddb188;
+  --syn-operator: #adb2c2;
+  --syn-punctuation: #9197ac;
+  --syn-regex: #83e2a1;
+  --syn-link: #8be4e2;
+  --syn-deleted: #de7c85;
+  --syn-inserted: #70cd8f;
+  --syn-keyword-weight: 400;
+  --syn-comment-style: italic;
+}
+
+[data-syntax-theme="inkviolet"] {
+  /* Ink Violet -- handcrafted, dark */
+  --syn-bg: #0f0d14;
+  --syn-bg-inline: #191622;
+  --syn-fg: #e3e1ea;
+  --syn-comment: #71678e;
+  --syn-keyword: #9a87e8;
+  --syn-string: #d681da;
+  --syn-number: #e18eae;
+  --syn-boolean: #e18eae;
+  --syn-constant: #e18eae;
+  --syn-function: #8bbce4;
+  --syn-variable: #e3e1ea;
+  --syn-parameter: #dc9fdf;
+  --syn-property: #8bbce4;
+  --syn-type: #dda788;
+  --syn-tag: #83e2cd;
+  --syn-attr: #ddd888;
+  --syn-operator: #b2adc2;
+  --syn-punctuation: #9791ac;
+  --syn-regex: #83e2cd;
+  --syn-link: #8bbce4;
+  --syn-deleted: #de7c85;
+  --syn-inserted: #70cd8f;
+  --syn-keyword-weight: 400;
+  --syn-comment-style: italic;
+}
+
+[data-syntax-theme="charcoalorchid"] {
+  /* Charcoal Orchid -- handcrafted, dark */
+  --syn-bg: #110d14;
+  --syn-bg-inline: #1c1622;
+  --syn-fg: #e6e1ea;
+  --syn-comment: #7a678e;
+  --syn-keyword: #ce87e8;
+  --syn-string: #da81af;
+  --syn-number: #e19b8e;
+  --syn-boolean: #e19b8e;
+  --syn-constant: #e19b8e;
+  --syn-function: #8b8de4;
+  --syn-variable: #e6e1ea;
+  --syn-parameter: #df9fc0;
+  --syn-property: #8b8de4;
+  --syn-type: #ddd488;
+  --syn-tag: #83c4e2;
+  --syn-attr: #b4dd88;
+  --syn-operator: #b8adc2;
+  --syn-punctuation: #9e91ac;
+  --syn-regex: #83c4e2;
+  --syn-link: #8b8de4;
+  --syn-deleted: #de7c85;
+  --syn-inserted: #70cd8f;
+  --syn-keyword-weight: 400;
+  --syn-comment-style: italic;
+}
+
+[data-syntax-theme="smokefuchsia"] {
+  /* Smoke Fuchsia -- handcrafted, dark */
+  --syn-bg: #130d14;
+  --syn-bg-inline: #201622;
+  --syn-fg: #e9e1ea;
+  --syn-comment: #87678e;
+  --syn-keyword: #e887db;
+  --syn-string: #da818b;
+  --syn-number: #e1bc8e;
+  --syn-boolean: #e1bc8e;
+  --syn-constant: #e1bc8e;
+  --syn-function: #ad8be4;
+  --syn-variable: #e9e1ea;
+  --syn-parameter: #df9fa7;
+  --syn-property: #ad8be4;
+  --syn-type: #c3dd88;
+  --syn-tag: #839ee2;
+  --syn-attr: #92dd88;
+  --syn-operator: #bfadc2;
+  --syn-punctuation: #a791ac;
+  --syn-regex: #839ee2;
+  --syn-link: #ad8be4;
+  --syn-deleted: #de7c85;
+  --syn-inserted: #70cd8f;
+  --syn-keyword-weight: 400;
+  --syn-comment-style: italic;
+}
+
+[data-syntax-theme="rose"] {
+  /* Carbon Rose -- handcrafted, dark */
+  --syn-bg: #140d0f;
+  --syn-bg-inline: #22161a;
+  --syn-fg: #eae1e4;
+  --syn-comment: #8e6774;
+  --syn-keyword: #e887ae;
+  --syn-string: #daa081;
+  --syn-number: #e0e18e;
+  --syn-boolean: #e0e18e;
+  --syn-constant: #e0e18e;
+  --syn-function: #d78be4;
+  --syn-variable: #eae1e4;
+  --syn-parameter: #dfb69f;
+  --syn-property: #d78be4;
+  --syn-type: #9cdd88;
+  --syn-tag: #9483e2;
+  --syn-attr: #88dda6;
+  --syn-operator: #c2adb4;
+  --syn-punctuation: #ac919a;
+  --syn-regex: #9483e2;
+  --syn-link: #d78be4;
+  --syn-deleted: #de7c85;
+  --syn-inserted: #70cd8f;
+  --syn-keyword-weight: 700;
+  --syn-comment-style: normal;
+}
+
+[data-syntax-theme="voidcoral"] {
+  /* Void Coral -- handcrafted, dark */
+  --syn-bg: #120d14;
+  --syn-bg-inline: #1e1622;
+  --syn-fg: #e7e1ea;
+  --syn-comment: #81678e;
+  --syn-keyword: #e88797;
+  --syn-string: #dab581;
+  --syn-number: #cce18e;
+  --syn-boolean: #cce18e;
+  --syn-constant: #cce18e;
+  --syn-function: #e48bdc;
+  --syn-variable: #e7e1ea;
+  --syn-parameter: #dfc59f;
+  --syn-property: #e48bdc;
+  --syn-type: #88dd88;
+  --syn-tag: #ab83e2;
+  --syn-attr: #88ddba;
+  --syn-operator: #bbadc2;
+  --syn-punctuation: #a391ac;
+  --syn-regex: #ab83e2;
+  --syn-link: #e48bdc;
+  --syn-deleted: #de7c85;
+  --syn-inserted: #70cd8f;
+  --syn-keyword-weight: 400;
+  --syn-comment-style: italic;
+}
+
+[data-syntax-theme="paperindigo"] {
+  /* Paper Indigo -- handcrafted, light */
+  --syn-bg: #f3f5f9;
+  --syn-bg-inline: #e5e8f0;
+  --syn-fg: #272d3f;
+  --syn-comment: #646f90;
+  --syn-keyword: #172778;
+  --syn-string: #491b6a;
+  --syn-number: #701a5a;
+  --syn-boolean: #701a5a;
+  --syn-constant: #701a5a;
+  --syn-function: #155e65;
+  --syn-variable: #272d3f;
+  --syn-parameter: #481e67;
+  --syn-property: #155e65;
+  --syn-type: #691c1c;
+  --syn-tag: #186739;
+  --syn-attr: #69491c;
+  --syn-operator: #454e68;
+  --syn-punctuation: #525c7a;
+  --syn-regex: #186739;
+  --syn-link: #155e65;
+  --syn-deleted: #ae2934;
+  --syn-inserted: #30884d;
+  --syn-keyword-weight: 700;
+  --syn-comment-style: italic;
+}
+
+[data-syntax-theme="linenteal"] {
+  /* Linen Teal -- handcrafted, light */
+  --syn-bg: #f7f9f3;
+  --syn-bg-inline: #edf0e5;
+  --syn-fg: #373f27;
+  --syn-comment: #829064;
+  --syn-keyword: #177868;
+  --syn-string: #1b3c6a;
+  --syn-number: #301a70;
+  --syn-boolean: #301a70;
+  --syn-constant: #301a70;
+  --syn-function: #15651c;
+  --syn-variable: #373f27;
+  --syn-parameter: #1e3c67;
+  --syn-property: #15651c;
+  --syn-type: #691c69;
+  --syn-tag: #466718;
+  --syn-attr: #691c3c;
+  --syn-operator: #5c6845;
+  --syn-punctuation: #6d7a52;
+  --syn-regex: #466718;
+  --syn-link: #15651c;
+  --syn-deleted: #ae2934;
+  --syn-inserted: #30884d;
+  --syn-keyword-weight: 400;
+  --syn-comment-style: italic;
+}
+
+[data-syntax-theme="chalkcoral"] {
+  /* Chalk Coral -- handcrafted, light */
+  --syn-bg: #f9f5f3;
+  --syn-bg-inline: #f0e9e5;
+  --syn-fg: #3f2f27;
+  --syn-comment: #907364;
+  --syn-keyword: #78171f;
+  --syn-string: #6a501b;
+  --syn-number: #53701a;
+  --syn-boolean: #53701a;
+  --syn-constant: #53701a;
+  --syn-function: #651558;
+  --syn-variable: #3f2f27;
+  --syn-parameter: #674e1e;
+  --syn-property: #651558;
+  --syn-type: #1c6922;
+  --syn-tag: #401867;
+  --syn-attr: #1c694f;
+  --syn-operator: #685145;
+  --syn-punctuation: #7a5f52;
+  --syn-regex: #401867;
+  --syn-link: #651558;
+  --syn-deleted: #ae2934;
+  --syn-inserted: #30884d;
+  --syn-keyword-weight: 400;
+  --syn-comment-style: normal;
+}
+
+[data-syntax-theme="creamslate"] {
+  /* Cream Slate -- handcrafted, light */
+  --syn-bg: #f9f7f3;
+  --syn-bg-inline: #f0ede5;
+  --syn-fg: #3f3727;
+  --syn-comment: #908264;
+  --syn-keyword: #174f78;
+  --syn-string: #281b6a;
+  --syn-number: #611a70;
+  --syn-boolean: #611a70;
+  --syn-constant: #611a70;
+  --syn-function: #15654a;
+  --syn-variable: #3f3727;
+  --syn-parameter: #2a1e67;
+  --syn-property: #15654a;
+  --syn-type: #691c3c;
+  --syn-tag: #186718;
+  --syn-attr: #69291c;
+  --syn-operator: #685c45;
+  --syn-punctuation: #7a6d52;
+  --syn-regex: #186718;
+  --syn-link: #15654a;
+  --syn-deleted: #ae2934;
+  --syn-inserted: #30884d;
+  --syn-keyword-weight: 400;
+  --syn-comment-style: italic;
+}
+
+[data-syntax-theme="fogviolet"] {
+  /* Fog Violet -- handcrafted, light */
+  --syn-bg: #f6f3f9;
+  --syn-bg-inline: #ebe5f0;
+  --syn-fg: #33273f;
+  --syn-comment: #7a6490;
+  --syn-keyword: #541778;
+  --syn-string: #6a1b4c;
+  --syn-number: #701e1a;
+  --syn-boolean: #701e1a;
+  --syn-constant: #701e1a;
+  --syn-function: #151f65;
+  --syn-variable: #33273f;
+  --syn-parameter: #671e4b;
+  --syn-property: #151f65;
+  --syn-type: #69591c;
+  --syn-tag: #185667;
+  --syn-attr: #4b691c;
+  --syn-operator: #574568;
+  --syn-punctuation: #66527a;
+  --syn-regex: #185667;
+  --syn-link: #151f65;
+  --syn-deleted: #ae2934;
+  --syn-inserted: #30884d;
+  --syn-keyword-weight: 400;
+  --syn-comment-style: italic;
+}
+
+/* ==========================================================================
+   2. ADAPTER -- Astro / Shiki (theme: 'css-variables')
+   Shiki's css-variables theme only exposes 9 token roles + fg/bg (this is
+   Shiki's real, documented limitation -- see shiki.style/guide/theme-colors).
+   Types, tags, attrs, operators, punctuation, and diff markers below are
+   mapped onto the closest available Shiki bucket rather than lost.
+   ========================================================================== */
+
+[data-syntax-theme] {
+  --shiki-color-text: var(--syn-fg);
+  --shiki-color-background: var(--syn-bg);
+  --shiki-foreground: var(--syn-fg);       /* older Shiki alias */
+  --shiki-background: var(--syn-bg);       /* older Shiki alias */
+  --shiki-token-constant: var(--syn-constant);
+  --shiki-token-string: var(--syn-string);
+  --shiki-token-comment: var(--syn-comment);
+  --shiki-token-keyword: var(--syn-keyword);
+  --shiki-token-parameter: var(--syn-parameter);
+  --shiki-token-function: var(--syn-function);
+  --shiki-token-string-expression: var(--syn-string);
+  --shiki-token-punctuation: var(--syn-punctuation);
+  --shiki-token-link: var(--syn-link);
+}
+pre.shiki, pre.astro-code {
+  background-color: var(--syn-bg);
+  color: var(--syn-fg);
+  padding: 1rem;
+  overflow-x: auto;
+}
+pre.shiki code, pre.astro-code code {
+  background: none;
+  color: inherit;
+}
+
+
+/* ==========================================================================
+   3. ADAPTER -- Hugo / Chroma  (wrap: <div class="chroma">)
+   Chroma follows Pygments' short token-class convention.
+   ========================================================================== */
+
+.chroma { background: var(--syn-bg); color: var(--syn-fg); }
+
+
+/* ==========================================================================
+   4. ADAPTER -- Jekyll / Rouge  (wrap: <div class="highlight">)
+   Rouge is Pygments-lexer-compatible and shares Chroma's short classes,
+   so both adapters are combined below -- one rule set, two ecosystems.
+   ========================================================================== */
+
+.highlight { background: var(--syn-bg); color: var(--syn-fg); }
+
+/* comments */
+.chroma .c, .highlight .c,
+.chroma .c1, .highlight .c1,
+.chroma .cm, .highlight .cm,
+.chroma .cp, .highlight .cp,
+.chroma .cs, .highlight .cs { color: var(--syn-comment); font-style: var(--syn-comment-style, italic); }
+
+/* keywords */
+.chroma .k, .highlight .k,
+.chroma .kc, .highlight .kc,
+.chroma .kd, .highlight .kd,
+.chroma .kn, .highlight .kn,
+.chroma .kp, .highlight .kp,
+.chroma .kr, .highlight .kr,
+.chroma .ow, .highlight .ow { color: var(--syn-keyword); font-weight: var(--syn-keyword-weight, 400); }
+
+/* types */
+.chroma .kt, .highlight .kt,
+.chroma .nc, .highlight .nc { color: var(--syn-type); }
+
+/* strings */
+.chroma .s, .highlight .s,
+.chroma .s1, .highlight .s1,
+.chroma .s2, .highlight .s2,
+.chroma .sb, .highlight .sb,
+.chroma .sc, .highlight .sc,
+.chroma .sd, .highlight .sd,
+.chroma .se, .highlight .se,
+.chroma .sh, .highlight .sh,
+.chroma .si, .highlight .si,
+.chroma .sx, .highlight .sx,
+.chroma .ss, .highlight .ss { color: var(--syn-string); }
+
+/* regex is its own string subtype in both lexers */
+.chroma .sr, .highlight .sr { color: var(--syn-regex); }
+
+/* numbers */
+.chroma .m, .highlight .m,
+.chroma .mf, .highlight .mf,
+.chroma .mh, .highlight .mh,
+.chroma .mi, .highlight .mi,
+.chroma .mo, .highlight .mo,
+.chroma .il, .highlight .il { color: var(--syn-number); }
+
+/* names */
+.chroma .n, .highlight .n { color: var(--syn-fg); }
+.chroma .na, .highlight .na { color: var(--syn-attr); }
+.chroma .nb, .highlight .nb { color: var(--syn-constant); }
+.chroma .nd, .highlight .nd { color: var(--syn-function); } /* decorators */
+.chroma .ne, .highlight .ne { color: var(--syn-tag); }      /* exceptions */
+.chroma .nf, .highlight .nf { color: var(--syn-function); }
+.chroma .ni, .highlight .ni { color: var(--syn-tag); }
+.chroma .nl, .highlight .nl { color: var(--syn-attr); }
+.chroma .nn, .highlight .nn { color: var(--syn-type); }
+.chroma .no, .highlight .no { color: var(--syn-constant); }
+.chroma .nt, .highlight .nt { color: var(--syn-tag); }
+.chroma .nv, .highlight .nv,
+.chroma .vc, .highlight .vc,
+.chroma .vg, .highlight .vg,
+.chroma .vi, .highlight .vi { color: var(--syn-variable); }
+.chroma .bp, .highlight .bp { color: var(--syn-constant); } /* Python "self" */
+
+/* operators / punctuation */
+.chroma .o, .highlight .o { color: var(--syn-operator); }
+.chroma .p, .highlight .p { color: var(--syn-punctuation); }
+
+/* generic / diff */
+.chroma .gd, .highlight .gd { color: var(--syn-deleted); }
+.chroma .gi, .highlight .gi { color: var(--syn-inserted); }
+.chroma .gh, .highlight .gh { color: var(--syn-function); font-weight: 700; }
+.chroma .gu, .highlight .gu { color: var(--syn-type); font-weight: 700; }
+.chroma .gs, .highlight .gs { font-weight: 700; }
+.chroma .ge, .highlight .ge { font-style: italic; }
+.chroma .gr, .highlight .gr,
+.chroma .err, .highlight .err { color: var(--syn-deleted); }
+.chroma .go, .highlight .go { color: var(--syn-comment); }
+.chroma .gp, .highlight .gp { color: var(--syn-comment); }
+.chroma .gt, .highlight .gt { color: var(--syn-deleted); }
+
+/* line numbers / highlighted lines (Hugo/Chroma line-number gutters) */
+.chroma .lnt, .highlight .lnt { color: var(--syn-comment); }
+.chroma .hl, .highlight .hl { background-color: var(--syn-bg-inline); }
+
+
+/* ==========================================================================
+   5. ADAPTER -- Eleventy / PrismJS
+   Standard @11ty/eleventy-plugin-syntaxhighlight output (PrismJS classes).
+   ========================================================================== */
+
+code[class*="language-"],
+pre[class*="language-"] {
+  background: var(--syn-bg);
+  color: var(--syn-fg);
+}
+pre[class*="language-"] { padding: 1rem; overflow-x: auto; }
+
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata { color: var(--syn-comment); font-style: var(--syn-comment-style, italic); }
+
+.token.keyword,
+.token.important,
+.token.atrule { color: var(--syn-keyword); font-weight: var(--syn-keyword-weight, 400); }
+
+.token.string,
+.token.char { color: var(--syn-string); }
+
+.token.regex { color: var(--syn-regex); }
+
+.token.number { color: var(--syn-number); }
+.token.boolean { color: var(--syn-boolean); }
+.token.constant,
+.token.symbol { color: var(--syn-constant); }
+
+.token.function { color: var(--syn-function); }
+.token.class-name { color: var(--syn-type); }
+
+.token.variable { color: var(--syn-variable); }
+.token.property { color: var(--syn-property); }
+
+.token.tag { color: var(--syn-tag); }
+.token.attr-name { color: var(--syn-attr); }
+.token.attr-value { color: var(--syn-string); }
+.token.builtin { color: var(--syn-constant); }
+.token.entity,
+.token.url { color: var(--syn-link); }
+
+.token.operator { color: var(--syn-operator); }
+.token.punctuation { color: var(--syn-punctuation); }
+.token.selector { color: var(--syn-type); }
+
+.token.deleted { color: var(--syn-deleted); }
+.token.inserted { color: var(--syn-inserted); }
+
+.token.bold { font-weight: 700; }
+.token.italic { font-style: italic; }
+
+
+/* ==========================================================================
+   6. Optional: line-number gutter shared look (Chroma/Rouge/Prism all
+   generate slightly different markup for this -- one soft rule covers most)
+   ========================================================================== */
+.line-numbers .line-numbers-rows,
+.chroma .lntable .lnt,
+.highlight .lineno { color: var(--syn-comment); opacity: 0.7; }

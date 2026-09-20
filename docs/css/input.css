@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .font-mono-code {
+    font-family: 'JetBrains Mono', 'Cascadia Code', Consolas, ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.5);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.8);
+}
+
+/* Code block colors come from css/theme-syntax-highlighting.css (data-syntax-theme);
+   shape and typography are in assets/css/docs.css. Typography plugin defaults for pre
+   are cleared so they do not override the theme. */
+.prose pre[class*="language-"] {
+  background-color: var(--syn-bg);
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.prose th {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.prose td, .prose th {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}

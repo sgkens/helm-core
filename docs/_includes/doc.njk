@@ -1,0 +1,106 @@
+---
+layout: base.njk
+---
+
+<div class="doc-grid grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_15rem] gap-10">
+<article class="w-full min-w-0">
+  <!-- Breadcrumbs -->
+  <div class="text-xs breadcrumbs mb-4 text-base-content/60 font-mono">
+    <ul>
+      <li><a href="/docs/" class="hover:text-primary">Docs</a></li>
+      {% if section %}
+      <li><span>{{ section }}</span></li>
+      {% endif %}
+      <li class="text-base-content font-semibold">{{ title }}</li>
+    </ul>
+  </div>
+
+  <!-- Document Header -->
+  <header class="mb-8 pb-6 border-b border-base-300">
+    <div class="flex flex-wrap items-center gap-2 mb-3">
+      {% if section %}
+      <span class="badge badge-sm badge-neutral font-mono">{{ section }}</span>
+      {% endif %}
+      {% if badge %}
+      <span class="badge badge-sm badge-secondary font-mono">{{ badge }}</span>
+      {% endif %}
+    </div>
+
+    <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-base-content font-mono mb-3">
+      {{ title }}
+    </h1>
+
+    {% if description %}
+    <p class="text-base sm:text-lg text-base-content/70 leading-relaxed font-sans max-w-3xl">
+      {{ description }}
+    </p>
+    {% endif %}
+  </header>
+
+  <!-- Table of contents on small screens -->
+  <details class="toc-mobile xl:hidden mb-6 border border-base-300 rounded-lg bg-base-200/50">
+    <summary class="cursor-pointer px-3 py-2 text-xs font-mono font-bold">On this page</summary>
+    <div class="toc-list px-3 pb-3"></div>
+  </details>
+  <div class="doc-tools-mobile xl:hidden mb-6">{% include "doc-tools.njk" %}</div>
+
+  <!-- Document Body Content -->
+  <div class="doc-body prose prose-invert prose-headings:font-mono prose-headings:tracking-tight prose-a:text-primary hover:prose-a:underline prose-code:font-mono prose-pre:p-0 max-w-none leading-relaxed text-base-content/90">
+    {{ content | safe }}
+  </div>
+
+  <!-- Previous / Next Document Navigation -->
+  <div class="divider my-10"></div>
+
+  {% set allDocs = collections.docs %}
+  {% set currentIdx = -1 %}
+  {% for docItem in allDocs %}
+    {% if docItem.url == page.url %}
+      {% set currentIdx = loop.index0 %}
+    {% endif %}
+  {% endfor %}
+
+  {% set prevDoc = allDocs[currentIdx - 1] if currentIdx > 0 else null %}
+  {% set nextDoc = allDocs[currentIdx + 1] if currentIdx >= 0 and currentIdx + 1 < allDocs.length else null %}
+
+  <div class="doc-pager grid grid-cols-1 sm:grid-cols-2 gap-4 my-8 font-mono">
+    {% if prevDoc %}
+    <a href="{{ prevDoc.url }}" class="card bg-base-200 hover:bg-base-300 transition-all border border-base-300 p-4 group">
+      <div class="text-[11px] text-base-content/50 uppercase tracking-wider mb-1 flex items-center gap-1">
+        <span>← Previous</span>
+      </div>
+      <div class="font-bold text-sm text-base-content group-hover:text-primary transition-colors truncate">
+        {{ prevDoc.data.title }}
+      </div>
+    </a>
+    {% else %}
+    <div></div>
+    {% endif %}
+
+    {% if nextDoc %}
+    <a href="{{ nextDoc.url }}" class="card bg-base-200 hover:bg-base-300 transition-all border border-base-300 p-4 text-right group sm:col-start-2">
+      <div class="text-[11px] text-base-content/50 uppercase tracking-wider mb-1 flex items-center justify-end gap-1">
+        <span>Next →</span>
+      </div>
+      <div class="font-bold text-sm text-base-content group-hover:text-primary transition-colors truncate">
+        {{ nextDoc.data.title }}
+      </div>
+    </a>
+    {% endif %}
+  </div>
+</article>
+
+<!-- Right column: table of contents and page tools -->
+<aside class="toc-column hidden xl:block" aria-label="On this page">
+  <div class="toc-panel gap-4">
+    <div class="toc-block flex flex-col min-h-0">
+      <button type="button" class="flex items-center justify-between w-full text-left text-xs font-mono font-bold uppercase tracking-wider text-base-content/60 mb-2" data-toc-toggle aria-label="Toggle table of contents">
+        <span>On this page</span>
+        <svg class="toc-chevron w-3 h-3 fill-current" viewBox="0 0 2048 2048" xmlns="http://www.w3.org/2000/svg"><path d="M1799 349l242 241-1017 1018L7 590l242-241 775 775 775-775z"></path></svg>
+      </button>
+      <nav class="toc-scroll" aria-label="Table of contents"><div class="toc-list"></div></nav>
+    </div>
+    <div class="border-t border-base-300 pt-3">{% include "doc-tools.njk" %}</div>
+  </div>
+</aside>
+</div>
