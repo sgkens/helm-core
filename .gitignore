@@ -1,0 +1,38 @@
+# Build and temporary artifacts
+*.dll
+*.exe
+*.pdb
+/tmp/
+bin/
+obj/
+.system_generated/
+scratch/
+
+# Font files — download with: . ./tools/Set-TerminalFont.ps1; Install-HelmFonts
+# Keep README.md tracked; exclude binaries
+tools/fonts/*.ttf
+tools/fonts/*.TTF
+tools/fonts/*.otf
+tools/fonts/*.woff
+tools/fonts/*.woff2
+
+# Workshop staging directory (created by Publish-Release.ps1)
+workshop_content/
+
+# Release archives (created by Publish-Release.ps1 / CI)
+helm-core-*.zip
+
+# Documentation site build output
+public/
+docs/node_modules/
+
+# Generated docs frames (tools/spritedump; built in CI or with "bun run frames" in docs/)
+docs/assets/frames/
+
+# Examples extracted from the docs by scripts/extract-examples.js
+docs/.examples/
+
+# Working notes, retired scripts and the roadmap tracker (kept locally, not tracked)
+context-source/
+decom/
+DEVTRACKER-PENDING.md
