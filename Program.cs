@@ -1295,7 +1295,7 @@ namespace IngameScript
 
                 if (hasErr)
                 {
-                    if (slot.LastValue != -99999.0)
+                    if (slot.LastValue != -99999.0 || (slot.ValSpriteIndex >= 0 && buf.Sprites[slot.ValSpriteIndex].Data != "ERR"))
                     {
                         dirty = true;
                         slot.LastValue = -99999.0;
