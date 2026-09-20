@@ -1,0 +1,19 @@
+# Missing Binds
+# Binds that match no block: every value reads as an error.
+# spritedump: unset
+@bind ghost_bat  = group("No Such Batteries", agg: avg)
+@bind ghost_h2   = block("No Such Tank")
+@bind ghost_door = block("No Such Door")
+
+@screen Missing
+output: "Missing LCD", 0
+profile: standard
+layout: grid(1, 1)
+bg: #0a0c10
+border_color: #64748b
+
+@panel p at(0, 0, 1, 1) title: "NO BLOCKS"
+line: "BATTERY " bar(ghost_bat.percent) gradient(#ef4444, #eab308, #22c55e)
+line: "H2 TANK " flow(ghost_h2.percent) gradient(#38bdf8, #60a5fa)
+line: "DOOR    " checkbox(ghost_door.open) flat(#eab308)
+line: "STATUS  " status(ghost_door.open) flat(#22c55e)

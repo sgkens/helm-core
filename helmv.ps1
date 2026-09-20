@@ -21,7 +21,7 @@ param(
                  'planetary_base', 'command_carrier', 'survival_essentials', 'deep_space_explorer',
                  'mining_fleet_coordinator', 'atmospheric_lander',
                  'single_line', 'power_only', 'cargo_minimal', 'corner_gauge_cluster', 'all_gauges_showcase', 'long_labels', 'numeric_extremes', 'border_styles_gallery', 'title_alignment',
-                 'template_stamp', 'multi_screen_one_pb', 'grid_4x4', 'panel_spans', 'transparent_bg', 'gradient_stress', 'units_all', 'boot_custom', 'alert_states', 'hangar_bay', 'solar_farm', 'piston_crane', 'docking_control', 'hydrogen_plant', 'sensor_security', 'trading_station')]
+                 'template_stamp', 'multi_screen_one_pb', 'grid_4x4', 'panel_spans', 'transparent_bg', 'gradient_stress', 'units_all', 'boot_custom', 'alert_states', 'hangar_bay', 'solar_farm', 'piston_crane', 'docking_control', 'hydrogen_plant', 'sensor_security', 'trading_station', 'missing_binds')]
     [string]$Preset = 'bridge',
 
     [Parameter(ParameterSetName = 'Custom', Mandatory = $true)]

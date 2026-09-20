@@ -6,6 +6,8 @@
 // re-implement layout. Telemetry is deterministic mock data injected through the
 // script's dynamic-value table.
 //
+// A layout with the comment line "# spritedump: unset" is rendered without injected values (unresolved binds).
+//
 // Usage:
 //   dotnet run --project tools/spritedump -- --out <dir> [--ticks N] [--set name=value ...] <layout.txt | dir> ...
 //
@@ -193,8 +195,12 @@ static class Dump
         }
 
         var dyn = (Dictionary<string, double>)Get(prog, "_dynamicValues");
+        // A layout containing the comment line "# spritedump: unset" is rendered with no injected values, so its binds
+        // resolve to zero blocks the way they do in game when a name matches nothing.
+        bool unset = dsl.Contains("# spritedump: unset");
         foreach (var b in config.Binds)
         {
+            if (unset) break;
             double v;
             if (!overrides.TryGetValue(b.Name, out v)) v = MockValue(b.Name);
             dyn[b.Name] = v;
@@ -222,6 +228,7 @@ static class Dump
                 {
                     foreach (var b in config.Binds)
                     {
+                        if (unset) break;
                         double v;
                         double baseValue = overrides.TryGetValue(b.Name, out v) ? v : MockValue(b.Name);
                         double tv = Timeline(b.Name, t, ticks, baseValue);
