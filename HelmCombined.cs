@@ -41,6 +41,8 @@ namespace IngameScript
         // Dynamic Micro-API: In-memory variables for IGC broadcast and CLI injection
         private readonly Dictionary<string, double> _dynamicValues
             = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, string> _dynText
+            = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private IMyBroadcastListener _helmBroadcastListener;
         private bool _globalRedAlert = false;
 
@@ -94,6 +96,7 @@ namespace IngameScript
             public float BarHeight;
             public float BarCenterY;
             public double LastValue = -99999.0;
+            public string LastText;
             public float DisplayValue = -1f; // fluid damping lerp
         }
 
@@ -263,6 +266,7 @@ namespace IngameScript
                     else
                     {
                         double num;
+                        _dynText.Remove(key);
                         if (double.TryParse(valStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out num))
                         {
                             _dynamicValues[key] = num;
@@ -274,6 +278,10 @@ namespace IngameScript
                         else if (valStr.Equals("false", StringComparison.OrdinalIgnoreCase) || valStr.Equals("off", StringComparison.OrdinalIgnoreCase))
                         {
                             _dynamicValues[key] = 0.0;
+                        }
+                        else
+                        {
+                            _dynText[key] = valStr;
                         }
                     }
                 }
@@ -298,6 +306,7 @@ namespace IngameScript
                     if (!_dynamicValues.ContainsKey(k))
                     {
                         _dynamicValues[k] = bind.DefaultValue;
+                        if (bind.DefaultText != null) _dynText[k] = bind.DefaultText;
                     }
                     _resolvedBinds[bind.Name] = blocks;
                     continue;
@@ -1571,8 +1580,12 @@ namespace IngameScript
                 }
                 else // Text line
                 {
-                    if (valueChanged || isRedAlert)
+                    string dt;
+                    var tb = _config.Binds.Find(b => b.Name == line.BindName);
+                    _dynText.TryGetValue(tb != null && tb.DynamicKey != null ? tb.DynamicKey : line.BindName, out dt);
+                    if (valueChanged || isRedAlert || dt != slot.LastText)
                     {
+                        slot.LastText = dt;
                         dirty = true;
                         Color txtCol = line.ColorRules != null
                             ? ResolveColor(Layout.ResolveConditionalColor(line.ColorRules, value))
@@ -1582,7 +1595,7 @@ namespace IngameScript
                             txtCol = new Color(255, 75, 75);
 
                         var valSprite = buf.Sprites[slot.ValSpriteIndex];
-                        valSprite.Data = FormatDisplayValue(value, line);
+                        valSprite.Data = dt ?? FormatDisplayValue(value, line);
                         valSprite.Color = txtCol;
                         buf.Sprites[slot.ValSpriteIndex] = valSprite;
                     }
@@ -1775,6 +1788,7 @@ namespace IngameScript
         }
         public Agg Aggregation = Agg.None;
         public double DefaultValue = 0.0;
+        public string DefaultText;
         public string DynamicKey;
     }
 
@@ -2539,7 +2553,7 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
             return t;
         }
 
-        private static void ExpandTemplateCall(string line, Dictionary<string, TemplateDef> userTemplates, List<string> outLines, List<string> errors)
+        private static void ExpandTemplateCall(string line, Dictionary<string, TemplateDef> userTemplates, List<string> outLines, List<string> errors, int depth = 0)
         {
             // @use name(arg1, arg2, key=val, ...)
             string rest = line.Substring("@use".Length).Trim();
@@ -2586,7 +2600,12 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     expanded = expanded.Replace("$" + kv.Key, kv.Value)
                                        .Replace("{" + kv.Key + "}", kv.Value);
                 }
-                outLines.Add(expanded);
+                if (expanded.StartsWith("@use"))
+                {
+                    if (depth > 3) throw new FormatException("@use nested too deep");
+                    ExpandTemplateCall(expanded, userTemplates, outLines, errors, depth + 1);
+                }
+                else outLines.Add(expanded);
             }
         }
 
@@ -2679,6 +2698,8 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                         double defVal;
                         if (double.TryParse(kv[1].Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out defVal))
                             def.DefaultValue = defVal;
+                        else
+                            def.DefaultText = Unquote(kv[1].Trim());
                     }
                 }
                 return def;

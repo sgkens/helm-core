@@ -1,0 +1,21 @@
+# Template Nested
+# A template that invokes another template: a ship pod that stamps one nacelle screen per engine.
+@template nacelle($screen, $batt_group)
+@bind pwr_$screen = group("$batt_group", agg: avg)
+@screen $screen
+output: "$screen LCD", 0
+profile: standard
+layout: grid(1, 1)
+bg: #090c11
+border_color: #38bdf8
+@panel n at(0, 0, 1, 1) title: "$screen"
+line: "POWER   " bar(pwr_$screen.percent) gradient(#ef4444, #eab308, #22c55e)
+@end
+
+@template engine_pair($side)
+@use nacelle(screen="$side Fore", batt_group="$side Fore Batteries")
+@use nacelle(screen="$side Aft", batt_group="$side Aft Batteries")
+@end
+
+@use engine_pair(side="Port")
+@use engine_pair(side="Starboard")
