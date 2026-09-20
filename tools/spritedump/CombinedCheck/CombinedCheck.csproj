@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Compiles the shipped, minified script (HelmCombined.min.cs) against the stand-in Space Engineers API.
+       A build error means the file pasted into the game would not compile.
+       Run: dotnet build tools/spritedump/CombinedCheck -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RollForward>Major</RollForward>
+    <LangVersion>latest</LangVersion>
+    <NoWarn>CS0169;CS0414;CS0649;CS0219;CS8981;CS0168</NoWarn>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../../HelmCombined.min.cs" />
+    <Compile Include="../SeShim.cs" />
+    <Compile Include="../SeShim.Blocks.cs" />
+    <Compile Include="Main.cs" />
+  </ItemGroup>
+</Project>
