@@ -17,7 +17,7 @@ function titleCase(s) {
 }
 
 function describe(name, text) {
-  const comments = text.split(/\r?\n/).filter((l) => l.trim().startsWith("#") && !isDecoration(l)).map((l) => l.replace(/^#\s*/, "").trim());
+  const comments = text.split(/\r?\n/).filter((l) => l.trim().startsWith("#") && !isDecoration(l) && !/^#\s*spritedump:/i.test(l.trim())).map((l) => l.replace(/^#\s*/, "").trim());
   let title = comments[0] || name;
   let rest = comments.slice(1);
   const m = title.match(/^HELM DISPLAY CONFIGURATION:\s*(.+)$/i);

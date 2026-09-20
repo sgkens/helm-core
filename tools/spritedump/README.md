@@ -10,7 +10,9 @@ Run from the repository root:
 dotnet run --project tools/spritedump -- --out <dir> [--set bind=value ...] layouts/default
 ```
 
-Output is one `<layout>.json` per input file, with one frame per screen and hardware profile (`TextPanel`, `WideLCD`, `CockpitSmall`, `CornerLCD`, `CockpitCorner`). Bind values are deterministic (hash of the bind name, 22 to 95) unless overridden with `--set`. Exit code is 1 if any layout fails to parse or render.
+Output is one `<layout>.json` per input file, with one frame per screen and hardware profile (`TextPanel`, `WideLCD`, `CockpitSmall`, `CornerLCD`, `CockpitCorner`). Bind values are deterministic (hash of the bind name, 22 to 95) unless overridden with `--set`. Exit code is 1 if any layout fails to parse or render, or if a screen draws no sprites.
+
+A layout that contains the comment line `# spritedump: unset` is rendered with no injected values, so its binds resolve to zero blocks as they do in game when a name matches nothing (see `layouts/default/missing_binds.txt`). The marker is an ordinary comment; the parser and the in-game script ignore it.
 
 ## How it works
 
