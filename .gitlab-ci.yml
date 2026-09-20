@@ -160,6 +160,22 @@ combined-compile-check:
     - if: '$CI_COMMIT_TAG'
 
 # ---------------------------------------------------------------------------
+# renderer-smoke — Run the real Program.cs renderer (tools/spritedump) over every
+# preset and template on all five hardware profiles. Fails on a parse error, a
+# render exception, or a screen that draws no sprites. Program.cs has no unit tests;
+# this is the check that it draws anything at all.
+# ---------------------------------------------------------------------------
+renderer-smoke:
+  stage: gate
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  script:
+    - dotnet run --project tools/spritedump -- --out "$CI_PROJECT_DIR/.smoke" layouts/default layouts/templates.txt
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH =~ /^release\//'
+    - if: '$CI_COMMIT_TAG'
+
+# ---------------------------------------------------------------------------
 # STAGE: package — Create versioned archive + upload to GitLab Generic Packages
 #
 # The archive is always created and attached as a job artifact.

@@ -234,6 +234,9 @@ static class Dump
                 }
             }
 
+            if (frames.Count == 0 || frames[frames.Count - 1].Count == 0)
+                errors.Add(layoutName + " [" + prof.Name + "] screen " + screen.Name + ": rendered no sprites");
+
             if (!first) sb.Append(",\n");
             first = false;
             sb.Append("    {\"layout\":").Append(Esc(layoutName)).Append(",\"screen\":").Append(Esc(screen.Name))
