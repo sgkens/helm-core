@@ -1,0 +1,1747 @@
+// Program.cs — SE-specific adapter for HELM.
+//
+// Status: this file compiles against the stand-in API in tools/spritedump (no errors) and its
+// sprite output is exported for the docs. It has NOT been run in Space Engineers: instruction
+// counts, allocation behaviour and real font metrics are unmeasured. HelmCore.cs has the unit
+// tests (Tests.cs); Program.cs has none.
+//
+// Deployment note: this is written as an MDK-style project (HelmCore.cs +
+// this file, separate namespaces). If pasting directly into the in-game PB
+// editor without MDK, the HelmCore.cs types need to be nested inside the
+// Program class body instead of living in their own namespace — the in-game
+// editor only auto-wraps a single "partial class Program : MyGridProgram".
+
+using System;
+using System.Collections.Generic;
+using System.Text;
+using Sandbox.ModAPI.Ingame;
+using VRage.Game.GUI.TextPanel;
+using VRageMath;
+using HelmCore;
+
+namespace IngameScript
+{
+    partial class Program : MyGridProgram
+    {
+        // ---- state ----
+        private ParsedConfig _config;
+        private string _lastCustomData = null;
+
+        // Resolved bind name -> list of blocks that satisfy it (single-block
+        // binds resolve to a 1-item list). Re-resolved on config change and
+        // on the periodic rescan below — never every tick (PDR §5).
+        private Dictionary<string, List<IMyTerminalBlock>> _resolvedBinds
+            = new Dictionary<string, List<IMyTerminalBlock>>();
+        private Dictionary<string, bool> _fallbackUsed = new Dictionary<string, bool>();
+
+        // Dynamic Micro-API: In-memory variables for IGC broadcast and CLI injection
+        private readonly Dictionary<string, double> _dynamicValues
+            = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        private IMyBroadcastListener _helmBroadcastListener;
+        private bool _globalRedAlert = false;
+
+        // Resolved screen -> output surface. Re-resolved alongside binds.
+        private Dictionary<ScreenDef, IMyTextSurface> _resolvedOutputs
+            = new Dictionary<ScreenDef, IMyTextSurface>();
+
+        // Dirty-flag cache: last rendered signature per screen (PDR §4).
+        private Dictionary<ScreenDef, string> _lastSignature
+            = new Dictionary<ScreenDef, string>();
+
+        // Pre-allocated static cache for all integer percentage strings (0-byte allocation path)
+        private static readonly string[] PCT_CACHE = new string[101];
+
+        static Program()
+        {
+            for (int i = 0; i <= 100; i++)
+            {
+                PCT_CACHE[i] = i + "%";
+            }
+        }
+
+        private static string GetPercentString(double value)
+        {
+            int idx = (int)Math.Round(value);
+            if (idx < 0) idx = 0;
+            else if (idx > 100) idx = 100;
+            return PCT_CACHE[idx];
+        }
+
+        // Retained Virtual Sprite Buffers: in-place mutated sprite lists for graphic screens
+        private class ScreenBuffer
+        {
+            public List<MySprite> Sprites = new List<MySprite>();
+            public List<LineSlot> Slots = new List<LineSlot>();
+            public Vector2 LastSurfaceSize;
+            public bool Initialized = false;
+        }
+
+        private class LineSlot
+        {
+            public LineDef Line;
+            public int FillSpriteIndex = -1;
+            public int ValSpriteIndex = -1;
+            public int LabelSpriteIndex = -1;
+            public bool HasDynamicLabel = false;
+            public List<int> ExtraSpriteIndices = new List<int>(); // for LedBar, Chevron, Dots, Hazard, and Sparkline
+            public float[] SparkHistory = new float[8];
+            public float BarLeft;
+            public float BarMaxWidth;
+            public float BarHeight;
+            public float BarCenterY;
+            public double LastValue = -99999.0;
+            public float DisplayValue = -1f; // fluid damping lerp
+        }
+
+        private Dictionary<ScreenDef, ScreenBuffer> _screenBuffers
+            = new Dictionary<ScreenDef, ScreenBuffer>();
+
+        private int _screenCursor = 0;
+        private int _rescanCounter = 0;
+        private int _tickCounter = 0;
+        private const int RESCAN_EVERY_N_RUNS = 100; // PDR §5: rescan blocks periodically, not per tick
+
+        // Approximate line height in pixels per unit FontSize.
+        // *** UNVERIFIED — a placeholder, not a researched constant. ***
+        // The real value should come from MeasureStringInPixels() against an
+        // actual surface in-game, per PDR §7's "file/API check tells you
+        // presence, not exact rendered metrics" caution. Do not trust this
+        // number until it's been checked on a real screen.
+        private const float APPROX_LINE_HEIGHT_PER_FONTSIZE = 22f;
+
+        public Program()
+        {
+            Runtime.UpdateFrequency = UpdateFrequency.Update100; // PDR §4 default hypothesis
+            try
+            {
+                _helmBroadcastListener = IGC.RegisterBroadcastListener("HELM");
+                _helmBroadcastListener.SetMessageCallback("HELM_IGC");
+            }
+            catch {}
+            ReloadConfig();
+        }
+
+        public void Main(string argument, UpdateType updateType)
+        {
+            if ((updateType & UpdateType.IGC) != 0 || argument == "HELM_IGC")
+            {
+                ProcessIgcMessages();
+            }
+
+            string rawArg = (argument ?? "").Trim();
+            string arg = rawArg.ToLowerInvariant();
+            if (arg == "reload")
+            {
+                ReloadConfig();
+            }
+            else if (arg == "refresh")
+            {
+                ResolveBindsAndOutputs();
+            }
+            else if (arg == "scan" || arg == "diagnose" || arg == "test")
+            {
+                RunSelfDiagnostics();
+                return;
+            }
+            else if (arg.StartsWith("set "))
+            {
+                string rest = rawArg.Substring(4).Trim();
+                int eq = rest.IndexOf('=');
+                int sp = rest.IndexOf(' ');
+                int sep = eq > 0 ? eq : sp;
+                if (sep > 0)
+                {
+                    string k = rest.Substring(0, sep).Trim();
+                    string v = rest.Substring(sep + 1).Trim();
+                    ApplyDynamicPayload($"{k}={v}");
+                    Echo($"[HELM] Set dynamic variable '{k}' = {v}");
+                }
+                return;
+            }
+            else if (arg.StartsWith("alert"))
+            {
+                string val = arg.Length > 5 ? arg.Substring(5).Trim() : "toggle";
+                if (val == "toggle") _globalRedAlert = !_globalRedAlert;
+                else _globalRedAlert = val == "red" || val == "on" || val == "1" || val == "true";
+                Echo($"[HELM] Red alert state: {_globalRedAlert}");
+                return;
+            }
+            else if (Me.CustomData != _lastCustomData)
+            {
+                ReloadConfig();
+            }
+
+            _tickCounter++;
+            _rescanCounter++;
+            if (_rescanCounter >= RESCAN_EVERY_N_RUNS)
+            {
+                _rescanCounter = 0;
+                ResolveBindsAndOutputs();
+            }
+
+            if (_config == null || _config.Screens.Count == 0)
+            {
+                Echo("HELM: no valid @screen configured. Check Custom Data.");
+                return;
+            }
+
+            // Round-robin: exactly one screen's full redraw per Main() call.
+            // This is the FSD2-failure fix (PDR §1/§4) — never render every
+            // screen in one pass.
+            var screen = _config.Screens[_screenCursor % _config.Screens.Count];
+            _screenCursor++;
+
+            RenderScreen(screen);
+
+            // PDR §9 profiling hook — leave this in during development so the
+            // §4 "working hypothesis" numbers can actually be replaced with
+            // measured ones.
+            Echo($"HELM [{screen.Name}] instr {Runtime.CurrentInstructionCount}/{Runtime.MaxInstructionCount} — {Runtime.LastRunTimeMs:0.###}ms");
+        }
+
+        // ---------------- config / binding resolution ----------------
+
+        private void ReloadConfig()
+        {
+            _lastCustomData = Me.CustomData;
+            _config = HelmParser.Parse(_lastCustomData);
+
+            if (_config.Errors.Count > 0)
+            {
+                // PDR §8's "still unresolved" question is answered here, for
+                // v1: errors surface via Echo, config does not silently run
+                // partially — screens with no valid output still get skipped
+                // individually further down, but parse errors are always visible.
+                var sb = new StringBuilder("HELM config errors:\n");
+                foreach (var e in _config.Errors) sb.AppendLine(" - " + e);
+                Echo(sb.ToString());
+            }
+
+            _screenBuffers.Clear();
+            _lastSignature.Clear();
+            ResolveBindsAndOutputs();
+        }
+
+        private void ProcessIgcMessages()
+        {
+            try
+            {
+                while (_helmBroadcastListener != null && _helmBroadcastListener.HasPendingMessage)
+                {
+                    var msg = _helmBroadcastListener.AcceptMessage();
+                    if (msg.Data is string)
+                    {
+                        ApplyDynamicPayload((string)msg.Data);
+                    }
+                }
+            }
+            catch {}
+        }
+
+        private void ApplyDynamicPayload(string payload)
+        {
+            if (string.IsNullOrEmpty(payload)) return;
+            var pairs = payload.Split(';');
+            for (int i = 0; i < pairs.Length; i++)
+            {
+                var pair = pairs[i].Trim();
+                if (pair.Length == 0) continue;
+                int eq = pair.IndexOf('=');
+                if (eq < 0) eq = pair.IndexOf(':');
+                if (eq > 0)
+                {
+                    string key = pair.Substring(0, eq).Trim();
+                    string valStr = pair.Substring(eq + 1).Trim();
+                    if (key.Equals("alert", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _globalRedAlert = valStr.Equals("red", StringComparison.OrdinalIgnoreCase) || valStr == "1" || valStr.Equals("true", StringComparison.OrdinalIgnoreCase) || valStr.Equals("on", StringComparison.OrdinalIgnoreCase);
+                    }
+                    else
+                    {
+                        double num;
+                        if (double.TryParse(valStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out num))
+                        {
+                            _dynamicValues[key] = num;
+                        }
+                        else if (valStr.Equals("true", StringComparison.OrdinalIgnoreCase) || valStr.Equals("on", StringComparison.OrdinalIgnoreCase))
+                        {
+                            _dynamicValues[key] = 100.0;
+                        }
+                        else if (valStr.Equals("false", StringComparison.OrdinalIgnoreCase) || valStr.Equals("off", StringComparison.OrdinalIgnoreCase))
+                        {
+                            _dynamicValues[key] = 0.0;
+                        }
+                    }
+                }
+            }
+        }
+
+        private void ResolveBindsAndOutputs()
+        {
+            _resolvedBinds.Clear();
+            _resolvedOutputs.Clear();
+            _fallbackUsed.Clear();
+
+            if (_config == null) return;
+
+            foreach (var bind in _config.Binds)
+            {
+                var blocks = new List<IMyTerminalBlock>();
+
+                if (bind.Kind == BindKind.Dynamic)
+                {
+                    string k = !string.IsNullOrEmpty(bind.DynamicKey) ? bind.DynamicKey : bind.Name;
+                    if (!_dynamicValues.ContainsKey(k))
+                    {
+                        _dynamicValues[k] = bind.DefaultValue;
+                    }
+                    _resolvedBinds[bind.Name] = blocks;
+                    continue;
+                }
+
+                var targets = bind.TargetNames.Count > 0 ? bind.TargetNames : new List<string> { bind.TargetName };
+
+                foreach (var targetName in targets)
+                {
+                    if (string.IsNullOrEmpty(targetName)) continue;
+
+                    bool isWildcard = targetName.Contains("*") || targetName.Contains("?");
+
+                    if (bind.Kind == BindKind.Group || isWildcard)
+                    {
+                        var group = GridTerminalSystem.GetBlockGroupWithName(targetName);
+                        if (group != null)
+                        {
+                            var groupBlocks = new List<IMyTerminalBlock>();
+                            group.GetBlocks(groupBlocks);
+                            foreach (var gb in groupBlocks)
+                            {
+                                if (!blocks.Contains(gb)) blocks.Add(gb);
+                            }
+                        }
+                        else
+                        {
+                            // Search all terminal blocks for wildcard or exact match
+                            var allBlocks = new List<IMyTerminalBlock>();
+                            GridTerminalSystem.GetBlocks(allBlocks);
+                            for (int b = 0; b < allBlocks.Count; b++)
+                            {
+                                var tb = allBlocks[b];
+                                if (isWildcard ? Layout.MatchWildcard(targetName, tb.CustomName) : string.Equals(targetName, tb.CustomName, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    if (!blocks.Contains(tb)) blocks.Add(tb);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        var block = GridTerminalSystem.GetBlockWithName(targetName);
+                        if (block != null && !blocks.Contains(block)) blocks.Add(block);
+                    }
+                }
+
+                if (blocks.Count == 0)
+                {
+                    ResolveFallbackBlocks(bind, targets, blocks);
+                    if (blocks.Count > 0) _fallbackUsed[bind.Name] = true;
+                }
+
+                _resolvedBinds[bind.Name] = blocks;
+            }
+
+            foreach (var screen in _config.Screens)
+            {
+                if (string.IsNullOrEmpty(screen.OutputBlockName)) continue;
+
+                var outBlock = GridTerminalSystem.GetBlockWithName(screen.OutputBlockName);
+                if (outBlock == null)
+                {
+                    Echo($"HELM: output block '{screen.OutputBlockName}' not found");
+                    continue;
+                }
+
+                IMyTextSurface surface = null;
+                var provider = outBlock as IMyTextSurfaceProvider;
+                if (provider != null && screen.OutputSurfaceIndex < provider.SurfaceCount)
+                {
+                    surface = provider.GetSurface(screen.OutputSurfaceIndex);
+                }
+                else if (outBlock is IMyTextSurface directSurface && screen.OutputSurfaceIndex == 0)
+                {
+                    surface = directSurface;
+                }
+
+                if (surface == null)
+                {
+                    Echo($"HELM: output block '{screen.OutputBlockName}' has no surface index {screen.OutputSurfaceIndex}");
+                    continue;
+                }
+
+                surface.ContentType = ContentType.SCRIPT;
+                surface.Script = "";
+                surface.ScriptBackgroundColor = Color.Black;
+                _resolvedOutputs[screen] = surface;
+            }
+        }
+
+        private void ResolveFallbackBlocks(BindDef bind, List<string> targets, List<IMyTerminalBlock> blocks)
+        {
+            string hint = (bind.Name + " " + string.Join(" ", targets)).ToLowerInvariant();
+            var allBlocks = new List<IMyTerminalBlock>();
+            GridTerminalSystem.GetBlocks(allBlocks);
+
+            bool MatchesType(IMyTerminalBlock b)
+            {
+                if ((hint.Contains("batt") || hint.Contains("power") || hint.Contains("pwr")) && b is IMyBatteryBlock) return true;
+                if ((hint.Contains("reactor") || hint.Contains("nuke")) && b is IMyReactor) return true;
+                if (hint.Contains("solar") && b is IMySolarPanel) return true;
+                if (hint.Contains("wind") && b is IMyWindTurbine) return true;
+                if ((hint.Contains("tank") || hint.Contains("hydro") || hint.Contains("hydrogen") || hint.Contains("o2") || hint.Contains("oxygen")) && b is IMyGasTank) return true;
+                if ((hint.Contains("vent") || hint.Contains("air") || hint.Contains("press")) && b is IMyAirVent) return true;
+                if ((hint.Contains("cargo") || hint.Contains("container") || hint.Contains("store") || hint.Contains("inv")) && b is IMyCargoContainer) return true;
+                if ((hint.Contains("jump") || hint.Contains("drive")) && b is IMyJumpDrive) return true;
+                if ((hint.Contains("thrust") || hint.Contains("engine")) && b is IMyThrust) return true;
+                if ((hint.Contains("susp") || hint.Contains("wheel") || hint.Contains("brake")) && b is IMyMotorSuspension) return true;
+                if ((hint.Contains("door") || hint.Contains("gate") || hint.Contains("airlock")) && b is IMyDoor) return true;
+                if (hint.Contains("connect") && b is IMyShipConnector) return true;
+                if ((hint.Contains("asm") || hint.Contains("assembler") || hint.Contains("fab") || hint.Contains("prod")) && b is IMyAssembler) return true;
+                if ((hint.Contains("refin") || hint.Contains("smelt") || hint.Contains("furnace")) && b is IMyRefinery) return true;
+                if ((hint.Contains("drill") || hint.Contains("mine") || hint.Contains("bore")) && b is IMyShipDrill) return true;
+                if (hint.Contains("weld") && b is IMyShipWelder) return true;
+                if (hint.Contains("grind") && b is IMyShipGrinder) return true;
+                if ((hint.Contains("o2h2") || hint.Contains("gen") || hint.Contains("generator")) && b is IMyGasGenerator) return true;
+                if ((hint.Contains("turret") || hint.Contains("gun") || hint.Contains("cannon") || hint.Contains("weapon") || hint.Contains("defense")) && b is IMyLargeTurretBase) return true;
+                if ((hint.Contains("proj") || hint.Contains("blueprint")) && b is IMyProjector) return true;
+                if (hint.Contains("gyro") && b is IMyGyro) return true;
+                if ((hint.Contains("grav") || hint.Contains("gravity")) && b is IMyGravityGeneratorBase) return true;
+                if ((hint.Contains("gear") || hint.Contains("magplate") || hint.Contains("landing")) && b is IMyLandingGear) return true;
+                if ((hint.Contains("ant") || hint.Contains("comm") || hint.Contains("radio")) && b is IMyRadioAntenna) return true;
+                if (hint.Contains("beacon") && b is IMyBeacon) return true;
+                if ((hint.Contains("light") || hint.Contains("spot")) && b is IMyLightingBlock) return true;
+                if (hint.Contains("piston") && b is IMyPistonBase) return true;
+                if ((hint.Contains("rotor") || hint.Contains("hinge")) && b is IMyMotorStator) return true;
+                if (hint.Contains("warhead") && b is IMyWarhead) return true;
+                if (hint.Contains("sensor") && b is IMySensorBlock) return true;
+                if (hint.Contains("camera") && b is IMyCameraBlock) return true;
+                if (hint.Contains("parachute") && b is IMyParachute) return true;
+                if ((hint.Contains("tcb") || hint.Contains("customturret")) && b is IMyTurretControlBlock) return true;
+                return false;
+            }
+
+            for (int i = 0; i < allBlocks.Count; i++)
+            {
+                var b = allBlocks[i];
+                if (b.CubeGrid == Me.CubeGrid && MatchesType(b))
+                {
+                    if (!blocks.Contains(b)) blocks.Add(b);
+                }
+            }
+
+            if (blocks.Count == 0)
+            {
+                for (int i = 0; i < allBlocks.Count; i++)
+                {
+                    var b = allBlocks[i];
+                    if (MatchesType(b) && !blocks.Contains(b)) blocks.Add(b);
+                }
+            }
+        }
+
+        private void RunSelfDiagnostics()
+        {
+            Echo("=== HELM SELF-DIAGNOSTIC AUDIT ===");
+            if (_config == null || _config.Screens.Count == 0)
+            {
+                Echo("[WARN] No active @screen configured in Custom Data.");
+                return;
+            }
+
+            Echo($"Configuration: {_config.Screens.Count} screens, {_config.Binds.Count} binds");
+            Echo("--- BIND RESOLUTION ---");
+            foreach (var bind in _config.Binds)
+            {
+                if (bind.Kind == BindKind.Dynamic)
+                {
+                    string k = !string.IsNullOrEmpty(bind.DynamicKey) ? bind.DynamicKey : bind.Name;
+                    double v = _dynamicValues.ContainsKey(k) ? _dynamicValues[k] : bind.DefaultValue;
+                    Echo($"[OK] @bind {bind.Name} (dynamic variable '{k}' = {v})");
+                    continue;
+                }
+
+                if (_resolvedBinds.TryGetValue(bind.Name, out var blocks))
+                {
+                    if (blocks.Count > 0)
+                    {
+                        string fbTag = _fallbackUsed.ContainsKey(bind.Name) && _fallbackUsed[bind.Name] ? " [fallback: typed match]" : "";
+                        Echo($"[OK] @bind {bind.Name} ({blocks.Count} blocks matched{fbTag})");
+                    }
+                    else
+                    {
+                        string targets = string.Join(", ", bind.TargetNames.Count > 0 ? bind.TargetNames : new List<string> { bind.TargetName });
+                        Echo($"[WARN] @bind {bind.Name} -> 0 blocks matched \"{targets}\"");
+                    }
+                }
+                else
+                {
+                    Echo($"[ERR] @bind {bind.Name} -> unresolved");
+                }
+            }
+
+            if (_dynamicValues.Count > 0)
+            {
+                Echo($"--- DYNAMIC VARIABLES ({_dynamicValues.Count}) ---");
+                foreach (var kvp in _dynamicValues)
+                    Echo($"[VAR] {kvp.Key} = {kvp.Value}");
+            }
+
+            Echo("--- SURFACE OUTPUT AUDIT ---");
+            foreach (var screen in _config.Screens)
+            {
+                if (_resolvedOutputs.TryGetValue(screen, out var surface))
+                {
+                    var size = surface.SurfaceSize;
+                    var stats = Layout.ComputeStats(screen);
+                    Echo($"[OK] Screen \"{screen.Name}\" [{screen.Profile}] -> {screen.OutputBlockName} [#{screen.OutputSurfaceIndex}] ({size.X:0}x{size.Y:0} px, {stats.TotalAllocatedSprites} sprites)");
+                }
+                else
+                {
+                    Echo($"[ERR] Screen \"{screen.Name}\" -> Missing block \"{screen.OutputBlockName}\" [#{screen.OutputSurfaceIndex}]");
+                }
+            }
+            Echo("--- PERFORMANCE STATUS ---");
+            Echo($"Instruction Usage: {Runtime.CurrentInstructionCount}/{Runtime.MaxInstructionCount} | Allocs: 0-byte GC");
+            Echo("=== DIAGNOSTIC AUDIT COMPLETE ===");
+        }
+
+        // ---------------- per-block "percent" resolution ----------------
+        //
+        // Comprehensive vanilla Space Engineers block telemetry:
+        // - Batteries: CurrentStoredPower / MaxStoredPower
+        // - Jump Drives: CurrentStoredPower / MaxStoredPower
+        // - Gas Tanks (O2 & H2): FilledRatio
+        // - Air Vents: GetOxygenLevel()
+        // - Cargo Containers: CurrentVolume / MaxVolume
+        // - Reactors: CurrentOutput / MaxOutput
+        // - Solar Panels & Wind Turbines: CurrentOutput / MaxOutput
+        // - Doors & Airlocks: OpenRatio
+        // - Thrusters: CurrentThrust / MaxEffectiveThrust
+        // - Motor Suspensions: Brake / Friction
+        // - Connectors: Connected status
+        // - Functional Blocks: Enabled status fallback
+
+        private double ResolvePercent(IMyTerminalBlock block)
+        {
+            if (block == null) return 0.0;
+
+            var battery = block as IMyBatteryBlock;
+            if (battery != null)
+                return battery.MaxStoredPower > 0 ? (battery.CurrentStoredPower / battery.MaxStoredPower) * 100.0 : 0.0;
+
+            var jumpDrive = block as IMyJumpDrive;
+            if (jumpDrive != null)
+                return jumpDrive.MaxStoredPower > 0 ? (jumpDrive.CurrentStoredPower / jumpDrive.MaxStoredPower) * 100.0 : 0.0;
+
+            var tank = block as IMyGasTank;
+            if (tank != null)
+                return tank.FilledRatio * 100.0;
+
+            var vent = block as IMyAirVent;
+            if (vent != null)
+                return vent.GetOxygenLevel() * 100.0;
+
+            var cargo = block as IMyCargoContainer;
+            if (cargo != null)
+            {
+                var inv = cargo.GetInventory();
+                if (inv != null && inv.MaxVolume.RawValue > 0)
+                    return (double)inv.CurrentVolume.RawValue / inv.MaxVolume.RawValue * 100.0;
+                return 0.0;
+            }
+
+            var reactor = block as IMyReactor;
+            if (reactor != null)
+                return reactor.MaxOutput > 0 ? (reactor.CurrentOutput / reactor.MaxOutput) * 100.0 : 0.0;
+
+            var solar = block as IMySolarPanel;
+            if (solar != null)
+                return solar.MaxOutput > 0 ? (solar.CurrentOutput / solar.MaxOutput) * 100.0 : 0.0;
+
+            var wind = block as IMyWindTurbine;
+            if (wind != null)
+                return wind.MaxOutput > 0 ? (wind.CurrentOutput / wind.MaxOutput) * 100.0 : 0.0;
+
+            var door = block as IMyDoor;
+            if (door != null)
+                return (double)door.OpenRatio * 100.0;
+
+            var thrust = block as IMyThrust;
+            if (thrust != null)
+                return thrust.MaxEffectiveThrust > 0 ? (thrust.CurrentThrust / thrust.MaxEffectiveThrust) * 100.0 : 0.0;
+
+            var susp = block as IMyMotorSuspension;
+            if (susp != null)
+                return susp.Brake ? 100.0 : (susp.Friction * 100.0);
+
+            var connector = block as IMyShipConnector;
+            if (connector != null)
+                return connector.Status == MyShipConnectorStatus.Connected ? 100.0 : (connector.Status == MyShipConnectorStatus.Connectable ? 50.0 : 0.0);
+
+            var prod = block as IMyProductionBlock;
+            if (prod != null)
+                return prod.IsProducing ? 100.0 : 0.0;
+
+            var drill = block as IMyShipDrill;
+            if (drill != null)
+                return drill.Enabled ? 100.0 : 0.0;
+
+            var tool = block as IMyShipToolBase;
+            if (tool != null)
+                return tool.Enabled ? 100.0 : 0.0;
+
+            var gen = block as IMyGasGenerator;
+            if (gen != null)
+                return gen.AutoRefill ? 100.0 : (gen.Enabled ? 50.0 : 0.0);
+
+            var turret = block as IMyLargeTurretBase;
+            if (turret != null)
+                return turret.IsShooting ? 100.0 : (turret.HasTarget ? 50.0 : (turret.Enabled ? 10.0 : 0.0));
+
+            var proj = block as IMyProjector;
+            if (proj != null)
+                return proj.TotalBlocks > 0 ? ((double)proj.BuiltBlocks / proj.TotalBlocks) * 100.0 : 0.0;
+
+            var gyro = block as IMyGyro;
+            if (gyro != null)
+                return gyro.GyroOverride ? 100.0 : (gyro.Enabled ? 50.0 : 0.0);
+
+            var grav = block as IMyGravityGeneratorBase;
+            if (grav != null)
+                return Math.Min(100.0, Math.Abs(grav.GravityAcceleration) / 9.81 * 100.0);
+
+            var gear = block as IMyLandingGear;
+            if (gear != null)
+                return gear.IsLocked ? 100.0 : (gear.LockMode == LandingGearMode.ReadyToLock ? 50.0 : 0.0);
+
+            var ant = block as IMyRadioAntenna;
+            if (ant != null)
+                return (ant.Radius / 50000.0) * 100.0;
+
+            var beacon = block as IMyBeacon;
+            if (beacon != null)
+                return (beacon.Radius / 50000.0) * 100.0;
+
+            var light = block as IMyLightingBlock;
+            if (light != null)
+                return light.Intensity * 10.0;
+
+            var piston = block as IMyPistonBase;
+            if (piston != null)
+                return piston.HighestPosition > 0 ? (piston.CurrentPosition / piston.HighestPosition) * 100.0 : 0.0;
+
+            var rotor = block as IMyMotorStator;
+            if (rotor != null)
+                return Math.Min(100.0, Math.Abs(rotor.Angle) / 6.28318 * 100.0);
+
+            var warhead = block as IMyWarhead;
+            if (warhead != null)
+                return warhead.IsArmed ? 100.0 : 0.0;
+
+            var sensor = block as IMySensorBlock;
+            if (sensor != null)
+                return !sensor.LastDetectedEntity.IsEmpty() ? 100.0 : (sensor.Enabled ? 25.0 : 0.0);
+
+            var camera = block as IMyCameraBlock;
+            if (camera != null)
+                return camera.IsActive ? 100.0 : (camera.Enabled ? 50.0 : 0.0);
+
+            var chute = block as IMyParachute;
+            if (chute != null)
+                return (double)chute.OpenRatio * 100.0;
+
+            var tcb = block as IMyTurretControlBlock;
+            if (tcb != null)
+                return tcb.HasTarget ? 100.0 : (tcb.IsUnderControl ? 50.0 : (tcb.Enabled ? 10.0 : 0.0));
+
+            var func = block as IMyFunctionalBlock;
+            if (func != null)
+                return func.Enabled ? 100.0 : 0.0;
+
+            return 0.0;
+        }
+
+        private double ResolveBlockField(IMyTerminalBlock block, string field)
+        {
+            if (block == null) return 0.0;
+            string f = field.ToLowerInvariant();
+            if (f == "percent" || f == "pct") return ResolvePercent(block);
+
+            var battery = block as IMyBatteryBlock;
+            if (battery != null)
+            {
+                if (f == "current" || f == "stored" || f == "val" || f == "value" || f == "raw") return battery.CurrentStoredPower;
+                if (f == "max" || f == "capacity") return battery.MaxStoredPower;
+                if (f == "output") return battery.CurrentOutput;
+                if (f == "maxoutput") return battery.MaxOutput;
+                if (f == "input") return battery.CurrentInput;
+                if (f == "maxinput") return battery.MaxInput;
+                return battery.CurrentStoredPower;
+            }
+
+            var jumpDrive = block as IMyJumpDrive;
+            if (jumpDrive != null)
+            {
+                if (f == "max" || f == "capacity") return jumpDrive.MaxStoredPower;
+                return jumpDrive.CurrentStoredPower;
+            }
+
+            var tank = block as IMyGasTank;
+            if (tank != null)
+            {
+                if (f == "max" || f == "capacity") return tank.Capacity;
+                return tank.FilledRatio * tank.Capacity;
+            }
+
+            var vent = block as IMyAirVent;
+            if (vent != null)
+            {
+                if (f == "max" || f == "capacity") return 100.0;
+                return vent.GetOxygenLevel() * 100.0;
+            }
+
+            var cargo = block as IMyCargoContainer;
+            if (cargo != null)
+            {
+                var inv = cargo.GetInventory();
+                if (inv != null)
+                {
+                    if (f == "mass") return (double)inv.CurrentMass;
+                    if (f == "max" || f == "capacity") return (double)inv.MaxVolume;
+                    return (double)inv.CurrentVolume;
+                }
+                return 0.0;
+            }
+
+            var pwr = block as IMyPowerProducer;
+            if (pwr != null)
+            {
+                if (f == "max" || f == "capacity") return pwr.MaxOutput;
+                return pwr.CurrentOutput;
+            }
+
+            var door = block as IMyDoor;
+            if (door != null)
+            {
+                if (f == "max") return 1.0;
+                return (double)door.OpenRatio;
+            }
+
+            var thrust = block as IMyThrust;
+            if (thrust != null)
+            {
+                if (f == "max" || f == "capacity") return thrust.MaxEffectiveThrust;
+                return thrust.CurrentThrust;
+            }
+
+            var susp = block as IMyMotorSuspension;
+            if (susp != null)
+            {
+                if (f == "brake") return susp.Brake ? 1.0 : 0.0;
+                return susp.Friction * 100.0;
+            }
+
+            var connector = block as IMyShipConnector;
+            if (connector != null)
+            {
+                return connector.Status == MyShipConnectorStatus.Connected ? 1.0 : 0.0;
+            }
+
+            var prod = block as IMyProductionBlock;
+            if (prod != null)
+            {
+                if (f == "producing" || f == "active" || f == "running" || f == "state") return prod.IsProducing ? 1.0 : 0.0;
+                if (f == "queue") return prod.IsQueueEmpty ? 0.0 : 1.0;
+            }
+
+            var asm = block as IMyAssembler;
+            if (asm != null)
+            {
+                if (f == "disassembling") return asm.Mode == MyAssemblerMode.Disassembly ? 1.0 : 0.0;
+                if (f == "repeating" || f == "loop") return asm.Repeating ? 1.0 : 0.0;
+            }
+
+            var gen = block as IMyGasGenerator;
+            if (gen != null)
+            {
+                if (f == "autorefill") return gen.AutoRefill ? 1.0 : 0.0;
+                if (f == "active") return gen.Enabled ? 1.0 : 0.0;
+            }
+
+            var turret = block as IMyLargeTurretBase;
+            if (turret != null)
+            {
+                if (f == "shooting") return turret.IsShooting ? 1.0 : 0.0;
+                if (f == "target" || f == "hastarget") return turret.HasTarget ? 1.0 : 0.0;
+                if (f == "range") return turret.Range;
+            }
+
+            var proj = block as IMyProjector;
+            if (proj != null)
+            {
+                if (f == "built") return proj.BuiltBlocks;
+                if (f == "remaining") return proj.RemainingBlocks;
+                if (f == "total") return proj.TotalBlocks;
+                if (f == "projecting") return proj.IsProjecting ? 1.0 : 0.0;
+            }
+
+            var gyro = block as IMyGyro;
+            if (gyro != null)
+            {
+                if (f == "override") return gyro.GyroOverride ? 1.0 : 0.0;
+                if (f == "pitch") return gyro.Pitch;
+                if (f == "yaw") return gyro.Yaw;
+                if (f == "roll") return gyro.Roll;
+                if (f == "power") return gyro.GyroPower * 100.0;
+            }
+
+            var grav = block as IMyGravityGeneratorBase;
+            if (grav != null)
+            {
+                if (f == "g" || f == "accel") return grav.GravityAcceleration;
+            }
+
+            var gear = block as IMyLandingGear;
+            if (gear != null)
+            {
+                if (f == "locked") return gear.IsLocked ? 1.0 : 0.0;
+            }
+
+            var ant = block as IMyRadioAntenna;
+            if (ant != null)
+            {
+                if (f == "radius" || f == "range") return ant.Radius;
+            }
+
+            var beacon = block as IMyBeacon;
+            if (beacon != null)
+            {
+                if (f == "radius" || f == "range") return beacon.Radius;
+            }
+
+            var light = block as IMyLightingBlock;
+            if (light != null)
+            {
+                if (f == "intensity") return light.Intensity;
+                if (f == "radius") return light.Radius;
+            }
+
+            var piston = block as IMyPistonBase;
+            if (piston != null)
+            {
+                if (f == "pos" || f == "position" || f == "extension") return piston.CurrentPosition;
+                if (f == "velocity") return piston.Velocity;
+                if (f == "max") return piston.HighestPosition;
+            }
+
+            var rotor = block as IMyMotorStator;
+            if (rotor != null)
+            {
+                if (f == "angle" || f == "deg") return rotor.Angle * 180.0 / Math.PI;
+                if (f == "rad") return rotor.Angle;
+                if (f == "velocity" || f == "rpm") return rotor.TargetVelocityRPM;
+                if (f == "locked") return rotor.RotorLock ? 1.0 : 0.0;
+            }
+
+            var warhead = block as IMyWarhead;
+            if (warhead != null)
+            {
+                if (f == "armed") return warhead.IsArmed ? 1.0 : 0.0;
+                if (f == "countdown") return warhead.CountdownTime;
+            }
+
+            var sensor = block as IMySensorBlock;
+            if (sensor != null)
+            {
+                if (f == "detected") return !sensor.LastDetectedEntity.IsEmpty() ? 1.0 : 0.0;
+            }
+
+            var camera = block as IMyCameraBlock;
+            if (camera != null)
+            {
+                if (f == "range") return camera.AvailableScanRange;
+                if (f == "active") return camera.IsActive ? 1.0 : 0.0;
+            }
+
+            var chute = block as IMyParachute;
+            if (chute != null)
+            {
+                if (f == "open" || f == "openratio") return (double)chute.OpenRatio;
+            }
+
+            var tcb = block as IMyTurretControlBlock;
+            if (tcb != null)
+            {
+                if (f == "target" || f == "hastarget") return tcb.HasTarget ? 1.0 : 0.0;
+                if (f == "azimuth") return tcb.Azimuth * 180.0 / Math.PI;
+                if (f == "elevation") return tcb.Elevation * 180.0 / Math.PI;
+            }
+
+            var func = block as IMyFunctionalBlock;
+            if (func != null)
+            {
+                return func.Enabled ? 1.0 : 0.0;
+            }
+
+            return 0.0;
+        }
+
+        private double ResolveFieldValue(string bindName, string field)
+        {
+            var bindDef = _config != null ? _config.Binds.Find(b => b.Name == bindName) : null;
+            if (bindDef != null && bindDef.Kind == BindKind.Dynamic)
+            {
+                string k = !string.IsNullOrEmpty(bindDef.DynamicKey) ? bindDef.DynamicKey : bindName;
+                if (_dynamicValues.TryGetValue(k, out var dVal)) return dVal;
+                return bindDef.DefaultValue;
+            }
+            if (_dynamicValues.TryGetValue(bindName, out var dynVal)) return dynVal;
+
+            if (!_resolvedBinds.TryGetValue(bindName, out var blocks) || blocks.Count == 0)
+                throw new InvalidOperationException($"HELM: bind '{bindName}' resolved to zero blocks — check the name/typo");
+
+            if (blocks.Count == 1)
+                return ResolveBlockField(blocks[0], field);
+
+            var values = new List<double>();
+            foreach (var b in blocks) values.Add(ResolveBlockField(b, field));
+            return Aggregator.Aggregate(bindDef != null ? bindDef.Aggregation : Agg.Avg, values);
+        }
+
+        private double ResolvePercentForBind(string bindName)
+        {
+            var bindDef = _config != null ? _config.Binds.Find(b => b.Name == bindName) : null;
+            if (bindDef != null && bindDef.Kind == BindKind.Dynamic)
+            {
+                string k = !string.IsNullOrEmpty(bindDef.DynamicKey) ? bindDef.DynamicKey : bindName;
+                if (_dynamicValues.TryGetValue(k, out var dVal)) return dVal;
+                return bindDef.DefaultValue;
+            }
+            if (_dynamicValues.TryGetValue(bindName, out var dynVal)) return dynVal;
+
+            if (!_resolvedBinds.TryGetValue(bindName, out var blocks) || blocks.Count == 0) return 0.0;
+            if (blocks.Count == 1) return ResolvePercent(blocks[0]);
+
+            var values = new List<double>();
+            foreach (var b in blocks) values.Add(ResolvePercent(b));
+            return Aggregator.Aggregate(bindDef != null ? bindDef.Aggregation : Agg.Avg, values);
+        }
+
+        private static string FormatDisplayValue(double value, LineDef line)
+        {
+            if (line == null || (string.IsNullOrEmpty(line.Unit) && string.IsNullOrEmpty(line.Format) && line.Field == "percent"))
+            {
+                return GetPercentString(value);
+            }
+            return Layout.FormatDisplayValue(value, line.Unit, line.Format);
+        }
+
+        // ---------------- rendering ----------------
+
+        private void RenderScreen(ScreenDef screen)
+        {
+            if (!_resolvedOutputs.TryGetValue(screen, out var surface))
+                return;
+
+            if (screen.Border.Equals("ascii", StringComparison.OrdinalIgnoreCase))
+            {
+                RenderScreenAscii(screen, surface);
+            }
+            else
+            {
+                RenderScreenGraphic(screen, surface);
+            }
+        }
+
+        // =========================================================================
+        // Approach B: Retained Virtual Sprite Buffer (Geometric quads + in-place mutation)
+        // =========================================================================
+
+        private static void AddQuad(ScreenBuffer buf, Vector2 pos, Vector2 size, Color col, float rot = 0f, string data = "SquareSimple")
+        {
+            buf.Sprites.Add(new MySprite { Type = SpriteType.TEXTURE, Data = data, Position = pos, Size = size, Color = col, Rotation = rot });
+        }
+
+        private void BuildGraphicBuffer(ScreenDef screen, IMyTextSurface surface, ScreenBuffer buf)
+        {
+            buf.Sprites.Clear();
+            buf.Slots.Clear();
+
+            Vector2 surfaceSize = surface.SurfaceSize;
+            Vector2 textureSize = surface.TextureSize;
+            Vector2 viewportOffset = (textureSize - surfaceSize) / 2f;
+
+            float paddingX = Math.Max(4f, surfaceSize.X * 0.02f);
+            float paddingY = Math.Max(4f, surfaceSize.Y * 0.02f);
+            if (screen.Profile == "compact" || (screen.Profile == "auto" && surfaceSize.Y <= 260f && surfaceSize.Y > 150f))
+            {
+                paddingX = 4f;
+                paddingY = 4f;
+            }
+            else if (screen.Profile == "corner" || (screen.Profile == "auto" && surfaceSize.Y <= 150f))
+            {
+                paddingX = 2f;
+                paddingY = 2f;
+            }
+            float usableW = surfaceSize.X - (paddingX * 2f);
+
+            Color bgCol = new Color(10, 12, 16);
+            bool drawBg = true;
+            if (!string.IsNullOrEmpty(screen.Background))
+            {
+                var hCol = HelmColor.Parse(screen.Background);
+                if (hCol.IsTransparent) drawBg = false;
+                else bgCol = new Color(hCol.R, hCol.G, hCol.B, hCol.A);
+            }
+            if (drawBg) AddQuad(buf, viewportOffset + (surfaceSize / 2f), surfaceSize - new Vector2(4f, 4f), bgCol);
+
+            if (!screen.Border.Equals("none", StringComparison.OrdinalIgnoreCase))
+            {
+                Color borderColTop = screen.BorderGradientColors != null && screen.BorderGradientColors.Length > 0
+                    ? ResolveColor(screen.BorderGradientColors[0])
+                    : ResolveColor(screen.BorderColor ?? "40, 60, 85");
+                Color borderColBot = screen.BorderGradientColors != null && screen.BorderGradientColors.Length > 1
+                    ? ResolveColor(screen.BorderGradientColors[screen.BorderGradientColors.Length - 1])
+                    : borderColTop;
+
+                AddQuad(buf, new Vector2(viewportOffset.X + surfaceSize.X / 2f, viewportOffset.Y + paddingY * 0.5f), new Vector2(usableW, 2f), borderColTop);
+                AddQuad(buf, new Vector2(viewportOffset.X + surfaceSize.X / 2f, viewportOffset.Y + surfaceSize.Y - (paddingY * 0.5f)), new Vector2(usableW, 2f), borderColBot);
+            }
+
+            var panels = screen.Panels;
+            if (panels.Count == 0)
+            {
+                panels = new List<PanelDef> { new PanelDef { Name = "main", Col = 0, Row = 0, SpanX = screen.GridCols, SpanY = screen.GridRows, Lines = screen.Lines } };
+            }
+
+            float gutter = 8f;
+            foreach (var panel in panels)
+            {
+                var pRect = Layout.ComputePanelRect(
+                    panel.Col, panel.Row, panel.SpanX, panel.SpanY,
+                    screen.GridCols, screen.GridRows,
+                    surfaceSize.X, surfaceSize.Y,
+                    paddingX, paddingY, gutter, gutter
+                );
+
+                float pLeft = viewportOffset.X + pRect.X;
+                float pTop = viewportOffset.Y + pRect.Y;
+                float pWidth = pRect.Width;
+                float pHeight = pRect.Height;
+
+                if (!string.IsNullOrEmpty(panel.Background))
+                {
+                    var pBg = HelmColor.Parse(panel.Background);
+                    if (!pBg.IsTransparent)
+                        AddQuad(buf, new Vector2(pLeft + pWidth / 2f, pTop + pHeight / 2f), new Vector2(pWidth, pHeight), new Color(pBg.R, pBg.G, pBg.B, pBg.A));
+                }
+                else if (screen.GridCols > 1 || screen.GridRows > 1)
+                {
+                    AddQuad(buf, new Vector2(pLeft + pWidth / 2f, pTop + pHeight / 2f), new Vector2(pWidth, pHeight), new Color(14, 18, 24));
+                }
+
+                string font = panel.Font ?? screen.Font ?? "Monospace";
+                float baseFontSize = Layout.GetProfileFontSize(screen.Profile, surfaceSize.X, surfaceSize.Y, screen.FontSize);
+                float fontSize = panel.FontSize ?? baseFontSize;
+
+                float headerH = 0f;
+                if (!string.IsNullOrEmpty(panel.Title))
+                {
+                    headerH = 20f * fontSize;
+                    var align = TextAlignment.LEFT;
+                    float titleX = pLeft + 4f;
+                    string aMode = panel.TitleAlign ?? screen.TitleAlign ?? "left";
+                    if (aMode.Equals("center", StringComparison.OrdinalIgnoreCase))
+                    {
+                        align = TextAlignment.CENTER;
+                        titleX = pLeft + (pWidth / 2f);
+                    }
+                    else if (aMode.Equals("right", StringComparison.OrdinalIgnoreCase))
+                    {
+                        align = TextAlignment.RIGHT;
+                        titleX = pLeft + pWidth - 4f;
+                    }
+
+                    string tcStr = panel.TitleColor ?? screen.TitleColor;
+                    Color titleCol = !string.IsNullOrEmpty(tcStr)
+                        ? ResolveColor(tcStr)
+                        : ResolveColor(panel.BorderColor ?? screen.BorderColor ?? "white");
+
+                    var titleSprite = MySprite.CreateText(
+                        panel.Title,
+                        font,
+                        titleCol,
+                        fontSize * 0.9f,
+                        align
+                    );
+                    titleSprite.Position = new Vector2(titleX, pTop + 2f);
+                    buf.Sprites.Add(titleSprite);
+
+                    string[] bGrad = panel.BorderGradientColors ?? screen.BorderGradientColors;
+                    Color divCol = bGrad != null && bGrad.Length > 0
+                        ? ResolveColor(bGrad[0])
+                        : ResolveColor(panel.BorderColor ?? screen.BorderColor ?? "40, 60, 85");
+
+                    AddQuad(buf, new Vector2(pLeft + pWidth / 2f, pTop + headerH - 2f), new Vector2(pWidth - 8f, 1f), divCol);
+                }
+
+                int lineCount = Math.Max(1, panel.Lines.Count);
+                float panelUsableH = pHeight - headerH - 8f;
+                float rowHeight = panelUsableH / lineCount;
+                float innerPadX = 6f;
+
+                for (int i = 0; i < panel.Lines.Count; i++)
+                {
+                    var line = panel.Lines[i];
+                    var slot = new LineSlot { Line = line };
+
+                    float rowY = pTop + headerH + 4f + (i * rowHeight);
+                    float centerY = rowY + (rowHeight / 2f);
+                    float textY = centerY - (11f * fontSize);
+
+                    slot.LabelSpriteIndex = buf.Sprites.Count;
+                    slot.HasDynamicLabel = line.Label != null && (line.Label.Contains("{val}") || line.Label.Contains("{percent}"));
+                    var labelSprite = MySprite.CreateText(line.Label, font, Color.White, fontSize, TextAlignment.LEFT);
+                    labelSprite.Position = new Vector2(pLeft + innerPadX, textY);
+                    buf.Sprites.Add(labelSprite);
+
+                    float labelWidth = Math.Max(24f * fontSize, (line.Label.Length + 1) * 12f * fontSize);
+                    float valueWidth = (!string.IsNullOrEmpty(line.Unit) || !string.IsNullOrEmpty(line.Format)) ? 64f * fontSize : 52f * fontSize;
+
+                    if (line.Kind != LineKind.Text)
+                    {
+                        float barLeft = pLeft + innerPadX + labelWidth;
+                        float barRight = pLeft + pWidth - innerPadX - valueWidth;
+                        float barWidth = Math.Max(16f, barRight - barLeft);
+                        float barHeight = Math.Max(line.Kind == LineKind.Spark ? 8f : 4f, Math.Min((line.Kind == LineKind.Spark ? 20f : 16f) * fontSize, rowHeight * (line.Kind == LineKind.Spark ? 0.55f : 0.45f)));
+
+                        slot.BarLeft = barLeft;
+                        slot.BarMaxWidth = barWidth;
+                        slot.BarHeight = barHeight;
+                        slot.BarCenterY = centerY;
+
+                        if (line.Kind == LineKind.Bar)
+                        {
+                            AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(barWidth, barHeight), new Color(25, 30, 38));
+                            slot.FillSpriteIndex = buf.Sprites.Count;
+                            AddQuad(buf, new Vector2(barLeft, centerY), new Vector2(0f, barHeight), ResolveColor(line.FlatColor));
+                        }
+                        else if (line.Kind == LineKind.LedBar)
+                        {
+                            int segCount = 10;
+                            float gap = 2f;
+                            float segW = Math.Max(2f, (barWidth - (gap * (segCount - 1))) / segCount);
+                            for (int s = 0; s < segCount; s++)
+                            {
+                                slot.ExtraSpriteIndices.Add(buf.Sprites.Count);
+                                AddQuad(buf, new Vector2(barLeft + s * (segW + gap) + (segW / 2f), centerY), new Vector2(segW, barHeight), new Color(22, 26, 32));
+                            }
+                        }
+                        else if (line.Kind == LineKind.Spark)
+                        {
+                            AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(barWidth, barHeight), new Color(20, 24, 30));
+                            int pointCount = 8;
+                            float gap = 2f;
+                            float colW = Math.Max(2f, (barWidth - (gap * (pointCount - 1))) / pointCount);
+                            for (int p = 0; p < pointCount; p++)
+                            {
+                                slot.ExtraSpriteIndices.Add(buf.Sprites.Count);
+                                AddQuad(buf, new Vector2(barLeft + p * (colW + gap) + (colW / 2f), centerY), new Vector2(colW, 2f), ResolveColor(line.FlatColor));
+                            }
+                        }
+                        else if (line.Kind == LineKind.Hazard)
+                        {
+                            AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(barWidth, barHeight), new Color(20, 24, 30));
+                            int stripeCount = 10;
+                            float gap = 2f;
+                            float stripeW = Math.Max(2f, (barWidth - (gap * (stripeCount - 1))) / stripeCount);
+                            for (int s = 0; s < stripeCount; s++)
+                            {
+                                slot.ExtraSpriteIndices.Add(buf.Sprites.Count);
+                                AddQuad(buf, new Vector2(barLeft + s * (stripeW + gap) + (stripeW / 2f), centerY), new Vector2(stripeW, barHeight), new Color(24, 28, 36), 0.523599f);
+                            }
+                        }
+                        else if (line.Kind == LineKind.Chevron)
+                        {
+                            int arrCount = 10;
+                            float gap = 2f;
+                            float arrW = Math.Max(2f, (barWidth - (gap * (arrCount - 1))) / arrCount);
+                            for (int s = 0; s < arrCount; s++)
+                            {
+                                slot.ExtraSpriteIndices.Add(buf.Sprites.Count);
+                                AddQuad(buf, new Vector2(barLeft + s * (arrW + gap) + (arrW / 2f), centerY), new Vector2(arrW, barHeight), new Color(24, 28, 36), 1.570796f, "Triangle");
+                            }
+                        }
+                        else if (line.Kind == LineKind.Dots)
+                        {
+                            int dotCount = 12;
+                            float gap = 2f;
+                            float dotW = Math.Max(2f, (barWidth - (gap * (dotCount - 1))) / dotCount);
+                            float dotDim = Math.Min(dotW, barHeight);
+                            for (int s = 0; s < dotCount; s++)
+                            {
+                                slot.ExtraSpriteIndices.Add(buf.Sprites.Count);
+                                AddQuad(buf, new Vector2(barLeft + s * (dotW + gap) + (dotW / 2f), centerY), new Vector2(dotDim, dotDim), new Color(24, 28, 36), 0f, "Circle");
+                            }
+                        }
+                        else if (line.Kind == LineKind.Balance)
+                        {
+                            AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(barWidth, barHeight), new Color(25, 30, 38));
+                            slot.FillSpriteIndex = buf.Sprites.Count;
+                            AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(0f, barHeight), ResolveColor(line.FlatColor));
+                            AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(2f, barHeight + 4f), new Color(80, 110, 150));
+                        }
+                        else if (line.Kind == LineKind.Toggle)
+                        {
+                            // Pill background track + sliding knob quad
+                            AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(barWidth, barHeight), new Color(20, 24, 30));
+                            slot.FillSpriteIndex = buf.Sprites.Count;
+                            float knobSize = Math.Max(4f, barHeight);
+                            AddQuad(buf, new Vector2(barLeft + knobSize * 0.5f, centerY), new Vector2(knobSize, knobSize), new Color(40, 50, 65), 0f, "Circle");
+                        }
+                        else if (line.Kind == LineKind.Checkbox)
+                        {
+                            // Square outer frame box + inner check pip quad
+                            float boxSize = Math.Max(6f, Math.Min(barHeight, 14f * fontSize));
+                            AddQuad(buf, new Vector2(barLeft + boxSize * 0.5f, centerY), new Vector2(boxSize, boxSize), new Color(28, 34, 46));
+                            slot.FillSpriteIndex = buf.Sprites.Count;
+                            AddQuad(buf, new Vector2(barLeft + boxSize * 0.5f, centerY), new Vector2(boxSize * 0.6f, boxSize * 0.6f), new Color(40, 50, 65));
+                        }
+                        else if (line.Kind == LineKind.Status)
+                        {
+                            // Pill card container + status light pip circle
+                            AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(barWidth, barHeight), new Color(18, 22, 30));
+                            slot.FillSpriteIndex = buf.Sprites.Count;
+                            float pipSize = Math.Max(4f, barHeight * 0.7f);
+                            AddQuad(buf, new Vector2(barLeft + pipSize + 2f, centerY), new Vector2(pipSize, pipSize), new Color(34, 197, 94), 0f, "Circle");
+                        }
+                        else if (line.Kind == LineKind.Ammo)
+                        {
+                            // 8 ammo cartridge pips
+                            int pipCount = 8;
+                            float gap = 2f;
+                            float pipW = Math.Max(2f, (barWidth - (gap * (pipCount - 1))) / pipCount);
+                            for (int p = 0; p < pipCount; p++)
+                            {
+                                slot.ExtraSpriteIndices.Add(buf.Sprites.Count);
+                                AddQuad(buf, new Vector2(barLeft + p * (pipW + gap) + (pipW / 2f), centerY), new Vector2(pipW, barHeight), new Color(24, 28, 36));
+                            }
+                        }
+                        else if (line.Kind == LineKind.Flow)
+                        {
+                            // Flow background channel + dynamic directional triangle indicator
+                            AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(barWidth, barHeight), new Color(20, 24, 30));
+                            slot.FillSpriteIndex = buf.Sprites.Count;
+                            float indW = Math.Max(4f, barHeight);
+                            AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(indW, indW), ResolveColor(line.FlatColor), 0f, "Triangle");
+                        }
+                    }
+
+                    var valSprite = MySprite.CreateText("---", font, Color.White, fontSize, TextAlignment.RIGHT);
+                    valSprite.Position = new Vector2(pLeft + pWidth - innerPadX, textY);
+                    slot.ValSpriteIndex = buf.Sprites.Count;
+                    buf.Sprites.Add(valSprite);
+
+                    buf.Slots.Add(slot);
+                }
+            }
+
+            buf.LastSurfaceSize = surfaceSize;
+            buf.Initialized = true;
+        }
+
+
+        private void RenderScreenGraphic(ScreenDef screen, IMyTextSurface surface)
+        {
+            if (!_screenBuffers.TryGetValue(screen, out var buf))
+            {
+                buf = new ScreenBuffer();
+                _screenBuffers[screen] = buf;
+            }
+
+            if (!buf.Initialized || buf.LastSurfaceSize != surface.SurfaceSize)
+            {
+                BuildGraphicBuffer(screen, surface, buf);
+            }
+
+            bool dirty = false;
+            bool alertPhase = (_tickCounter % 16) < 8;
+
+            for (int i = 0; i < buf.Slots.Count; i++)
+            {
+                var slot = buf.Slots[i];
+                var line = slot.Line;
+                double value;
+                bool hasErr = false;
+
+                try
+                {
+                    value = ResolveFieldValue(line.BindName, line.Field);
+                }
+                catch
+                {
+                    hasErr = true;
+                    value = 0.0;
+                }
+
+                if (hasErr)
+                {
+                    if (slot.LastValue != -99999.0)
+                    {
+                        dirty = true;
+                        slot.LastValue = -99999.0;
+                        if (slot.ValSpriteIndex >= 0)
+                        {
+                            var s = buf.Sprites[slot.ValSpriteIndex];
+                            s.Data = "ERR";
+                            s.Color = Color.Red;
+                            buf.Sprites[slot.ValSpriteIndex] = s;
+                        }
+                    }
+                    continue;
+                }
+
+                string colorName = line.Gradient
+                    ? Layout.GradientColorAt(line.GradientColors, value)
+                    : line.FlatColor;
+                Color barCol = ResolveColor(colorName);
+                bool isRedAlert = (barCol == Color.Red);
+
+                if (isRedAlert && alertPhase)
+                {
+                    barCol = new Color(255, 75, 75);
+                    dirty = true;
+                }
+
+                bool valueChanged = Math.Abs(value - slot.LastValue) > 0.1;
+                if (valueChanged) slot.LastValue = value;
+
+                if (line.Kind == LineKind.Bar)
+                {
+                    double fillVal = (line.Field == "percent" || line.Field == "pct") ? value : ResolvePercentForBind(line.BindName);
+                    if (slot.DisplayValue < 0f) slot.DisplayValue = (float)fillVal;
+                    float target = (float)fillVal;
+                    if (Math.Abs(slot.DisplayValue - target) > 0.05f)
+                    {
+                        slot.DisplayValue += (target - slot.DisplayValue) * 0.35f;
+                        dirty = true;
+                    }
+                    else if (slot.DisplayValue != target)
+                    {
+                        slot.DisplayValue = target;
+                        dirty = true;
+                    }
+
+                    if (dirty || valueChanged)
+                    {
+                        float pct = (float)Math.Max(0.0, Math.Min(1.0, slot.DisplayValue / 100.0));
+                        float fillW = slot.BarMaxWidth * pct;
+
+                        var fillSprite = buf.Sprites[slot.FillSpriteIndex];
+                        fillSprite.Size = new Vector2(fillW, slot.BarHeight);
+                        fillSprite.Position = new Vector2(slot.BarLeft + (fillW / 2f), slot.BarCenterY);
+                        fillSprite.Color = barCol;
+                        buf.Sprites[slot.FillSpriteIndex] = fillSprite;
+
+                        var valSprite = buf.Sprites[slot.ValSpriteIndex];
+                        valSprite.Data = FormatDisplayValue(value, line);
+                        valSprite.Color = barCol;
+                        buf.Sprites[slot.ValSpriteIndex] = valSprite;
+                    }
+                }
+                else if (line.Kind == LineKind.LedBar || line.Kind == LineKind.Hazard || line.Kind == LineKind.Chevron || line.Kind == LineKind.Dots)
+                {
+                    if (valueChanged || isRedAlert)
+                    {
+                        dirty = true;
+                        double fillVal = (line.Field == "percent" || line.Field == "pct") ? value : ResolvePercentForBind(line.BindName);
+                        int segCount = slot.ExtraSpriteIndices.Count;
+                        for (int s = 0; s < segCount; s++)
+                        {
+                            bool lit = fillVal >= ((s + 0.4) / (double)segCount * 100.0);
+                            Color segCol = lit ? barCol : new Color(24, 28, 36);
+                            var segSprite = buf.Sprites[slot.ExtraSpriteIndices[s]];
+                            segSprite.Color = segCol;
+                            buf.Sprites[slot.ExtraSpriteIndices[s]] = segSprite;
+                        }
+
+                        var valSprite = buf.Sprites[slot.ValSpriteIndex];
+                        valSprite.Data = FormatDisplayValue(value, line);
+                        valSprite.Color = barCol;
+                        buf.Sprites[slot.ValSpriteIndex] = valSprite;
+                    }
+                }
+                else if (line.Kind == LineKind.Spark)
+                {
+                    if (valueChanged || isRedAlert)
+                    {
+                        dirty = true;
+                        for (int h = 0; h < 7; h++)
+                            slot.SparkHistory[h] = slot.SparkHistory[h + 1];
+                        slot.SparkHistory[7] = (float)value;
+
+                        int pointCount = slot.ExtraSpriteIndices.Count;
+                        for (int p = 0; p < pointCount; p++)
+                        {
+                            float hVal = slot.SparkHistory[p];
+                            float hPct = Math.Max(0.06f, Math.Min(1f, hVal / 100f));
+                            float colH = slot.BarHeight * hPct;
+                            float colCenterY = slot.BarCenterY + (slot.BarHeight / 2f) - (colH / 2f);
+
+                            var colSprite = buf.Sprites[slot.ExtraSpriteIndices[p]];
+                            colSprite.Size = new Vector2(colSprite.Size.Value.X, colH);
+                            colSprite.Position = new Vector2(colSprite.Position.Value.X, colCenterY);
+                            colSprite.Color = barCol;
+                            buf.Sprites[slot.ExtraSpriteIndices[p]] = colSprite;
+                        }
+
+                        var valSprite = buf.Sprites[slot.ValSpriteIndex];
+                        valSprite.Data = FormatDisplayValue(value, line);
+                        valSprite.Color = barCol;
+                        buf.Sprites[slot.ValSpriteIndex] = valSprite;
+                    }
+                }
+                else if (line.Kind == LineKind.Balance)
+                {
+                    if (slot.DisplayValue < 0f) slot.DisplayValue = (float)value;
+                    float target = (float)value;
+                    if (Math.Abs(slot.DisplayValue - target) > 0.05f)
+                    {
+                        slot.DisplayValue += (target - slot.DisplayValue) * 0.35f;
+                        dirty = true;
+                    }
+                    else if (slot.DisplayValue != target)
+                    {
+                        slot.DisplayValue = target;
+                        dirty = true;
+                    }
+
+                    if (dirty || valueChanged)
+                    {
+                        float halfW = slot.BarMaxWidth * 0.5f;
+                        float centerPos = slot.BarLeft + halfW;
+                        float dev = (float)Math.Max(-1.0, Math.Min(1.0, (slot.DisplayValue - 50.0) / 50.0));
+                        float fillW = Math.Abs(dev) * halfW;
+                        float fillX = (dev >= 0) ? (centerPos + fillW * 0.5f) : (centerPos - fillW * 0.5f);
+
+                        var fillSprite = buf.Sprites[slot.FillSpriteIndex];
+                        fillSprite.Size = new Vector2(fillW, slot.BarHeight);
+                        fillSprite.Position = new Vector2(fillX, slot.BarCenterY);
+                        fillSprite.Color = barCol;
+                        buf.Sprites[slot.FillSpriteIndex] = fillSprite;
+
+                        var valSprite = buf.Sprites[slot.ValSpriteIndex];
+                        valSprite.Data = FormatDisplayValue(value, line);
+                        valSprite.Color = barCol;
+                        buf.Sprites[slot.ValSpriteIndex] = valSprite;
+                    }
+                }
+                else if (line.Kind == LineKind.Toggle)
+                {
+                    if (valueChanged || isRedAlert)
+                    {
+                        dirty = true;
+                        bool isOn = value >= 50.0;
+                        float knobSize = Math.Max(4f, slot.BarHeight);
+                        float knobX = isOn ? (slot.BarLeft + slot.BarMaxWidth - knobSize * 0.5f) : (slot.BarLeft + knobSize * 0.5f);
+                        Color knobCol = isOn ? (barCol != Color.White ? barCol : new Color(34, 197, 94)) : new Color(60, 70, 85);
+
+                        var fillSprite = buf.Sprites[slot.FillSpriteIndex];
+                        fillSprite.Position = new Vector2(knobX, slot.BarCenterY);
+                        fillSprite.Color = knobCol;
+                        buf.Sprites[slot.FillSpriteIndex] = fillSprite;
+
+                        var valSprite = buf.Sprites[slot.ValSpriteIndex];
+                        valSprite.Data = isOn ? "ON" : "OFF";
+                        valSprite.Color = knobCol;
+                        buf.Sprites[slot.ValSpriteIndex] = valSprite;
+                    }
+                }
+                else if (line.Kind == LineKind.Checkbox)
+                {
+                    if (valueChanged || isRedAlert)
+                    {
+                        dirty = true;
+                        bool isChecked = value >= 50.0;
+                        Color checkCol = isChecked ? (barCol != Color.White ? barCol : new Color(56, 189, 248)) : new Color(30, 36, 48);
+
+                        var fillSprite = buf.Sprites[slot.FillSpriteIndex];
+                        fillSprite.Color = checkCol;
+                        buf.Sprites[slot.FillSpriteIndex] = fillSprite;
+
+                        var valSprite = buf.Sprites[slot.ValSpriteIndex];
+                        valSprite.Data = isChecked ? "ACTIVE" : "READY";
+                        valSprite.Color = isChecked ? checkCol : new Color(148, 163, 184);
+                        buf.Sprites[slot.ValSpriteIndex] = valSprite;
+                    }
+                }
+                else if (line.Kind == LineKind.Status)
+                {
+                    if (valueChanged || isRedAlert)
+                    {
+                        dirty = true;
+                        string statusLabel = value >= 75.0 ? "ONLINE" : (value >= 25.0 ? "STBY" : "OFFLINE");
+                        Color statusCol = value >= 75.0 ? new Color(34, 197, 94) : (value >= 25.0 ? new Color(234, 179, 8) : new Color(239, 68, 68));
+
+                        var fillSprite = buf.Sprites[slot.FillSpriteIndex];
+                        fillSprite.Color = statusCol;
+                        buf.Sprites[slot.FillSpriteIndex] = fillSprite;
+
+                        var valSprite = buf.Sprites[slot.ValSpriteIndex];
+                        valSprite.Data = statusLabel;
+                        valSprite.Color = statusCol;
+                        buf.Sprites[slot.ValSpriteIndex] = valSprite;
+                    }
+                }
+                else if (line.Kind == LineKind.Ammo)
+                {
+                    if (valueChanged || isRedAlert)
+                    {
+                        dirty = true;
+                        int pipCount = slot.ExtraSpriteIndices.Count;
+                        for (int p = 0; p < pipCount; p++)
+                        {
+                            bool lit = value >= ((p + 0.5) / (double)pipCount * 100.0);
+                            Color pipCol = lit ? barCol : new Color(24, 28, 36);
+                            var pipSprite = buf.Sprites[slot.ExtraSpriteIndices[p]];
+                            pipSprite.Color = pipCol;
+                            buf.Sprites[slot.ExtraSpriteIndices[p]] = pipSprite;
+                        }
+
+                        var valSprite = buf.Sprites[slot.ValSpriteIndex];
+                        valSprite.Data = FormatDisplayValue(value, line);
+                        valSprite.Color = barCol;
+                        buf.Sprites[slot.ValSpriteIndex] = valSprite;
+                    }
+                }
+                else if (line.Kind == LineKind.Flow)
+                {
+                    dirty = true; // Rotates/updates dynamically
+                    float rot;
+                    Color flowCol;
+                    string flowText;
+
+                    bool isMachinery = (line.Field == "producing" || line.Field == "active" || line.Field == "running" || line.Field == "state" || (value <= 1.0 && line.Field != "percent"));
+                    if (isMachinery)
+                    {
+                        if (value > 0.0)
+                        {
+                            slot.DisplayValue = (slot.DisplayValue + 0.3927f) % 6.28318f;
+                            rot = slot.DisplayValue;
+                            flowCol = new Color(34, 197, 94);
+                            flowText = "RUN";
+                        }
+                        else
+                        {
+                            rot = 0f;
+                            flowCol = new Color(148, 163, 184);
+                            flowText = "IDLE";
+                        }
+                    }
+                    else
+                    {
+                        rot = (value > 55.0) ? 0f : ((value < 45.0) ? 3.14159f : 1.57079f);
+                        flowCol = (value > 55.0) ? new Color(34, 197, 94) : ((value < 45.0) ? new Color(239, 68, 68) : new Color(148, 163, 184));
+                        flowText = (value > 55.0) ? "CHG" : ((value < 45.0) ? "DSC" : "STBY");
+                    }
+
+                    var fillSprite = buf.Sprites[slot.FillSpriteIndex];
+                    fillSprite.Rotation = rot;
+                    fillSprite.Color = flowCol;
+                    buf.Sprites[slot.FillSpriteIndex] = fillSprite;
+
+                    var valSprite = buf.Sprites[slot.ValSpriteIndex];
+                    valSprite.Data = flowText;
+                    valSprite.Color = flowCol;
+                    buf.Sprites[slot.ValSpriteIndex] = valSprite;
+                }
+                else // Text line
+                {
+                    if (valueChanged || isRedAlert)
+                    {
+                        dirty = true;
+                        Color txtCol = line.ColorRules != null
+                            ? ResolveColor(Layout.ResolveConditionalColor(line.ColorRules, value))
+                            : Color.White;
+
+                        if (txtCol == Color.Red && alertPhase)
+                            txtCol = new Color(255, 75, 75);
+
+                        var valSprite = buf.Sprites[slot.ValSpriteIndex];
+                        valSprite.Data = FormatDisplayValue(value, line);
+                        valSprite.Color = txtCol;
+                        buf.Sprites[slot.ValSpriteIndex] = valSprite;
+                    }
+                }
+
+                if (slot.HasDynamicLabel && (valueChanged || isRedAlert))
+                {
+                    dirty = true;
+                    var lblSprite = buf.Sprites[slot.LabelSpriteIndex];
+                    string pctStr = GetPercentString(value);
+                    string rawVal = FormatDisplayValue(value, line);
+                    lblSprite.Data = line.Label.Replace("{percent}", pctStr).Replace("{val}", rawVal);
+                    buf.Sprites[slot.LabelSpriteIndex] = lblSprite;
+                }
+            }
+
+            if (dirty)
+            {
+                using (var frame = surface.DrawFrame())
+                {
+                    frame.AddRange(buf.Sprites);
+                }
+            }
+        }
+
+        // =========================================================================
+        // Legacy/Retro ASCII Bordered Window Rendering
+        // =========================================================================
+
+        private void RenderScreenAscii(ScreenDef screen, IMyTextSurface surface)
+        {
+            surface.FontSize = screen.FontSize;
+
+            var contentLines = new List<Tuple<string, string>>();
+
+            foreach (var line in screen.Lines)
+            {
+                double value = 0.0;
+                string text;
+                string color = null;
+
+                try
+                {
+                    value = ResolveFieldValue(line.BindName, line.Field);
+                }
+                catch (Exception ex)
+                {
+                    contentLines.Add(Tuple.Create($"{line.Label}: [UNRESOLVED]", "red"));
+                    continue;
+                }
+
+                string valStr = FormatDisplayValue(value, line);
+
+                if (line.Kind == LineKind.Bar)
+                {
+                    double fillVal = (line.Field == "percent" || line.Field == "pct") ? value : ResolvePercentForBind(line.BindName);
+                    text = Layout.RenderBarText(line.Label, fillVal, 10, valStr);
+                    color = line.Gradient
+                        ? Layout.GradientColorAt(line.GradientColors, fillVal)
+                        : line.FlatColor;
+                }
+                else if (line.Kind == LineKind.Balance)
+                {
+                    text = Layout.RenderBalanceText(line.Label, value, 10);
+                    color = line.Gradient
+                        ? Layout.GradientColorAt(line.GradientColors, value)
+                        : line.FlatColor;
+                }
+                else if (line.Kind == LineKind.Toggle)
+                {
+                    text = Layout.RenderToggleText(line.Label, value);
+                    color = line.FlatColor ?? (value >= 50.0 ? "green" : "gray");
+                }
+                else if (line.Kind == LineKind.Checkbox)
+                {
+                    text = Layout.RenderCheckboxText(line.Label, value);
+                    color = line.FlatColor ?? (value >= 50.0 ? "cyan" : "gray");
+                }
+                else if (line.Kind == LineKind.Status)
+                {
+                    text = Layout.RenderStatusText(line.Label, value);
+                    color = line.FlatColor ?? (value >= 75.0 ? "lime" : (value >= 25.0 ? "yellow" : "red"));
+                }
+                else if (line.Kind == LineKind.Ammo)
+                {
+                    text = Layout.RenderAmmoText(line.Label, value, 8);
+                    color = line.Gradient ? Layout.GradientColorAt(line.GradientColors, value) : (line.FlatColor ?? "yellow");
+                }
+                else if (line.Kind == LineKind.Flow)
+                {
+                    bool isMachinery = (line.Field == "producing" || line.Field == "active" || line.Field == "running" || line.Field == "state" || (value <= 1.0 && line.Field != "percent"));
+                    if (isMachinery)
+                    {
+                        char[] spinChars = new[] { '|', '/', '-', '\\' };
+                        char sc = spinChars[Math.Abs(_tickCounter) % 4];
+                        text = value > 0 ? $"{line.Label} [{sc}] RUN" : $"{line.Label} [==] IDLE";
+                        color = value > 0 ? "green" : "gray";
+                    }
+                    else
+                    {
+                        text = Layout.RenderFlowText(line.Label, value, _tickCounter);
+                        color = line.FlatColor ?? (value > 55.0 ? "green" : (value < 45.0 ? "red" : "cyan"));
+                    }
+                }
+                else
+                {
+                    text = $"{line.Label}: {valStr}";
+                    color = line.ColorRules != null
+                        ? Layout.ResolveConditionalColor(line.ColorRules, value)
+                        : null;
+                }
+
+                contentLines.Add(Tuple.Create(text, color));
+            }
+
+            var borderedRaw = Layout.RenderBorderedWindow(
+                new List<string>(contentLines.ConvertAll(t => t.Item1)),
+                width: screen.Width
+            );
+
+            // Dirty-flag check
+            string signature = string.Join("\n", borderedRaw);
+            if (_lastSignature.TryGetValue(screen, out var prevSig) && prevSig == signature)
+                return;
+            _lastSignature[screen] = signature;
+
+            using (var frame = surface.DrawFrame())
+            {
+                float y = 4f;
+                float lineHeight = APPROX_LINE_HEIGHT_PER_FONTSIZE * screen.FontSize;
+                try
+                {
+                    var measured = surface.MeasureStringInPixels(new StringBuilder("A"), "Monospace", screen.FontSize);
+                    if (measured.Y > 0)
+                        lineHeight = measured.Y;
+                }
+                catch { }
+
+                for (int i = 0; i < borderedRaw.Count; i++)
+                {
+                    string colorName = null;
+                    if (i > 0 && i < borderedRaw.Count - 1)
+                        colorName = contentLines[i - 1].Item2;
+
+                    var sprite = MySprite.CreateText(
+                        borderedRaw[i],
+                        "Monospace",
+                        ResolveColor(colorName),
+                        screen.FontSize,
+                        TextAlignment.LEFT
+                    );
+                    sprite.Position = new Vector2(4f, y);
+                    frame.Add(sprite);
+                    y += lineHeight;
+                }
+            }
+        }
+
+        private Color ResolveColor(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return Color.White;
+            HelmColor c = HelmColor.Parse(name);
+            if (c.IsTransparent) return Color.Transparent;
+            return new Color(c.R, c.G, c.B, c.A);
+        }
+    }
+}
