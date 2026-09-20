@@ -23,6 +23,7 @@
 #   HELM_BUDGET_SOFT_LIMIT  — Soft warning threshold (default: 99000)
 #   HELM_BUDGET_HARD_LIMIT  — Hard failure threshold (default: 100000)
 #   HELM_PACKAGE_NAME       — Generic package name (default: helm-core)
+#   AUTOMATOR_VERSION       — Tag of the default runner image sgkens/phellams-automator (default: latest)
 #
 # CI_JOB_TOKEN is used automatically for GitLab Generic Package uploads within
 # the same project — no additional token variable is required.
@@ -35,7 +36,13 @@ stages:
   - package
   - deploy
 
+# Default runner image. Jobs that need a specific toolchain (mono, .NET SDK, PowerShell, bun)
+# set their own image and override this.
+default:
+  image: sgkens/phellams-automator:${AUTOMATOR_VERSION}
+
 variables:
+  AUTOMATOR_VERSION: "latest"
   HELM_BUDGET_SOFT_LIMIT: "99000"
   HELM_BUDGET_HARD_LIMIT: "100000"
   HELM_PACKAGE_NAME: "helm-core"
