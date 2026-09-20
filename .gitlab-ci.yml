@@ -1,0 +1,310 @@
+# =============================================================================
+# HELM: High-Efficiency Lightweight Monitor for Space Engineers
+# GitLab CI/CD Pipeline — Release Gate, Build, and Package Registry
+# =============================================================================
+#
+# Pipeline Stages:
+#   1. validate   — C# unit test suite (zero SE dependency, via mono/csc)
+#   2. build      — Combine + minify via Build-Release.ps1
+#   3. gate       — Enforce PB 100,000-character hard ceiling
+#   4. package    — Create versioned .zip archive + upload to GitLab Generic Packages
+#   4b. gate      — combined-compile-check compiles the minified script against the stand-in API
+#   5. deploy     — Export display frames (docs-frames, build stage), then build the 11ty
+#                   docs site and publish to GitLab Pages (main only)
+#
+# Steam Workshop deploy is intentionally NOT automated in CI.
+# Use Publish-Release.ps1 locally with -Steam for Workshop updates.
+#
+# Required CI/CD Variables for package upload (Settings → CI/CD → Variables):
+#   HELM_VERSION        — Release version string (e.g. "v1.0.0"). Set on tag pipelines
+#                         or as a pipeline variable when manually running.
+#
+# Optional tunable Variables:
+#   HELM_BUDGET_SOFT_LIMIT  — Soft warning threshold (default: 96000)
+#   HELM_BUDGET_HARD_LIMIT  — Hard failure threshold (default: 100000)
+#   HELM_PACKAGE_NAME       — Generic package name (default: helm-core)
+#
+# CI_JOB_TOKEN is used automatically for GitLab Generic Package uploads within
+# the same project — no additional token variable is required.
+# =============================================================================
+
+stages:
+  - validate
+  - build
+  - gate
+  - package
+  - deploy
+
+variables:
+  HELM_BUDGET_SOFT_LIMIT: "96000"
+  HELM_BUDGET_HARD_LIMIT: "100000"
+  HELM_PACKAGE_NAME: "helm-core"
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  # Use shallow clone for faster checkout on large histories
+  GIT_DEPTH: "10"
+
+# ---------------------------------------------------------------------------
+# STAGE: validate — C# unit tests via mono/csc (zero SE dependency)
+# ---------------------------------------------------------------------------
+unit-tests:
+  stage: validate
+  image: mono:latest
+  script:
+    - echo "=== [1/4] HELM Unit Test Suite ==="
+    - echo "Compiling HelmCore.cs + Tests.cs..."
+    - csc -out:/tmp/test_helm_ci.exe HelmCore.cs Tests.cs
+    - echo "Running tests..."
+    - mono /tmp/test_helm_ci.exe
+    - echo "All tests passed."
+  artifacts:
+    when: always
+    expire_in: 7 days
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH =~ /^release\//'
+    - if: '$CI_COMMIT_TAG'
+
+# ---------------------------------------------------------------------------
+# STAGE: build — Combine + Minify via Build-Release.ps1
+# ---------------------------------------------------------------------------
+build-release:
+  stage: build
+  image: mcr.microsoft.com/powershell:lts-ubuntu-22.04
+  needs:
+    - unit-tests
+  before_script:
+    # Install mono inside the PowerShell image so Build-Release.ps1 can run tests
+    - apt-get update -qq && apt-get install -y -qq mono-complete --no-install-recommends
+  script:
+    - echo "=== [2/4] HELM Build ==="
+    - pwsh ./Build-Release.ps1 -NoTest   # tests already passed in validate stage
+    - echo ""
+    - echo "  HelmCombined.cs     $(wc -c < HelmCombined.cs) chars"
+    - echo "  HelmCombined.min.cs $(wc -c < HelmCombined.min.cs) chars"
+  artifacts:
+    name: "helm-build-${CI_COMMIT_SHORT_SHA}"
+    paths:
+      - HelmCombined.cs
+      - HelmCombined.min.cs
+      - layouts/
+      - WORKSHOP.md
+      - README.md
+    expire_in: 30 days
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH =~ /^release\//'
+    - if: '$CI_COMMIT_TAG'
+
+# ---------------------------------------------------------------------------
+# STAGE: gate — Enforce PB character budget ceiling
+# ---------------------------------------------------------------------------
+budget-gate:
+  stage: gate
+  image: alpine:latest
+  needs:
+    - build-release
+  script:
+    - |
+      echo "=== [3/4] HELM PB Character Budget Gate ==="
+      MIN_SIZE=$(wc -c < HelmCombined.min.cs)
+      SOFT_LIMIT="${HELM_BUDGET_SOFT_LIMIT}"
+      HARD_LIMIT="${HELM_BUDGET_HARD_LIMIT}"
+      HEADROOM=$((HARD_LIMIT - MIN_SIZE))
+      PCT=$(awk "BEGIN { printf \"%.1f\", ($MIN_SIZE / $HARD_LIMIT) * 100 }")
+
+      echo ""
+      echo "  Minified size : ${MIN_SIZE} chars"
+      echo "  Budget used   : ${PCT}%"
+      echo "  Soft limit    : ${SOFT_LIMIT} chars"
+      echo "  Hard limit    : ${HARD_LIMIT} chars"
+      echo "  Headroom      : ${HEADROOM} chars"
+      echo ""
+
+      if [ "$MIN_SIZE" -ge "$HARD_LIMIT" ]; then
+        echo "!!! HARD BUDGET BREACH !!!"
+        echo "    ${MIN_SIZE} chars >= ${HARD_LIMIT} chars (Space Engineers PB ceiling)"
+        echo "    The minified build WILL FAIL inside the Programmable Block."
+        echo "    Review and reduce script size before merging."
+        exit 1
+      fi
+
+      if [ "$MIN_SIZE" -ge "$SOFT_LIMIT" ]; then
+        echo "WARNING: Approaching budget ceiling."
+        echo "    ${MIN_SIZE} chars >= ${SOFT_LIMIT} chars soft threshold."
+        echo "    New features must be budgeted carefully (${HEADROOM} chars remaining)."
+      else
+        echo "Budget gate: PASS — ${HEADROOM} chars headroom remaining."
+      fi
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH =~ /^release\//'
+    - if: '$CI_COMMIT_TAG'
+
+# ---------------------------------------------------------------------------
+# combined-compile-check — Compile the minified script (the file players paste into
+# the game) against the stand-in Space Engineers API. Catches stale or broken
+# combined files, which the unit tests (HelmCore.cs only) cannot.
+# ---------------------------------------------------------------------------
+combined-compile-check:
+  stage: gate
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  needs:
+    - build-release
+  script:
+    - dotnet build tools/spritedump/CombinedCheck
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH =~ /^release\//'
+    - if: '$CI_COMMIT_TAG'
+
+# ---------------------------------------------------------------------------
+# STAGE: package — Create versioned archive + upload to GitLab Generic Packages
+#
+# The archive is always created and attached as a job artifact.
+#
+# GitLab Generic Package upload runs only when a version is known:
+#   - On tag pipelines: CI_COMMIT_TAG provides the version automatically
+#   - On manual runs:   set the HELM_VERSION pipeline variable
+#   - On main pushes: upload skipped unless HELM_VERSION is explicitly set
+#
+# Upload uses CI_JOB_TOKEN — no separate token variable required.
+# Package URL pattern:
+#   <gitlab-url>/<namespace>/<project>/-/packages/generic/helm-core/<version>/helm-core-<version>.zip
+# ---------------------------------------------------------------------------
+package-release:
+  stage: package
+  image: alpine:latest
+  needs:
+    - budget-gate
+    - combined-compile-check
+  script:
+    - |
+      apk add --no-cache zip curl
+
+      # Resolve version: tag → CI_COMMIT_TAG, manual → HELM_VERSION, VERSION file, fallback → SHA
+      if [ -n "$CI_COMMIT_TAG" ]; then
+        VERSION="$CI_COMMIT_TAG"
+      elif [ -n "$HELM_VERSION" ]; then
+        VERSION="$HELM_VERSION"
+      elif [ -s VERSION ]; then
+        VERSION="$(tr -d '[:space:]' < VERSION)"
+      else
+        VERSION="$CI_COMMIT_SHORT_SHA"
+      fi
+
+      PACKAGE_NAME="${HELM_PACKAGE_NAME:-helm-core}"
+      ARCHIVE="${PACKAGE_NAME}-${VERSION}.zip"
+      VERSION_CLEAN="${VERSION#v}"   # strip leading 'v' for Generic Package API
+
+      echo "=== [4/4] HELM Package & Registry Upload ==="
+      echo "  Version      : ${VERSION}"
+      echo "  Archive      : ${ARCHIVE}"
+      echo "  Package name : ${PACKAGE_NAME}"
+      echo ""
+
+      # Build the zip archive
+      zip -r "$ARCHIVE" \
+        HelmCombined.cs \
+        HelmCombined.min.cs \
+        layouts/ \
+        WORKSHOP.md \
+        README.md
+
+      ARCHIVE_SIZE=$(du -sh "$ARCHIVE" | cut -f1)
+      echo "  Archive size : ${ARCHIVE_SIZE}"
+      echo ""
+
+      # Upload to GitLab Generic Packages Registry
+      # Uses CI_JOB_TOKEN which is automatically available in every pipeline job.
+      # Skip upload if we are on a plain main push without an explicit version.
+      if [ -n "$CI_COMMIT_TAG" ] || [ -n "$HELM_VERSION" ]; then
+        UPLOAD_URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${PACKAGE_NAME}/${VERSION_CLEAN}/${ARCHIVE}"
+        echo "  Upload URL   : ${UPLOAD_URL}"
+        echo ""
+
+        HTTP_CODE=$(curl --silent --output /dev/null --write-out "%{http_code}" \
+          --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+          --upload-file "$ARCHIVE" \
+          "$UPLOAD_URL")
+
+        if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+          echo "  Upload : OK (HTTP $HTTP_CODE)"
+          echo "  Package URL : ${CI_PROJECT_URL}/-/packages"
+        else
+          echo "  Upload : FAILED (HTTP $HTTP_CODE)"
+          exit 1
+        fi
+      else
+        echo "  Generic Package upload skipped (no version tag or HELM_VERSION set)."
+        echo "  To upload, tag the commit or set the HELM_VERSION pipeline variable."
+      fi
+  artifacts:
+    name: "${HELM_PACKAGE_NAME:-helm-core}-${CI_COMMIT_TAG:-${CI_COMMIT_SHORT_SHA}}"
+    paths:
+      - "helm-core-*.zip"
+    expire_in: 90 days
+  rules:
+    - if: '$CI_COMMIT_TAG'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH =~ /^release\//'
+
+# ---------------------------------------------------------------------------
+# docs-examples extracts the complete ```helm examples from the docs pages (Bun, no .NET needed).
+# docs-frames — Run the real renderer headlessly (tools/spritedump) to export the
+# animated display frames the docs visualizer draws. Needs the .NET SDK, which the
+# Bun image used by the pages job does not have, so it runs separately and hands
+# the frames over as an artifact.
+# ---------------------------------------------------------------------------
+docs-examples:
+  stage: build
+  image: oven/bun:1
+  needs: []
+  script:
+    - bun docs/scripts/extract-examples.js
+  artifacts:
+    paths:
+      - docs/.examples
+    expire_in: 1 day
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+docs-frames:
+  stage: build
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  needs:
+    - job: docs-examples
+      artifacts: true
+  script:
+    - dotnet run --project tools/spritedump -- --out docs/assets/frames --ticks 48 layouts/default docs/.examples
+  artifacts:
+    paths:
+      - docs/assets/frames
+    expire_in: 1 day
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+# ---------------------------------------------------------------------------
+# pages — Build the 11ty + DaisyUI docs site and publish to GitLab Pages.
+# GitLab Pages requires the job name "pages" and an artifact at public/.
+# ---------------------------------------------------------------------------
+pages:
+  stage: deploy
+  image: oven/bun:1
+  needs:
+    - job: docs-frames
+      artifacts: true
+  variables:
+    PAGES_PATH_PREFIX: "/${CI_PROJECT_NAME}/"
+  script:
+    - cd docs
+    - bun install
+    - bun run build
+  pages: true
+  artifacts:
+    paths:
+      - public
+    expire_in: 30 days
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
