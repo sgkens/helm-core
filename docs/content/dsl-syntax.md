@@ -71,7 +71,7 @@ title_color: #<hexcolor>
 
 ### Boot Sequence Directives
 
-Screens can run a boot sequence upon grid power-on or compilation:
+Each screen plays a boot sequence when the script starts, and again on the `boot` run argument. Editing the layout does not replay it. `boot_duration: 0` skips it, `3s` is seconds and a bare number is game ticks (`180` is 3 seconds):
 
 ```helm
 boot_duration: 3s

@@ -139,6 +139,7 @@ You can run these commands from a timer block, sensor, or cockpit hotbar:
 | :--- | :--- |
 | `reload` | Re-parses Custom Data and rebuilds screen ASTs. |
 | `refresh` | Re-resolves block names and screen surfaces without re-parsing. |
+| `boot` | Plays the boot sequence again on every screen. |
 | `scan` (also `diagnose`, `test`) | Prints a diagnostic report of binds, surfaces and instruction use. |
 | `alert red` (also `on`) | Turns on the flashing red alert across all screens. |
 | `alert off` | Clears the alert state. |

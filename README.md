@@ -471,11 +471,13 @@ External template definitions loaded dynamically via `[HelmParser]::LoadTemplate
 ```
 
 ### 4.11 Staggered Boot Sequence & Aerospace Diagnostics
-HELM features a cold-start boot sequence that powers screens sequentially, performs calibration sweeps, and renders diagnostics:
+When the script starts, each screen plays a short cold-start boot: the startup logo with a colour gradient, a header message and diagnostic lines that appear one by one, then the live display. Screens power on one after another. The run argument `boot` plays it again; editing the layout does not. `boot_duration: 0` skips it for a screen. Screens without boot settings use the defaults below.
+
+Calibration sweeps (gauges running from 0 to 100 during boot) are shown by `helmv.ps1 -Boot` only; the in-game script does not draw them.
 
 - `boot_msg: "..."`: Custom header message displayed upon power-on.
 - `boot_stagger: <ticks>`: Stagger interval in game ticks between sequential screens across your ship or station.
-- `boot_duration: <seconds | ticks>`: Total boot sequence duration (e.g., `boot_duration: 3s` or `boot_duration: 180`).
+- `boot_duration: <seconds | ticks>`: Total boot sequence duration. `3s` is seconds; a bare number is game ticks (60 per second), so `180` is also 3 seconds. `0` disables the boot. Default `2.5s`.
 - `boot_color: <color>`: Solid ANSI/SE color for the startup diagnostic logo.
 - `boot_gradient(stop1, stop2, ...)`: Multi-stop procedural vertical color gradient across the ASCII banner lines (e.g. `boot_gradient(cyan, blue, magenta)`).
 - `boot_log: "..."`: Streaming trailing diagnostic log messages (repeating directive). If none are defined, HELM defaults to standard aerospace diagnostics.
@@ -655,6 +657,8 @@ pwsh ./helmv.ps1 -Preset command_carrier -Interactive    # Press [M]easurements 
 # 9. Inspect hardware sprite allocations and copy to clipboard:
 pwsh ./Test-HelmLayout.ps1 -Preset atmospheric_lander -ShowSprites -ShowStats -CopyToClipboard
 ```
+
+**In-game update rate.** The script chooses its own rate. It runs at `Update10` (6 runs a second, one screen per run) while a boot, a changing value, an easing gauge or an alert is active, and drops to `Update100` after every screen has been idle for a few runs. This is a first version: refresh rates will be revisited after more in-game and stress testing. The `refresh:` setting is parsed but not used by the script yet.
 
 **VRage Hardware Sprite Buffer Inspector (`-ShowSprites`):**
 Passing `-ShowSprites` appends a real-time hardware telemetry card showing the exact `MySprite` budget that Space Engineers would allocate for that screen layout:
