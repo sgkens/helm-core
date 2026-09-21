@@ -153,92 +153,153 @@ Write-Host "      HelmCombined.cs  $charCount chars ($([Math]::Round($charCount 
 Write-Host ""
 
 # ---------------------------------------------------------------------------
+# Comment and whitespace removal for C# source
+#
+# String, verbatim, interpolated and char literals are copied untouched. Comments are dropped. At each run of
+# whitespace or comments in code a space is kept only where removing it could join two tokens into one
+# (identifier next to identifier, two operator characters, a digit before '.', anything next
+# to '?' or ':'). Lines are wrapped after ';', '{' or '}' once they pass $WrapAt characters so
+# the in-game editor never receives one very long line. tools/minify-check proves the result
+# has the same token stream as the source.
+# ---------------------------------------------------------------------------
+function Get-LiteralEnd {
+    param([string]$s, [int]$i)
+    $n = $s.Length
+    $verbatim = $false; $interp = $false
+    $j = $i
+    while ($j -lt $n -and ($s[$j] -eq '@' -or $s[$j] -eq '$')) {
+        if ($s[$j] -eq '@') { $verbatim = $true } else { $interp = $true }
+        $j++
+    }
+    if ($j -ge $n) { return -1 }
+    $q = $s[$j]
+    if ($q -eq "'") {
+        if ($j -ne $i) { return -1 }
+        $j++
+        while ($j -lt $n -and $s[$j] -ne "'") { if ($s[$j] -eq '\') { $j++ }; $j++ }
+        return $j + 1
+    }
+    if ($q -ne '"') { return -1 }
+    $j++
+    $depth = 0
+    while ($j -lt $n) {
+        $ch = $s[$j]
+        if ($verbatim) {
+            if ($ch -eq '"') {
+                if ($j + 1 -lt $n -and $s[$j + 1] -eq '"') { $j += 2; continue }
+                if ($depth -eq 0) { return $j + 1 }
+            }
+        } else {
+            if ($ch -eq '\' -and $depth -eq 0) { $j += 2; continue }
+            if ($ch -eq '"' -and $depth -eq 0) { return $j + 1 }
+        }
+        if ($interp) {
+            if ($ch -eq '{') {
+                if ($depth -eq 0 -and $j + 1 -lt $n -and $s[$j + 1] -eq '{') { $j += 2; continue }
+                $depth++
+            } elseif ($ch -eq '}') {
+                if ($depth -gt 0) { $depth-- }
+                elseif ($j + 1 -lt $n -and $s[$j + 1] -eq '}') { $j += 2; continue }
+            } elseif ($depth -gt 0 -and ($ch -eq '"' -or $ch -eq "'")) {
+                $e = Get-LiteralEnd $s $j
+                if ($e -gt 0) { $j = $e; continue }
+            }
+        }
+        $j++
+    }
+    return $n
+}
+
+function Get-TriviaEnd {
+    param([string]$s, [int]$i)
+    $n = $s.Length
+    while ($i -lt $n) {
+        $c = $s[$i]
+        if ([char]::IsWhiteSpace($c)) { $i++; continue }
+        if ($c -eq '/' -and $i + 1 -lt $n) {
+            if ($s[$i + 1] -eq '/') {
+                $e = $s.IndexOf("`n", $i)
+                if ($e -lt 0) { return $n }
+                $i = $e; continue
+            }
+            if ($s[$i + 1] -eq '*') {
+                $e = $s.IndexOf('*/', $i + 2)
+                if ($e -lt 0) { return $n }
+                $i = $e + 2; continue
+            }
+        }
+        break
+    }
+    return $i
+}
+
+function Compress-CSharpWhitespace {
+    param([string]$Source, [int]$WrapAt = 160)
+    $structural = '{}()[];,'
+    $operators  = '+-*/%&|^!~<>=?.:'
+    $sb  = New-Object System.Text.StringBuilder($Source.Length)
+    $len = $Source.Length
+    $col = 0
+    $i   = 0
+    while ($i -lt $len) {
+        $c = $Source[$i]
+
+        if ($c -eq '"' -or $c -eq "'" -or $c -eq '@' -or $c -eq '$') {
+            $e = Get-LiteralEnd $Source $i
+            if ($e -gt 0) {
+                $seg = $Source.Substring($i, $e - $i)
+                [void]$sb.Append($seg)
+                $nl = $seg.LastIndexOf("`n")
+                if ($nl -ge 0) { $col = $seg.Length - $nl - 1 } else { $col += $seg.Length }
+                $i = $e
+                continue
+            }
+        }
+
+        $t = if ([char]::IsWhiteSpace($c) -or $c -eq '/') { Get-TriviaEnd $Source $i } else { $i }
+        if ($t -gt $i) {
+            $i = $t
+            if ($i -ge $len -or $sb.Length -eq 0) { continue }
+            $p = $sb[$sb.Length - 1]
+            $n = $Source[$i]
+            $keep = $false
+            if ($p -eq "`n") {
+                $keep = $false
+            } elseif ($structural.IndexOf($p) -ge 0 -or $structural.IndexOf($n) -ge 0) {
+                $keep = $false
+            } elseif ($p -eq '?' -or $p -eq ':' -or $n -eq '?' -or $n -eq ':') {
+                $keep = $true
+            } elseif (([char]::IsLetterOrDigit($p) -or $p -eq '_' -or $p -eq '@' -or $p -eq '$' -or $p -eq '"' -or $p -eq "'") -and
+                      ([char]::IsLetterOrDigit($n) -or $n -eq '_' -or $n -eq '@' -or $n -eq '$' -or $n -eq '"' -or $n -eq "'")) {
+                $keep = $true
+            } elseif ($operators.IndexOf($p) -ge 0 -and $operators.IndexOf($n) -ge 0) {
+                $keep = $true
+            } elseif ([char]::IsDigit($p) -and $n -eq '.') {
+                $keep = $true
+            }
+            if ($keep) { [void]$sb.Append(' '); $col++ }
+            continue
+        }
+
+        [void]$sb.Append($c)
+        $col++
+        $i++
+        if ($col -ge $WrapAt -and ($c -eq ';' -or $c -eq '{' -or $c -eq '}')) {
+            [void]$sb.Append("`n")
+            $col = 0
+        }
+    }
+    return $sb.ToString()
+}
+
+# ---------------------------------------------------------------------------
 # STEP 3: Minify → HelmCombined.min.cs
 # ---------------------------------------------------------------------------
 if (-not $NoMinify) {
     $step++
     Write-Host "  [$step/$stepTotal] Minify" -ForegroundColor Yellow
 
-    # Token-aware C# comment stripper (preserves verbatim string literals)
-    $source = Get-Content $combinedPath -Raw
-    $sb     = New-Object System.Text.StringBuilder($source.Length)
-    $len    = $source.Length
-    $i      = 0
-    $inString       = $false
-    $isVerbatim     = $false
-    $inLineComment  = $false
-    $inBlockComment = $false
-
-    while ($i -lt $len) {
-        $c    = $source[$i]
-        $next = if ($i + 1 -lt $len) { $source[$i + 1] } else { [char]0 }
-
-        if ($inLineComment) {
-            if ($c -eq "`n") {
-                $inLineComment = $false
-                [void]$sb.Append("`n")
-            }
-            $i++; continue
-        }
-
-        if ($inBlockComment) {
-            if ($c -eq '*' -and $next -eq '/') { $inBlockComment = $false; $i += 2; continue }
-            $i++; continue
-        }
-
-        if ($inString) {
-            [void]$sb.Append($c)
-            if ($isVerbatim) {
-                if ($c -eq '"' -and $next -eq '"') { [void]$sb.Append($next); $i += 2; continue }
-                elseif ($c -eq '"') { $inString = $false; $isVerbatim = $false }
-            } else {
-                if ($c -eq '\') {
-                    if ($next -ne [char]0) { [void]$sb.Append($next); $i += 2; continue }
-                } elseif ($c -eq '"') { $inString = $false }
-            }
-            $i++; continue
-        }
-
-        if ($c -eq '@' -and $next -eq '"') {
-            $inString = $true; $isVerbatim = $true
-            [void]$sb.Append('@"'); $i += 2; continue
-        }
-        if ($c -eq '"') {
-            $inString = $true; $isVerbatim = $false
-            [void]$sb.Append('"'); $i++; continue
-        }
-        if ($c -eq '/' -and $next -eq '/') { $inLineComment  = $true; $i += 2; continue }
-        if ($c -eq '/' -and $next -eq '*') { $inBlockComment = $true; $i += 2; continue }
-
-        [void]$sb.Append($c)
-        $i++
-    }
-
-    # Strip blank lines (preserve verbatim string content)
-    $lines    = $sb.ToString().Split("`n")
-    $outLines = [System.Collections.Generic.List[string]]::new()
-    $inVerb   = $false
-
-    foreach ($line in $lines) {
-        $trimmed = $line.Trim()
-        if ($inVerb) {
-            $outLines.Add($line)
-            $quotes = ($line -replace '[^"]', '').Length
-            if ($quotes % 2 -eq 1) { $inVerb = $false }
-        } else {
-            if ($trimmed.Length -gt 0) {
-                $outLines.Add($trimmed)
-                if ($trimmed.Contains('@"')) {
-                    $idx   = $trimmed.IndexOf('@"')
-                    $rest  = $trimmed.Substring($idx + 2)
-                    $qcnt  = ($rest -replace '[^"]', '').Length
-                    if ($qcnt % 2 -ne 1) { $inVerb = $true }
-                }
-            }
-        }
-    }
-
-    $minified     = [string]::Join("`n", $outLines)
+    $minified = Compress-CSharpWhitespace (Get-Content $combinedPath -Raw)
     $minPath      = Join-Path $ScriptDir "HelmCombined.min.cs"
     [System.IO.File]::WriteAllText($minPath, $minified, [System.Text.Encoding]::UTF8)
     $minCharCount = $minified.Length
