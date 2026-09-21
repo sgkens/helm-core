@@ -32,6 +32,7 @@ You do not need Visual Studio or MDK to run HELM. A ready-to-paste script is pro
 3. Click **Check Code**, then click **OK**.
 4. Open the Programmable Block's **Custom Data** and paste a configuration (see [Code Examples](#5-production-code-examples) below).
 5. Ensure your target LCDs or Cockpit blocks have matching names. The script will initialize and begin telemetry immediately.
+6. With an empty Custom Data the LCDs stay blank. Run the block with the argument `starter` to write a sample layout, set `output:` to your LCD's name, then run `reload`. Run `probe` to check what part of a screen the script covers.
 
 ### Option B: MDK / Visual Studio Development
 
@@ -99,6 +100,17 @@ line: "<LABEL>" text(<bind>.<field>) [color(<conditions>, default: <color>)]
 | `width:`                | `@screen`           | Content width in characters (for ASCII mode)                       | `30`            | No         |
 | `refresh:`              | `@screen`           | Draw this screen at most every N game ticks (`600` = every 10 s). Saves instructions on screens that change slowly | `0` (every run) | No         |
 | `alert_period:`         | `@screen`           | Seconds for one red-alert flash cycle (`0.8s`)                     | `1.6`           | No         |
+| `alert_bg:`             | `@screen`           | Colour the background flashes to on a red alert; `none` turns it off | `#5b0f0f`     | No         |
+| `screen_bg:`            | `@screen`           | Background of the whole screen wherever the line is written        | —               | No         |
+| `panel_bg:`             | `@screen`           | Card colour behind every panel that has no `bg:` of its own        | none            | No         |
+| `bg_gradient(...)`      | `@screen` / `@panel`| Gradient background; `bg_gradient_dir:` `vertical` or `horizontal` | —               | No         |
+| `bg: color(...)` / `flash:` | `@screen` / `@panel` | Background that follows a value, or flashes on a threshold   | —               | No         |
+| `bg_texture:`           | `@screen`           | Built-in sprite drawn over the background (`bg_texture_color:` tints it) | —         | No         |
+| `gradient_mode:`        | `@screen`           | `smooth` blends between gradient stops, `steps` picks the nearest  | `smooth`        | No         |
+| `orientation:`          | `@panel`            | `vertical` lays lines out as columns (tanks and vertical bars)     | `horizontal`    | No         |
+| `mirror:` / `mirror_panel:` | `@screen`       | Copy another screen (or one of its panels) to this display, scaled | —               | No         |
+| `banner:` / `boot_logo:`| `@screen`           | Show an `@banner ... @end` ASCII block full screen, or as the boot logo | —          | No         |
+| `boot_batch:` / `boot_calibrate:` | `@screen` | Screens that boot together; seconds the gauges sweep 0 to 100 after boot | `1` / `1.2` | No    |
 | `line:`                 | `@screen` / `@panel`| Visual gauge (`bar`, `led`, `spark`) or text readout definition    | —               | At least 1 |
 
 ---
@@ -347,6 +359,33 @@ line: "CHARGE {val}%" dots(cells.percent) flat(cyan)
 ```
 
 
+#### 15. Liquid Tanks and Vertical Bars (`tank` / `tube` / `bucket`)
+A tube that fills from the bottom, with a wave line of characters on the surface and rising bubbles. A panel that contains a tank, or has `orientation: vertical`, lays its lines out as columns. A panel spanning the screen is the large size; a grid of panels gives medium ones:
+```bash
+@panel fuel at(0, 0, 1, 1) title: "H2"
+line: "H2" tank(h2.percent) gradient(#1e3a8a, #38bdf8)
+```
+See `tank_fullscreen`, `tank_trio` and `vertical_bars`.
+
+#### 16. Sizes, Colours and Conditions (options for every gauge)
+```bash
+line: "POWER" bar(pwr.percent) size(large) gradient(#ef4444, #eab308, #22c55e) track(#111827) label_color(#94a3b8)
+line: "BATT " bar(pwr.percent) color(pwr.percent < 25 : red/orange, default: green/cyan)
+line: "CARGO" bar(cargo.percent) gradient(#22c55e, #ef4444) color_by(pwr.percent)
+```
+- `size(medium|large)`: the row takes 2 or 4 shares of its panel (normal is 1) and the bar grows with it.
+- `color(...)` rules, then `gradient(...)`, then `flat(...)` decide the colour of every gauge kind. A rule can answer with a gradient written `a/b`. Inside `color(...)` use colour names for these; a `#` after a space starts a comment.
+- `color_by(bind.field)`: colour follows another value than the one the gauge shows. `track(color)` colours the empty part, `label_color(color)` the label.
+
+#### 17. Item Amounts, Contents and LCD Text
+- `bar(cargo.ingot:Iron) max(5000)`: amount of one item (`kind:Subtype`); `max(N)` or `max(bind.field)` is the full amount.
+- `text(cargo.top1)`: the largest item held, `top2` the next and so on (refreshed every 15 s).
+- `text(notes.line1)`: a line of the text on a text panel or LCD that is not a HELM screen (read every 2 s). Only text can be read; the game gives scripts no access to another screen's picture.
+- `scope: all` on a bind also reads blocks on ships docked on a connector.
+
+#### 18. Mirroring Screens
+`mirror: "Bridge"` on a screen copies another screen's drawing to this display, scaled to fit; `mirror_panel: "POWER"` copies one panel. Only screens of the same Programmable Block can be mirrored.
+
 ### 4.5 Emergency Hazard Alert Pulsing
 Any system that enters an emergency state (resolving to `red` via gradients or threshold rules) **automatically pulses** between emergency crimson and bright alert red in sync across all screens on your ship or station.
 
@@ -527,6 +566,23 @@ HELM provides an extensive catalog of pre-tuned, production-grade `.txt` display
 | `fighter_hud.txt` | 2x1 Grid | Compact fighter cockpit display: battery reserves, hydrogen burn, cargo fill. |
 | `hazard_alert.txt` | 1x1 Grid | Overload containment alert with synchronized emergency flashing. |
 | `dynamic_telemetry.txt` | 1x2 Grid | Inter-script IGC display server test layout demonstrating dynamic binding through IGC. |
+| `tank_fullscreen.txt` | 1x1 Grid | One liquid tube filling the whole screen, wave line and bubbles, bottom-to-top gradient. |
+| `tank_trio.txt` | 3x1 Grid | Medium tanks: hydrogen, oxygen and power side by side. |
+| `vertical_bars.txt` | 1x1 Grid | A vertical panel: value on top, bar in the middle, label below. |
+| `bar_sizes.txt` | 1x1 Grid | A large, a medium and a normal bar in one panel (`size(...)`), with `track` and `label_color`. |
+| `combo_dashboard.txt` | 3x2 Grid | Tank column, sized bars and condition-driven gradients in one layout. |
+| `background_lab.txt` | 6 screens | Gradient, two-tone, see-through, alert, value-driven, flashing and textured backgrounds. |
+| `startup_banner.txt` | 2 screens | The same ASCII art as a full-screen banner and as a boot logo. |
+| `top_contents.txt` | 1x1 Grid | The five largest items of a cargo group, ranked. |
+| `cargo_contents.txt` | 1x1 Grid | Amounts of named items and a reactor's fuel (`kind:Subtype`). |
+| `fighter_ammo.txt` | 1x1 Grid | Ammunition and missiles against a full load with `max(N)`. |
+| `projector_welder.txt` | 1x1 Grid | Build progress of a projected blueprint and welder activity. |
+| `rover_suspension.txt` | 1x1 Grid | Height, strength, power, friction and brake of a rover's wheels. |
+| `dynamic_strings.txt` | 1x1 Grid | Text values on dynamic binds, replaced over IGC or the run command. |
+| `template_nested.txt` | 1x1 Grid | A template that invokes another template. |
+| `missing_binds.txt` | 1x1 Grid | Binds that match no block: every value reads as an error. |
+
+The folder holds more layouts than this table lists (64 in all); the [presets gallery](docs/content/presets-gallery.md) is generated from the files and lists every one.
 
 ---
 
@@ -612,6 +668,13 @@ You can trigger the Programmable Block via cockpit toolbars, sensor blocks, or t
 | --------- | --------------------------------------------------- | ----------------------------------------------------------------- |
 | `reload`  | Re-parses Custom Data immediately                   | Quickly test configuration changes without recompiling the script |
 | `refresh` | Re-scans all physical blocks and groups on the grid | Call after docking, undocking, or welding new blocks              |
+| `boot`    | Plays the boot sequence again on every screen       | Check the boot logo and calibration sweep                         |
+| `starter` | Writes a sample layout into an empty Custom Data and loads it (never overwrites) | First run on a new block                  |
+| `probe`   | Draws a test pattern for 20 s on the block's screen and every configured screen | Check what part of a real screen the script covers |
+| `console on` / `console off` | Shows or hides the console on the block's own screen | Give the block's screen back to the game      |
+| `scan` (also `diagnose`, `test`) | Prints a report of binds, surfaces, instruction use and the sprite names for `bg_texture` | Find why a gauge shows `ERR` |
+| `alert red` / `alert off` / `alert toggle` | Red alert: backgrounds flash to `alert_bg` and red gauges flash | Wire to a sensor or hotbar        |
+| `set <var> <val>` | Sets an in-memory dynamic variable                  | Feed a value or text to a `dynamic` bind                          |
 
 ### 6.2 Offline TUI Simulator & Visualizer (`helmv.ps1` / `Test-HelmLayout.ps1`)
 You can design, test, and export your HELM displays completely offline without launching Space Engineers using the terminal visualizer [`helmv.ps1`](helmv.ps1):
@@ -621,6 +684,9 @@ You can design, test, and export your HELM displays completely offline without l
 pwsh ./helmv.ps1 -Preset atmospheric_lander
 pwsh ./helmv.ps1 -Preset command_carrier
 pwsh ./helmv.ps1 -Preset planetary_base
+
+# 1b. Preview one screen of a multi-screen layout (name or number):
+pwsh ./helmv.ps1 background_lab -ScreenName Alert
 
 # 2. Swap border styles dynamically (-Border):
 pwsh ./helmv.ps1 -Preset atmospheric_lander -Border rounded
@@ -672,6 +738,9 @@ Passing `-ShowSprites` appends a real-time hardware telemetry card showing the e
 
 **Game-Accurate Animation & Fluid Damping:**
 [`helmv.ps1`](helmv.ps1) mirrors the in-game script's exact aerospace fluid damping equation (`displayValue += (target - displayValue) * 0.35f`). Gauges and needles glide smoothly toward their targets rather than jumping abruptly, accurately modeling physical cockpit response at 60 Hz (`Update1`), 6 Hz (`Update10`), or 0.6 Hz (`Update100`).
+
+**What the Preview Does Not Draw:**
+[`helmv.ps1`](helmv.ps1) is a text rendering. After each run it prints a `helmv:` note for anything in the layout it cannot draw (tanks, vertical panels, `size(...)`, `label_color` / `track` / `color_by`, gradient and texture backgrounds, mirrors, banners, panel positions) and for parser warnings. A layout with several screens shows the first one; `-ScreenName` picks another. See [helmv-cli](docs/content/helmv-cli.md).
 
 **Tear-Free Terminal Guarantee:**
 [`helmv.ps1`](helmv.ps1) adheres strictly to the **Padding Rule**—calculating exact character bounding boxes *before* encoding ANSI color sequences. Multi-column grid rendering compresses bridge dashboards from 28 lines down to 18 lines, comfortably fitting standard 24/25-row terminals. In interactive environments, it switches to the VT100 Alternate Screen Buffer (`$ESC[?1049h`), uses line erase sequences (`$ESC[K`), and display clears (`$ESC[J`), completely eliminating screen scrolling, line drifting, and duplicate text overlapping.
@@ -727,6 +796,12 @@ An audit against the project's Preliminary Design Review:
 - [x] **Tier 2 — Zero-Centered Horizon / Balance Charts (`balance` / `horizon`):** Bi-directional center-out horizon gauges.
 - [x] **Tier 2 — Native Font Atlas Selection (`font:`):** Custom font assignment per screen or sub-panel (`Monospace`, `Debug`, etc.).
 - [x] **Tier 2 — Offline PowerShell Cmdlet (`Test-HelmLayout.ps1`):** Tab-completion, clipboard export, and ANSI preview.
+- [x] **Tier 2 — Backgrounds:** solid, vertical and horizontal gradients, value-driven and flashing backgrounds, textures, `screen_bg:`, `panel_bg:`, red-alert background.
+- [x] **Tier 2 — Boot, Console and Diagnostics:** boot sequence with logo and calibration sweep, `starter` and `probe`, console on the block's own screen and in the info pane.
+- [x] **Tier 2 — Item Amounts and Contents:** `kind:Subtype` fields, `max(N)`, ranked `topN`, `scope: all` for docked ships.
+- [x] **Tier 2 — Liquid Tanks and Vertical Panels:** `tank` / `tube` / `bucket`, `orientation: vertical`, large and medium sizes through panel spans.
+- [x] **Tier 2 — Row Sizes and Colour Options:** `size(...)`, colour rules that answer with gradients, `color_by`, `track`, `label_color`.
+- [x] **Tier 2 — Mirroring and LCD Text:** `mirror:` / `mirror_panel:` copy HELM screens; `lineN` fields show the text of other LCDs.
 - [ ] **Tier 2 — Verbatim Metadata Display:** Block metadata properties (`DetailedInfo`, `CustomName`, `OwnerId`) scheduled for future release.
 - [ ] **Tier 3 / Deferred — Donut / Radial Charts:** Explicitly deferred per PDR §6: Space Engineers sprite API provides only `TEXT`, `TEXTURE`, and `CLIP_RECT`.
 
@@ -742,8 +817,10 @@ mono Tests.exe
 ```
 
 ```text
-141 passed, 0 failed.
+267 passed, 0 failed.
 ```
+
+`Build-Release.ps1` runs these tests first. Three more checks cover the game script itself: `tools/scope-test` (fake blocks and screens through the real script), `tools/rename-check/Test-RenameParity.ps1` (the minified script draws exactly what the source draws on every preset) and `tools/pb-check` (compiles the minified script against the game's own assemblies when `SE_BIN64` points at the game's `Bin64` folder).
 
 
 ---

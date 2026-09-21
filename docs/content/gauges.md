@@ -3,7 +3,7 @@ title: "Gauge Primitives"
 description: "Reference for each gauge type and its options."
 order: 4
 section: "Visual Primitives"
-badge: "10 Types"
+badge: "13 Types"
 ---
 
 ## 1. Linear Progress Bar (`bar`)
@@ -154,3 +154,36 @@ line: "TARGET  " text(radar.target) flat(#f43f5e)
 ```
 
 - **Visual Output**: `FRIGATE-04`
+
+---
+
+## 13. Liquid Tank (`tank`, `tube`, `bucket`)
+
+A tube that fills from the bottom with the value. A line of `~` and `-` characters slides along the liquid surface and three bubbles rise through it. It fills the height of its panel, so a panel that spans the screen is the large size and a grid of panels gives medium ones.
+
+```helm
+@panel p at(0, 0, 1, 1) title: "H2"
+line: "H2" tank(h2.percent) gradient(#1e3a8a, #38bdf8)
+```
+
+- **Layout**: A panel with a tank lays its lines out as columns: value on top, tube in the middle, label below. `orientation: vertical` does the same for other gauges, and a `bar(...)` in such a panel is a vertical bar that fills from the bottom.
+- **Colour**: `flat(...)` is one colour, `gradient(...)` runs up through the liquid, `color(...)` rules pick a colour by value, and a rule can answer with a gradient (`red/orange`).
+- **Border modes**: With `border: ascii` a tank is drawn as a text line. `helmv.ps1` draws it as a plain bar.
+- **Presets**: `tank_fullscreen`, `tank_trio`, `vertical_bars`.
+
+---
+
+## Options Every Gauge Takes
+
+| Option | Effect |
+| :--- | :--- |
+| `flat(color)` / `gradient(a, b, ...)` | Fixed colour, or a colour that follows the value |
+| `color(bind.field > N : color, ..., default: color)` | Colour rules; a rule may answer with a gradient such as `red/orange` |
+| `color_by(bind.field)` | Colour rules and gradients read another value than the one the gauge shows |
+| `max(N)` / `max(bind.field)` | The full amount, for item counts and raw values |
+| `size(medium)` / `size(large)` | The row takes 2 or 4 shares of its panel and the bar grows with it |
+| `label_color(color)` | Colour of the label text |
+| `track(color)` | Colour of the empty part of the gauge |
+| `unit("MW")`, `format:` | Value text |
+
+See [DSL Syntax](/docs/dsl-syntax/) for the rules and examples.

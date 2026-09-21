@@ -51,3 +51,15 @@ State fields such as `.locked`, `.connected`, `.brake`, `.producing`, `.projecti
 | **Control** | Cockpit / Seat | `IMyShipController` | **[ ]** | `.enabled` (on/off only) | `toggle`, `status`, `led` | - |
 | **Control** | Remote Control | `IMyRemoteControl` | **[ ]** | `.enabled` (on/off only) | `toggle`, `status`, `led` | - |
 | **Control** | Gravity Generator | `IMyGravityGeneratorBase`| **[x]** | `.percent`, `.g`, `.accel` | `bar`, `spark` | `G`, `m/s²` |
+
+## Item Fields and Text Panels
+
+Two kinds of field work on blocks that are not in the table by type.
+
+| Field | Reads | Example |
+| :--- | :--- | :--- |
+| `<kind>:<Subtype>` | Amount of one item in the inventories of the bound blocks. `kind` is `ingot`, `ore`, `component`, `ammo` and so on | `bar(cargo.ingot:Iron) max(5000)` |
+| `top1`, `top2`, ... | The largest item held, the next largest, and so on, as text (`Iron ingot 4.2K`). Scanned a few blocks per run, refreshed every 15 seconds | `text(cargo.top1)` |
+| `line1`, `line2`, ... | A line of the text on a text panel or LCD, as text. Read every 2 seconds | `text(notes.line1)` |
+
+See [Item Amounts](/docs/dsl-syntax/#item-amounts-cargo-and-reactor-contents) and [Text From Another LCD](/docs/dsl-syntax/#text-from-another-lcd).

@@ -80,6 +80,8 @@ title_color: #<hexcolor>
 - `border_color: #hex`: Screen border frame color. `border_gradient(#a, #b, ...)` blends through the stops from left to right along the top and bottom lines (`gradient_mode: steps` uses the first stop on top and the last on the bottom).
 - `gradient_mode: smooth` or `steps`: How gradients pick a colour. Default `smooth`.
 - `border: style`: Modular border character set.
+- `mirror: "Screen"` and `mirror_panel: "Panel"`: Copy another screen, or one panel of it. See [Mirroring a Screen](#mirroring-a-screen).
+- `banner: name`, `boot_logo: name`, `boot_batch`, `boot_calibrate`: See [ASCII Banners](#ascii-banners) and [Boot Sequence Directives](#boot-sequence-directives).
 
 ### Tanks and Vertical Bars
 
@@ -115,7 +117,9 @@ Sizes combine with the layout tools: `grid(...)` and `at(col, row, spanX, spanY)
 Every kind of line (bar, led, dots, toggle, checkbox, status, text, tank) picks its colour the same way: `color(...)` rules first, then `gradient(...)` at the current value, then `flat(...)`. Text lines follow the same order, so `text(bind.field) flat(cyan)` is cyan; without any of the three a text line is white.
 
 - **Conditional gradients:** a rule can answer with a gradient written as colours joined by `/`. `color(pwr.percent < 25 : red/orange, default: green/cyan)` runs red to orange across the bar when power is under 25, and green to cyan otherwise. On a tank the gradient runs up the liquid.
-- `label_color(color)` sets the colour of the label text, and `track(color)` the empty part of a bar or tube.
+- **`color_by(bind.field)`:** the colour rules or the gradient read another value than the one the gauge shows. `line: "CARGO" bar(cargo.percent) gradient(#22c55e, #ef4444) color_by(batt.percent)` fills to the cargo level but takes its colour from the battery level.
+- `label_color(color)` sets the colour of the label text (also under a vertical column).
+- `track(color)` sets the empty part of any gauge: the track of a bar, the unlit segments of `led`, `dots`, `chevron`, `hazard` and `ammo`, and the tube of a tank or vertical bar.
 - Inside `color(...)` write colours as names or `/` gradients of names. A `#` that follows a space starts a comment, so `default: #22c55e` is cut off; `gradient(#..., #...)`, `flat(#...)`, `label_color(#...)` and `track(#...)` are not affected.
 
 ### Mirroring a Screen
@@ -133,6 +137,7 @@ mirror: "Bridge"
 ```
 
 - The name is matched without regard to case. The source must be a graphic screen (not `border: ascii` and not a banner).
+- `mirror_panel: "Panel name"` copies only that panel of the source screen, scaled to fill this display. Use it to show one card of a big screen on a small one.
 - The copy is redrawn only when the source has redrawn. A mirror has no panels of its own; anything else written under it is ignored.
 - Only screens drawn by this script can be mirrored. The game does not let a script read the picture of another block's screen.
 
@@ -164,7 +169,7 @@ A screen is drawn in layers: the screen background, then a card behind each pane
 | `bg: <color>` | after an `@panel` line | Background of that panel only. Use different colours for a deliberate two-tone screen |
 | `screen_bg: <color>` | `@screen` | The background of the whole screen, wherever the line is written. Same as `bg:` before the first `@panel` |
 | `panel_bg: <color>` | `@screen` | A card behind every panel that has no `bg:` of its own. Off by default, so the screen is one colour. Use an `r,g,b,a` colour for a translucent card |
-| `bg: color(<bind>.<field> <op> N : <color>, ..., default: <color>)` | `@screen` or after an `@panel` line | Background that follows a value, like the colour rules of `text()` lines. `bg: color(batt.percent < 25 : #7f1d1d, batt.percent < 60 : #78350f, default: #14532d)` |
+| `bg: color(<bind>.<field> <op> N : <color>, ..., default: <color>)` | `@screen` or after an `@panel` line | Background that follows a value, like the colour rules of `text()` lines. `bg: color(batt.percent < 25 : #7f1d1d, batt.percent < 60 : #78350f, default: #14532d)`. A rule can answer with a gradient joined by `/`, such as `blue/red`; the background then takes the colour at the value that drives the rule |
 | `flash: <bind>.<field> <op> N` | `@screen` or after an `@panel` line | Flashes that background to `alert_bg` while the comparison is true, for example `flash: batt.percent < 15` |
 | `bg_gradient_dir: vertical` or `horizontal` | `@screen` or after an `@panel` line | Direction of `bg_gradient(...)` (default vertical). A gradient can also be given to a single panel |
 | `bg_texture: <name>` | `@screen` | Draws one of the game's built-in sprites over the background, scaled to the screen. Run the block with the argument `scan` to list the names the game offers |
@@ -263,6 +268,8 @@ title_color: #<hexcolor>
 - `title: "TEXT"`: Panel header text.
 - `title_align: left|center|right`: Snaps panel title along the top border.
 - `title_color: #hex`: Independent typography color for the title.
+- `orientation: vertical`: Lays the panel's lines out as columns. See [Tanks and Vertical Bars](#tanks-and-vertical-bars).
+- `bg:`, `bg_gradient(...)`, `flash:`: Background of this panel only. See [Backgrounds](#backgrounds).
 
 ---
 
@@ -277,7 +284,7 @@ line: "<LABEL8>" <kind>(<bind>.<field>) <color_spec> [unit("<unit>")] [dir:<up|d
 ### Line Syntax Rules
 
 1. **Label**: Exactly 8 characters (padded with spaces, e.g. `"BATTERY "`, `"O2 TANK "`, `"CARGO   "`).
-2. **Gauge Kind**: One of the 10+ supported widgets (`bar`, `flow`, `spark`, `balance`, `dots`, `chevron`, `hazard`, `led`, `toggle`, `checkbox`, `ammo`, `status`, `text`).
+2. **Gauge Kind**: One of the 10+ supported widgets (`bar`, `flow`, `spark`, `balance`, `dots`, `chevron`, `hazard`, `led`, `toggle`, `checkbox`, `ammo`, `status`, `text`, `tank`).
 3. **Property Target**: `<bind_name>.<property_name>`.
 4. **Color Specification**:
    - `flat(#hex)`: Single uniform color (e.g. `flat(#38bdf8)`).
@@ -288,6 +295,10 @@ line: "<LABEL8>" <kind>(<bind>.<field>) <color_spec> [unit("<unit>")] [dir:<up|d
    - `max(N)`: Treats `N` as the full amount. Bars, sparklines, gradients and colour rules work on the percentage of `N` (capped at 100%), and the printed value stays the real amount. Use it with [item amounts](#item-amounts-cargo-and-reactor-contents) or any raw value:
      `line: "GATLING " bar(guns.ammo:NATO_25x184mm) max(1200) gradient(#ef4444, #eab308, #22c55e)`.
    - `dir: up|down`: Sets flow direction.
+   - `color(bind.field > N : color, ..., default: color)`: Picks the colour from a value. See [Colour Choice on a Line](#colour-choice-on-a-line).
+   - `color_by(bind.field)`: Colours the gauge by another value than the one it shows.
+   - `size(medium)` or `size(large)`: Gives the row more of its panel. See [Bar Sizes](#bar-sizes).
+   - `label_color(color)` and `track(color)`: Colour of the label text and of the empty part of the gauge.
 
 ### Complete Panel Example
 
