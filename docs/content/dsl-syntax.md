@@ -97,9 +97,26 @@ line: "H2 " tank(h2.percent) gradient(#1e3a8a, #38bdf8)
 - **Sizes:** the gauge fills its panel, so a panel that spans the whole screen is the large size, and a grid of panels gives medium ones (`grid(3, 1)` is three tubes side by side). See the `tank_fullscreen`, `tank_trio` and `vertical_bars` presets.
 - **`max(N)`** works as on any gauge, so an item amount can fill a tube. `helmv.ps1` does not draw vertical panels or tanks.
 
+### Bar Sizes
+
+`size(medium)` and `size(large)` give a line more of its panel. Rows share the panel's height 1 : 2 : 4 (normal, medium, large), and the bar of a medium or large row grows to 70% of its row instead of keeping the normal height. Without `size(...)` every row is the same, as before.
+
+```helm
+@panel main at(0, 0, 1, 1) title: "SHIP"
+line: "POWER" bar(pwr.percent) size(large) gradient(#ef4444, #eab308, #22c55e)
+line: "H2"    bar(h2.percent) size(medium) flat(#38bdf8)
+line: "CARGO" bar(cargo.percent) flat(#94a3b8)
+```
+
+Sizes combine with the layout tools: `grid(...)` and `at(col, row, spanX, spanY)` set the size of a panel, `size(...)` the share of each row inside it, `tank(...)` and `orientation: vertical` make columns. The presets `bar_sizes` and `combo_dashboard` mix them.
+
 ### Colour Choice on a Line
 
 Every kind of line (bar, led, dots, toggle, checkbox, status, text, tank) picks its colour the same way: `color(...)` rules first, then `gradient(...)` at the current value, then `flat(...)`. Text lines follow the same order, so `text(bind.field) flat(cyan)` is cyan; without any of the three a text line is white.
+
+- **Conditional gradients:** a rule can answer with a gradient written as colours joined by `/`. `color(pwr.percent < 25 : red/orange, default: green/cyan)` runs red to orange across the bar when power is under 25, and green to cyan otherwise. On a tank the gradient runs up the liquid.
+- `label_color(color)` sets the colour of the label text, and `track(color)` the empty part of a bar or tube.
+- Inside `color(...)` write colours as names or `/` gradients of names. A `#` that follows a space starts a comment, so `default: #22c55e` is cut off; `gradient(#..., #...)`, `flat(#...)`, `label_color(#...)` and `track(#...)` are not affected.
 
 ### Mirroring a Screen
 
