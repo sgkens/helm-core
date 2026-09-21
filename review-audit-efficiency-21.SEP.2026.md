@@ -111,5 +111,6 @@ After items 1 to 5 the script has roughly 6,000 to 10,000 characters of headroom
 | Q1 stale committed build | Fixed in `42825a9`: `build-release` fails when the committed combined scripts differ from a fresh build; new `minify-verify` job. Not yet run on GitLab |
 | P3 per-run read cache, P4 colour rules, P5 culture-sensitive calls, P7 | Open |
 | S2 dead code, S3 repeated sprite updates, S4 merged block table | Open. S1 removed the urgency; do them when a feature needs the space |
-| P6 refresh rate and damping | Open, needs a decision and the M5 run |
-| Boot sequence, smooth gradients, field case | Open, needs a decision (implement or correct the docs) |
+| P6 refresh rate and damping | First version in `492c81c`: `Update10` while booting, changing, easing or alerting, `Update100` when idle; block rescans every 120 s. To be revisited after more in-game and stress testing. The `refresh:` setting is still parsed but unused |
+| Boot sequence | Fixed in `492c81c`: implemented in the game script. Calibration sweeps remain helmv-only |
+| Smooth gradients, field case | Open, needs a decision (implement or correct the docs) |
