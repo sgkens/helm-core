@@ -1,0 +1,15 @@
+# Bar Sizes
+# One panel with a large, a medium and a normal bar. size(...) sets how much of the panel a row takes (4, 2 and 1 shares); the bar grows with it.
+@bind pwr   = group("Batteries", agg: avg)
+@bind h2    = group("Hydrogen Tanks", agg: avg)
+@bind cargo = group("Cargo", agg: avg)
+
+@screen Sizes
+output: "Bar LCD", 0
+bg: #060a12
+border_color: #475569
+
+@panel main at(0, 0, 1, 1) title: "SHIP"
+line: "POWER" bar(pwr.percent) size(large) gradient(#ef4444, #eab308, #22c55e) track(#111827) label_color(#94a3b8)
+line: "H2"    bar(h2.percent) size(medium) flat(#38bdf8) track(#0b1220)
+line: "CARGO" bar(cargo.percent) flat(#94a3b8)

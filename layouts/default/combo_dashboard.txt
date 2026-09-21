@@ -1,0 +1,25 @@
+# Combo Dashboard
+# Mixes the layout tools: a tank column, sized bars, and colours that change with a condition (a rule can answer with a gradient such as red/orange).
+@bind h2    = group("Hydrogen Tanks", agg: avg)
+@bind pwr   = group("Batteries", agg: avg)
+@bind cargo = group("Cargo", agg: avg)
+@bind o2    = group("Oxygen Tanks", agg: avg)
+
+@screen Dash
+output: "Dash LCD", 0
+layout: grid(3, 2)
+bg_gradient(#050b14, #0f172a)
+border_color: #38bdf8
+
+@panel fuel at(0, 0, 1, 2) title: "H2"
+line: "H2" tank(h2.percent) color(h2.percent < 25 : red/orange, default: blue/cyan)
+
+@panel power at(1, 0, 2, 1) title: "POWER"
+line: "BATT" bar(pwr.percent) size(large) color(pwr.percent < 25 : red/orange, pwr.percent < 60 : orange/yellow, default: green/cyan) track(#111827)
+line: "LOAD" bar(pwr.percent) flat(#94a3b8)
+
+@panel stores at(1, 1, 1, 1) title: "CARGO"
+line: "CARGO" bar(cargo.percent) size(medium) gradient(#22c55e, #eab308, #ef4444) label_color(#94a3b8)
+
+@panel air at(2, 1, 1, 1) title: "AIR"
+line: "O2" bar(o2.percent) size(medium) color(o2.percent < 30 : red, default: cyan) label_color(#94a3b8)
