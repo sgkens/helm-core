@@ -283,6 +283,13 @@ line: ""O2""  bar(o2_$screen.percent) flat(cyan)
         var cfgMir = HelmParser.Parse("@screen a\noutput: \"x\", 0\n@screen b\noutput: \"y\", 0\nmirror: \"a\"\n");
         Check(cfgMir.Errors.Count == 0 && cfgMir.Screens[1].Mirror == "a" && cfgMir.Screens[0].Mirror == null, "mirror: names the screen to copy");
 
+        var cfgSz = HelmParser.Parse("@screen a\noutput: \"x\", 0\n@panel p at(0, 0, 1, 1) title: \"P\"\nline: \"A\" bar(b.percent) size(large) label_color(#ff0000) track(#101010) color(b.percent > 50 : red/orange, default: green/cyan)\nline: \"B\" bar(b.percent) size(medium)\nline: \"C\" bar(b.percent)\n");
+        var szl = cfgSz.Screens[0].Panels[0].Lines;
+        Check(cfgSz.Errors.Count == 0, "size, label_color, track and gradient rules parse: " + string.Join(" | ", cfgSz.Errors));
+        Check(szl[0].Size == 2 && szl[1].Size == 1 && szl[2].Size == 0, "size(large) = 2, size(medium) = 1, none = 0");
+        Check(szl[0].LabelColor == "#ff0000" && szl[0].Track == "#101010", "label_color and track kept");
+        Check(Layout.ResolveConditionalColor(szl[0].ColorRules, 80) == "red/orange" && Layout.ResolveConditionalColor(szl[0].ColorRules, 10) == "green/cyan", "a colour rule can answer with a gradient");
+
         // --- Banners: raw ASCII art blocks ---
         string bannerDsl = "@banner logo\n\n        ZZ   # \"q\"\n     ZZ ZZ\n\n@end\n@screen a\noutput: \"x\", 0\nbanner: logo\nboot_logo: logo\nbanner_color: red\n";
         var cfgBan = HelmParser.Parse(bannerDsl);
