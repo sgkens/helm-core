@@ -194,6 +194,7 @@ renderer-smoke:
   stage: gate
   script:
     - dotnet run --project tools/spritedump -- --out "$CI_PROJECT_DIR/.smoke" layouts/default layouts/templates.txt
+    - dotnet run --project tools/spritedump -- --out "$CI_PROJECT_DIR/.smoke-boot" --boot layouts/default layouts/templates.txt
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH =~ /^release\//'

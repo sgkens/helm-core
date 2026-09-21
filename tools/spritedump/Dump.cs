@@ -40,6 +40,8 @@ static class Dump
 {
     // --payload "key=value;key=value": applied through the script's own ApplyDynamicPayload after mock values are injected.
     static string Payload;
+    // --boot: export each screen's boot frame (progress 0.95, all diagnostic lines shown) instead of the live screen.
+    static bool BootMode;
 
     // Hardware profiles from the Epic 23 table. Texture size is ASSUMED square (larger side);
     // it only affects the viewport offset, which is exported so the viewer can crop.
@@ -222,7 +224,13 @@ static class Dump
             var surface = new MockSurface(prof.W, prof.H);
             outputs[screen] = surface;
             var frames = new List<List<MySprite>>();
-            if (ticks <= 0)
+            if (BootMode)
+            {
+                var drawBoot = typeof(Program).GetMethod("DrawBoot", BindingFlags.Instance | BindingFlags.NonPublic);
+                drawBoot.Invoke(prog, new object[] { screen, 0.95 });
+                frames.Add(new List<MySprite>(surface.Last));
+            }
+            else if (ticks <= 0)
             {
                 // Several passes: fluid damping converges toward the mock value; keep the last drawn frame.
                 for (int i = 0; i < 40; i++) { tick.SetValue(prog, i); render.Invoke(prog, new object[] { screen }); }
@@ -285,6 +293,7 @@ static class Dump
             if (args[i] == "--out" && i + 1 < args.Length) outDir = args[++i];
             else if (args[i] == "--ticks" && i + 1 < args.Length) ticks = int.Parse(args[++i], CultureInfo.InvariantCulture);
             else if (args[i] == "--payload" && i + 1 < args.Length) Payload = args[++i];
+            else if (args[i] == "--boot") BootMode = true;
             else if (args[i] == "--set" && i + 1 < args.Length)
             {
                 var kv = args[++i].Split('=');
@@ -294,7 +303,7 @@ static class Dump
         }
         if (outDir == null || inputs.Count == 0)
         {
-            Console.Error.WriteLine("usage: spritedump --out <dir> [--ticks N] [--set bind=value] [--payload \"k=v;k=v\"] <layout.txt|dir> ...");
+            Console.Error.WriteLine("usage: spritedump --out <dir> [--ticks N] [--set bind=value] [--payload \"k=v;k=v\"] [--boot] <layout.txt|dir> ...");
             return 2;
         }
 

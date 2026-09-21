@@ -149,7 +149,7 @@ namespace Sandbox.ModAPI.Ingame
     public interface IMyCubeGrid { }
     public partial interface IMyGridTerminalSystem { }
     public interface IMyIntergridCommunicationSystem { IMyBroadcastListener RegisterBroadcastListener(string tag); }
-    public interface IMyGridProgramRuntimeInfo { UpdateFrequency UpdateFrequency { get; set; } double LastRunTimeMs { get; } int CurrentInstructionCount { get; } int MaxInstructionCount { get; } int CurrentCallChainDepth { get; } int MaxCallChainDepth { get; } }
+    public interface IMyGridProgramRuntimeInfo { UpdateFrequency UpdateFrequency { get; set; } double LastRunTimeMs { get; } TimeSpan TimeSinceLastRun { get; } int CurrentInstructionCount { get; } int MaxInstructionCount { get; } int CurrentCallChainDepth { get; } int MaxCallChainDepth { get; } }
 
     public abstract class MyGridProgram
     {
@@ -168,6 +168,7 @@ namespace Sandbox.ModAPI.Ingame
     {
         public UpdateFrequency UpdateFrequency { get; set; }
         public double LastRunTimeMs { get { return 0; } }
+        public TimeSpan TimeSinceLastRun { get { return TimeSpan.Zero; } }
         public int CurrentInstructionCount { get { return 0; } }
         public int MaxInstructionCount { get { return 50000; } }
         public int CurrentCallChainDepth { get { return 0; } }
