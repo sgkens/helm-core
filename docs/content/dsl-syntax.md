@@ -29,7 +29,7 @@ Bindings map game terminal blocks to variable names used across panels:
 
 | Kind | Target | Example |
 | :--- | :--- | :--- |
-| `block` | Exact terminal block name | `@bind main_reactor = block("Large Reactor Alpha")` |
+| `block` | Terminal block whose name contains the text | `@bind main_reactor = block("Large Reactor Alpha")` |
 | `group` | Terminal block group | `@bind batteries = group("Main Battery Group")` |
 | `battery` | Battery block or group | `@bind batt = battery("Battery Bank")` |
 | `gastank` | O2 or H2 tanks | `@bind h2 = gastank("Hydrogen Tank 1")` |
@@ -41,6 +41,14 @@ Bindings map game terminal blocks to variable names used across panels:
 | `dynamic` | In-memory / IGC variable | `@bind target = dynamic("target.dist", default: 0)` |
 
 Wildcards (`*`) are supported in names (e.g. `battery("Battery *")`).
+
+### Which Blocks a Name Matches
+
+- **A name matches any block whose name contains the text.** `block("Cockpit")` matches "Cockpit", "Fighter Cockpit" and "Cockpit 2". When several match, the first one the game finds is used. Give the block a name that only it contains, or use a group.
+- **Groups work the same way** and use the first group whose name contains the text.
+- **Only your own construct is used:** the same grid, plus subgrids attached with rotors, pistons or hinges. A ship docked on a connector is ignored, even when its block names match yours, and HELM never draws on a docked ship's screens. A ship joined by a merge block counts as part of your construct, because the game treats the merged grids as one.
+- If the first match belongs to another ship, HELM looks through your own blocks for one that matches.
+- Run the block with argument `scan` to see how many blocks were ignored because they are on docked ships.
 
 ---
 

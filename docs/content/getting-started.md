@@ -125,7 +125,7 @@ Configuration errors (a misspelled directive, a bad number) are listed the same 
 | Symptom | Cause | Fix |
 | :--- | :--- | :--- |
 | Nothing changes on the screen | The layout was pasted into the LCD's Custom Data | Paste it into the Programmable Block's Custom Data |
-| `output block '...' not found` | The name in `output:` does not match the block name | Rename the block or the `output:` line so the two match exactly |
+| `output block '...' not found` | No block on your ship has a name containing the `output:` text (a docked ship's blocks are ignored) | Rename the block or fix the `output:` text; use a name that only one block contains |
 | A cockpit shows nothing on one screen | Wrong surface number | Cockpit surfaces are numbered from 0; try `output: "Cockpit", 1` |
 | Gauges show `ERR` | An `@bind` name matches no block | Check the block or group name, or run `scan` to see which binds matched nothing |
 | Layout edits take a moment to appear | The script re-reads Custom Data on its next run, about two seconds later | Run the block with argument `reload` to apply them at once |
