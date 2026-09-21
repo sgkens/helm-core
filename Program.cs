@@ -236,6 +236,20 @@ namespace IngameScript
                 InitConsole();
                 _consoleAt = 0;
             }
+            else if (arg == "names")
+            {
+                // Every block name and group name of the grid, one per line, appended to Custom Data as comments (once).
+                if (Me.CustomData.Contains("# --- names")) { Echo("HELM: the names are already at the end of Custom Data. Delete that block to list them again."); return; }
+                var names = new List<string>();
+                foreach (var nb in AllBlocks()) names.Add(nb.CustomName);
+                var ngs = new List<IMyBlockGroup>();
+                GridTerminalSystem.GetBlockGroups(ngs);
+                foreach (var ng in ngs) names.Add("[group] " + ng.Name);
+                names.Sort();
+                Me.CustomData += "\n# --- names (delete when done) ---\n# " + string.Join("\n# ", names);
+                Echo("HELM: " + names.Count + " names written to the end of Custom Data.");
+                return;
+            }
             else if (arg == "scan" || arg == "diagnose" || arg == "test")
             {
                 RunSelfDiagnostics();
@@ -1409,14 +1423,21 @@ namespace IngameScript
 
         // Amount of one item in all of a block's inventories. Field "kind:Subtype", for example ingot:Iron, ore:Ice,
         // component:SteelPlate, ammo:NATO_25x184mm. A reactor's fuel is ingot:Uranium.
+        // share:kind:Subtype is the volume the item takes as a percent of the inventories' capacity.
         private static double ItemAmount(IMyTerminalBlock b, string field)
         {
+            bool share = field.StartsWith("share:", StringComparison.OrdinalIgnoreCase);
+            if (share) field = field.Substring(6);
             int c = field.IndexOf(':');
             string kind = field.Substring(0, c).ToLowerInvariant();
             var type = new MyItemType("MyObjectBuilder_" + (kind == "ammo" ? "AmmoMagazine" : char.ToUpper(kind[0]) + kind.Substring(1)), field.Substring(c + 1));
-            double sum = 0;
-            for (int i = 0; i < b.InventoryCount; i++) sum += (double)b.GetInventory(i).GetItemAmount(type);
-            return sum;
+            double sum = 0, cap = 0;
+            for (int i = 0; i < b.InventoryCount; i++)
+            {
+                sum += (double)b.GetInventory(i).GetItemAmount(type);
+                cap += (double)b.GetInventory(i).MaxVolume;
+            }
+            return share ? (cap > 0 ? sum * type.GetItemInfo().Volume / cap * 100.0 : 0.0) : sum;
         }
 
         private double ResolveBlockField(IMyTerminalBlock block, string field)

@@ -111,7 +111,6 @@ line: "<LABEL>" text(<bind>.<field>) [color(<conditions>, default: <color>)]
 | `mirror:` / `mirror_panel:` | `@screen`       | Copy another screen (or one of its panels) to this display, scaled | —               | No         |
 | `banner:` / `boot_logo:`| `@screen`           | Show an `@banner ... @end` ASCII block full screen, or as the boot logo | —          | No         |
 | `boot_batch:` / `boot_calibrate:` | `@screen` | Screens that boot together; seconds the gauges sweep 0 to 100 after boot | `1` / `1.2` | No    |
-| `gap:` / `padding:`     | `@screen`           | Pixels between panels, and around the screen (`0` puts the border on the edge) | `8` / about 2% | No         |
 | `line:`                 | `@screen` / `@panel`| Visual gauge (`bar`, `led`, `spark`) or text readout definition    | —               | At least 1 |
 
 ---
@@ -130,9 +129,6 @@ Configure borders globally per screen or locally per panel:
 - `border: rounded` — Smooth rounded aerospace cockpit corners (`╭────╮` / `│    │` / `╰────╯`).
 - `border: minimal` — Divider-only frames with open side rails for ultra-dense telemetry walls.
 - `border: ascii` — Strict vanilla Keen `Monospace` printable ASCII (`+----+` / `|    |` / `+----+`).
-- `border: frame` and `border: corners` — In-game frame drawn with quads: all four sides, or bracket corners only.
-
-In the game every style is drawn with quads: `graphic` and `minimal` are the top and bottom lines, `frame`, `single`, `heavy` (thicker) and `double` (a second inner frame) add the sides, `rounded` adds a circle at each corner, and `corners` draws brackets. `border_color` and `border_gradient` colour them, and `border:` on an `@panel` line frames that panel.
 - `border: graphic` — Default sci-fi HUD framing with recessed slot tracks.
 - `border: none` — Flush, edge-to-edge monitors without frame boundaries.
 
@@ -381,32 +377,13 @@ line: "CARGO" bar(cargo.percent) gradient(#22c55e, #ef4444) color_by(pwr.percent
 - `color(...)` rules, then `gradient(...)`, then `flat(...)` decide the colour of every gauge kind. A rule can answer with a gradient written `a/b`. Inside `color(...)` use colour names for these; a `#` after a space starts a comment.
 - `color_by(bind.field)`: colour follows another value than the one the gauge shows. `track(color)` colours the empty part, `label_color(color)` the label.
 
-#### 17. Dial (`dial` / `gauge` / `arc`)
-A half circle of segments that light up with the value, with a needle and a hub. A gradient runs along the arc by position:
-```bash
-line: "POWER" dial(pwr.percent) size(large) gradient(#22c55e, #eab308, #ef4444) segments(20)
-```
-
-#### 18. Bar Dressing, Segments and Line Details
-```bash
-line: "H2   " bar(h2.percent) ticks(5) marker(25, 80) outline(#94a3b8)   # division lines, threshold ticks, a frame
-line: "CARGO" bar(cargo.percent) dir: left                                # fills from the right end
-line: "LED  " led(pwr.percent) segments(20)                              # 2 to 40 segments (dots and dial too)
-line: "TREND" spark(h2.percent) points(24)                               # 2 to 40 columns
-line: "BATT " bar(pwr.percent) value(off) icon(IconEnergy) blink(pwr.percent < 15)
-```
-`value(off)` hides the value text, `icon(Name)` draws a built-in sprite before the label (`scan` lists the names), and `blink(...)` flashes a line while a condition holds, in any colour. See `gauge_lab`.
-
-#### 19. Rate, ETA and Trend
-`text(batt.rate)` is the change per minute (`-2.4%/min`), `text(batt.eta)` the time until empty or full at that rate (`empty 18m 20s`), and `text(batt.trend)` an arrow (`^` `v` `=`). Sampled every 5 s and smoothed.
-
-#### 20. Item Amounts, Contents and LCD Text
+#### 17. Item Amounts, Contents and LCD Text
 - `bar(cargo.ingot:Iron) max(5000)`: amount of one item (`kind:Subtype`); `max(N)` or `max(bind.field)` is the full amount.
 - `text(cargo.top1)`: the largest item held, `top2` the next and so on (refreshed every 15 s).
 - `text(notes.line1)`: a line of the text on a text panel or LCD that is not a HELM screen (read every 2 s). Only text can be read; the game gives scripts no access to another screen's picture.
 - `scope: all` on a bind also reads blocks on ships docked on a connector.
 
-#### 21. Mirroring Screens
+#### 18. Mirroring Screens
 `mirror: "Bridge"` on a screen copies another screen's drawing to this display, scaled to fit; `mirror_panel: "POWER"` copies one panel. Only screens of the same Programmable Block can be mirrored.
 
 ### 4.5 Emergency Hazard Alert Pulsing
@@ -605,7 +582,7 @@ HELM provides an extensive catalog of pre-tuned, production-grade `.txt` display
 | `template_nested.txt` | 1x1 Grid | A template that invokes another template. |
 | `missing_binds.txt` | 1x1 Grid | Binds that match no block: every value reads as an error. |
 
-The folder holds more layouts than this table lists (65 in all); the [presets gallery](docs/content/presets-gallery.md) is generated from the files and lists every one.
+The folder holds more layouts than this table lists (64 in all); the [presets gallery](docs/content/presets-gallery.md) is generated from the files and lists every one.
 
 ---
 
@@ -824,9 +801,6 @@ An audit against the project's Preliminary Design Review:
 - [x] **Tier 2 — Item Amounts and Contents:** `kind:Subtype` fields, `max(N)`, ranked `topN`, `scope: all` for docked ships.
 - [x] **Tier 2 — Liquid Tanks and Vertical Panels:** `tank` / `tube` / `bucket`, `orientation: vertical`, large and medium sizes through panel spans.
 - [x] **Tier 2 — Row Sizes and Colour Options:** `size(...)`, colour rules that answer with gradients, `color_by`, `track`, `label_color`.
-- [x] **Tier 2 — Dial, Bar Dressing and Frames:** `dial`, `ticks` / `marker` / `outline` / `dir: left`, `segments` / `points`, in-game border styles for screens and panels (`frame`, `corners`, `double`, `rounded`, `heavy`).
-- [x] **Tier 2 — Rate, ETA and Trend:** `text(bind.rate)`, `eta` and `trend` from a smoothed 5-second history.
-- [x] **Tier 2 — Layout Options:** `gap:`, `padding:`, `value(off)`, `icon(Name)`, `blink(condition)`.
 - [x] **Tier 2 — Mirroring and LCD Text:** `mirror:` / `mirror_panel:` copy HELM screens; `lineN` fields show the text of other LCDs.
 - [ ] **Tier 2 — Verbatim Metadata Display:** Block metadata properties (`DetailedInfo`, `CustomName`, `OwnerId`) scheduled for future release.
 - [ ] **Tier 3 / Deferred — Donut / Radial Charts:** Explicitly deferred per PDR §6: Space Engineers sprite API provides only `TEXT`, `TEXTURE`, and `CLIP_RECT`.
@@ -843,7 +817,7 @@ mono Tests.exe
 ```
 
 ```text
-272 passed, 0 failed.
+267 passed, 0 failed.
 ```
 
 `Build-Release.ps1` runs these tests first. Three more checks cover the game script itself: `tools/scope-test` (fake blocks and screens through the real script), `tools/rename-check/Test-RenameParity.ps1` (the minified script draws exactly what the source draws on every preset) and `tools/pb-check` (compiles the minified script against the game's own assemblies when `SE_BIN64` points at the game's `Bin64` folder).

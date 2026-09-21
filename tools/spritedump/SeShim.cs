@@ -84,6 +84,13 @@ namespace VRage.Game.ModAPI.Ingame
         public double Amount;
     }
 
+    public struct MyItemInfo { public float Mass, Volume; }
+
+    public static class MyItemTypeExtensions
+    {
+        public static MyItemInfo GetItemInfo(this MyItemType t) { return new MyItemInfo { Mass = 1f, Volume = 0.05f }; }
+    }
+
     public struct MyItemType
     {
         public string TypeId, SubtypeId;

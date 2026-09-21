@@ -33,6 +33,4 @@ node tools/webutil-wasm/run-node.mjs /tmp/webutil layouts/default/tank_trio.txt
 
 Further savings: the stand-in API uses `dynamic`, which pulls in `System.Linq.Expressions` and `Microsoft.CSharp` (about 660 KB raw). Typing the shim would remove them.
 
-CI image: `sgkens/phellams-automator:2.22.0` (.NET SDK 8.0.424 and 10.0.400, Bun, Node 24) publishes this project and runs `run-node.mjs` on it with the same result, so a web utility job needs no extra image.
-
 Not yet checked: a run in a real browser (only Node so far), output parity against `tools/spritedump` for every preset, and multi-screen `mirror:` (the host renders one screen at a time).

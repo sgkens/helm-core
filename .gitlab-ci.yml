@@ -322,11 +322,11 @@ package-release:
     - if: '$CI_COMMIT_BRANCH =~ /^release\//'
 
 # ---------------------------------------------------------------------------
-# docs-examples extracts the complete ```helm examples from the docs pages (Bun).
+# docs-examples extracts the complete ```helm examples from the docs pages (Bun, no .NET needed).
 # docs-frames — Run the real renderer headlessly (tools/spritedump) to export the
-# animated display frames the docs visualizer draws. It is its own job so the frame
-# export (about 40 s of .NET) runs once and hands the frames to pages as an artifact.
-# Every job uses the same image, which carries the .NET 8 and 10 SDKs and Bun.
+# animated display frames the docs visualizer draws. Needs the .NET SDK, which the
+# Bun image used by the pages job does not have, so it runs separately and hands
+# the frames over as an artifact.
 # ---------------------------------------------------------------------------
 docs-examples:
   stage: build

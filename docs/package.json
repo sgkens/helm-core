@@ -4,12 +4,11 @@
   "private": true,
   "description": "HELM Core documentation site (11ty + Tailwind + DaisyUI).",
   "scripts": {
-    "dev": "node scripts/ensure-frames.js && concurrently -k \"bun run css:watch\" \"eleventy --watch\" \"bun serve.js\"",
-    "serve": "node scripts/ensure-frames.js && bun run css:build && concurrently -k \"eleventy --watch\" \"bun serve.js\"",
+    "dev": "concurrently -k \"bun run css:watch\" \"eleventy --watch\" \"bun serve.js\"",
+    "serve": "bun run css:build && concurrently -k \"eleventy --watch\" \"bun serve.js\"",
     "build": "bun run css:build && eleventy",
     "css:build": "tailwindcss -i ./css/input.css -o ../public/css/style.css --minify",
     "css:watch": "tailwindcss -i ./css/input.css -o ../public/css/style.css --watch",
-    "frames:check": "node scripts/ensure-frames.js",
     "frames": "node scripts/extract-examples.js && dotnet run --project ../tools/spritedump -- --out assets/frames --ticks 48 ../layouts/default .examples",
     "examples": "node scripts/extract-examples.js"
   },
