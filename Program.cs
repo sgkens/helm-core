@@ -96,10 +96,18 @@ namespace IngameScript
             public Color[] BgColors;        // their normal colours
             public Color AlertCol;          // colour they flash to while the red alert is on
             public bool AlertShown;
+            public List<PanelBox> Panels = new List<PanelBox>(); // where each panel's sprites start and which rectangle it covers
             public Vector2 LastSurfaceSize, Off; // Off: where the drawable area starts inside the texture
             public int Ver;                      // counts redraws, so a mirror knows when to copy again
             public bool Initialized = false;
             public List<BgEntry> Bgs = new List<BgEntry>(); // backgrounds that change with a value or flash
+        }
+
+        private class PanelBox
+        {
+            public string Name;
+            public int Start;
+            public Vector2 Pos, Size;
         }
 
         // A background sprite whose colour follows a value (bg: color(...)) or flashes on a value (flash:).
@@ -820,13 +828,23 @@ namespace IngameScript
             if (mb.Initialized && mb.Ver == src.Ver && mb.LastSurfaceSize == size) return false;
             mb.Initialized = true; mb.Ver = src.Ver; mb.LastSurfaceSize = size;
             mb.Sprites.Clear();
-            Vector2 sz = src.LastSurfaceSize, off = (surface.TextureSize - size) / 2f;
+            // The whole screen, or just one panel of it (mirror_panel:).
+            Vector2 sz = src.LastSurfaceSize, org = src.Off, off = (surface.TextureSize - size) / 2f;
+            mb.Off = off;
+            int from = 0, to = src.Sprites.Count;
+            if (screen.MirrorPanel != null)
+            {
+                int pi = src.Panels.FindIndex(x => x.Name.Equals(screen.MirrorPanel, StringComparison.OrdinalIgnoreCase));
+                if (pi < 0) return false;
+                sz = src.Panels[pi].Size; org = src.Panels[pi].Pos; from = src.Panels[pi].Start;
+                if (pi + 1 < src.Panels.Count) to = src.Panels[pi + 1].Start;
+            }
             float k = Math.Min(size.X / sz.X, size.Y / sz.Y);
             Vector2 at = off + (size - sz * k) / 2f;
-            foreach (var sp in src.Sprites)
+            for (int i = from; i < to; i++)
             {
-                var m = sp;
-                if (m.Position.HasValue) m.Position = (m.Position.Value - src.Off) * k + at;
+                var m = src.Sprites[i];
+                if (m.Position.HasValue) m.Position = (m.Position.Value - org) * k + at;
                 if (m.Size.HasValue) m.Size = m.Size.Value * k;
                 if (m.Type == SpriteType.TEXT) m.RotationOrScale *= k;
                 mb.Sprites.Add(m);
@@ -1678,6 +1696,12 @@ namespace IngameScript
         // =========================================================================
 
         // The colour at pct (0 to 100) along the stops, blended between the two neighbouring stops.
+        // track(...) colours the empty part of a gauge; d is the default shade of that gauge.
+        private Color Trk(LineDef l, Color d)
+        {
+            return l.Track != null ? ResolveColor(l.Track) : d;
+        }
+
         private Color GradColor(string[] stops, double pct)
         {
             if (stops.Length == 1) return ResolveColor(stops[0]);
@@ -1715,6 +1739,7 @@ namespace IngameScript
         {
             buf.Sprites.Clear();
             buf.Slots.Clear();
+            buf.Panels.Clear();
 
             Vector2 surfaceSize = surface.SurfaceSize;
             Vector2 textureSize = surface.TextureSize;
@@ -1808,6 +1833,7 @@ namespace IngameScript
                 float pTop = viewportOffset.Y + pRect.Y;
                 float pWidth = pRect.Width;
                 float pHeight = pRect.Height;
+                buf.Panels.Add(new PanelBox { Name = panel.Name, Start = buf.Sprites.Count, Pos = new Vector2(pLeft, pTop), Size = new Vector2(pWidth, pHeight) });
 
                 bool ruled = panel.BgRules != null || panel.FlashRules != null;
                 if (panel.BgGradient != null && panel.BgGradient.Length > 1)
@@ -1915,7 +1941,7 @@ namespace IngameScript
                         float barWidth = Math.Max(16f, barRight - barLeft);
                         float barHeight = Math.Max(line.Kind == LineKind.Spark ? 8f : 4f, Math.Min((line.Kind == LineKind.Spark ? 20f : 16f) * fontSize, rowHeight * (line.Kind == LineKind.Spark ? 0.55f : 0.45f)));
                         if (line.Size > 0) barHeight = rowHeight * 0.7f;
-                        Color track = line.Track != null ? ResolveColor(line.Track) : new Color(25, 30, 38);
+                        Color track = Trk(line, new Color(25, 30, 38));
 
                         slot.BarLeft = barLeft;
                         slot.BarMaxWidth = barWidth;
@@ -1936,12 +1962,12 @@ namespace IngameScript
                             for (int s = 0; s < segCount; s++)
                             {
                                 slot.ExtraSpriteIndices.Add(buf.Sprites.Count);
-                                AddQuad(buf, new Vector2(barLeft + s * (segW + gap) + (segW / 2f), centerY), new Vector2(segW, barHeight), new Color(22, 26, 32));
+                                AddQuad(buf, new Vector2(barLeft + s * (segW + gap) + (segW / 2f), centerY), new Vector2(segW, barHeight), Trk(line, new Color(22, 26, 32)));
                             }
                         }
                         else if (line.Kind == LineKind.Spark)
                         {
-                            AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(barWidth, barHeight), new Color(20, 24, 30));
+                            AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(barWidth, barHeight), Trk(line, new Color(20, 24, 30)));
                             int pointCount = 8;
                             float gap = 2f;
                             float colW = Math.Max(2f, (barWidth - (gap * (pointCount - 1))) / pointCount);
@@ -1953,14 +1979,14 @@ namespace IngameScript
                         }
                         else if (line.Kind == LineKind.Hazard)
                         {
-                            AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(barWidth, barHeight), new Color(20, 24, 30));
+                            AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(barWidth, barHeight), Trk(line, new Color(20, 24, 30)));
                             int stripeCount = 10;
                             float gap = 2f;
                             float stripeW = Math.Max(2f, (barWidth - (gap * (stripeCount - 1))) / stripeCount);
                             for (int s = 0; s < stripeCount; s++)
                             {
                                 slot.ExtraSpriteIndices.Add(buf.Sprites.Count);
-                                AddQuad(buf, new Vector2(barLeft + s * (stripeW + gap) + (stripeW / 2f), centerY), new Vector2(stripeW, barHeight), new Color(24, 28, 36), 0.523599f);
+                                AddQuad(buf, new Vector2(barLeft + s * (stripeW + gap) + (stripeW / 2f), centerY), new Vector2(stripeW, barHeight), Trk(line, new Color(24, 28, 36)), 0.523599f);
                             }
                         }
                         else if (line.Kind == LineKind.Chevron)
@@ -1971,7 +1997,7 @@ namespace IngameScript
                             for (int s = 0; s < arrCount; s++)
                             {
                                 slot.ExtraSpriteIndices.Add(buf.Sprites.Count);
-                                AddQuad(buf, new Vector2(barLeft + s * (arrW + gap) + (arrW / 2f), centerY), new Vector2(arrW, barHeight), new Color(24, 28, 36), 1.570796f, "Triangle");
+                                AddQuad(buf, new Vector2(barLeft + s * (arrW + gap) + (arrW / 2f), centerY), new Vector2(arrW, barHeight), Trk(line, new Color(24, 28, 36)), 1.570796f, "Triangle");
                             }
                         }
                         else if (line.Kind == LineKind.Dots)
@@ -1983,7 +2009,7 @@ namespace IngameScript
                             for (int s = 0; s < dotCount; s++)
                             {
                                 slot.ExtraSpriteIndices.Add(buf.Sprites.Count);
-                                AddQuad(buf, new Vector2(barLeft + s * (dotW + gap) + (dotW / 2f), centerY), new Vector2(dotDim, dotDim), new Color(24, 28, 36), 0f, "Circle");
+                                AddQuad(buf, new Vector2(barLeft + s * (dotW + gap) + (dotW / 2f), centerY), new Vector2(dotDim, dotDim), Trk(line, new Color(24, 28, 36)), 0f, "Circle");
                             }
                         }
                         else if (line.Kind == LineKind.Balance)
@@ -1996,7 +2022,7 @@ namespace IngameScript
                         else if (line.Kind == LineKind.Toggle)
                         {
                             // Pill background track + sliding knob quad
-                            AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(barWidth, barHeight), new Color(20, 24, 30));
+                            AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(barWidth, barHeight), Trk(line, new Color(20, 24, 30)));
                             slot.FillSpriteIndex = buf.Sprites.Count;
                             float knobSize = Math.Max(4f, barHeight);
                             AddQuad(buf, new Vector2(barLeft + knobSize * 0.5f, centerY), new Vector2(knobSize, knobSize), new Color(40, 50, 65), 0f, "Circle");
@@ -2012,7 +2038,7 @@ namespace IngameScript
                         else if (line.Kind == LineKind.Status)
                         {
                             // Pill card container + status light pip circle
-                            AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(barWidth, barHeight), new Color(18, 22, 30));
+                            AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(barWidth, barHeight), Trk(line, new Color(18, 22, 30)));
                             slot.FillSpriteIndex = buf.Sprites.Count;
                             float pipSize = Math.Max(4f, barHeight * 0.7f);
                             AddQuad(buf, new Vector2(barLeft + pipSize + 2f, centerY), new Vector2(pipSize, pipSize), new Color(34, 197, 94), 0f, "Circle");
@@ -2026,13 +2052,13 @@ namespace IngameScript
                             for (int p = 0; p < pipCount; p++)
                             {
                                 slot.ExtraSpriteIndices.Add(buf.Sprites.Count);
-                                AddQuad(buf, new Vector2(barLeft + p * (pipW + gap) + (pipW / 2f), centerY), new Vector2(pipW, barHeight), new Color(24, 28, 36));
+                                AddQuad(buf, new Vector2(barLeft + p * (pipW + gap) + (pipW / 2f), centerY), new Vector2(pipW, barHeight), Trk(line, new Color(24, 28, 36)));
                             }
                         }
                         else if (line.Kind == LineKind.Flow)
                         {
                             // Flow background channel + dynamic directional triangle indicator
-                            AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(barWidth, barHeight), new Color(20, 24, 30));
+                            AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(barWidth, barHeight), Trk(line, new Color(20, 24, 30)));
                             slot.FillSpriteIndex = buf.Sprites.Count;
                             float indW = Math.Max(4f, barHeight);
                             AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(indW, indW), ResolveColor(line.FlatColor), 0f, "Triangle");
@@ -2077,13 +2103,13 @@ namespace IngameScript
                 var slot = new LineSlot { Line = line, Vert = true, BarLeft = cx, BarMaxWidth = tw, BarHeight = th, BarCenterY = top + th / 2f, CharW = cw };
 
                 slot.LabelSpriteIndex = buf.Sprites.Count;
-                AddBootText(buf.Sprites, line.Label, Color.White, cx, pTop + pHeight - 4f - txtH, fontSize);
+                AddBootText(buf.Sprites, line.Label, line.LabelColor != null ? ResolveColor(line.LabelColor) : Color.White, cx, pTop + pHeight - 4f - txtH, fontSize);
                 slot.ValSpriteIndex = buf.Sprites.Count;
                 AddBootText(buf.Sprites, "---", Color.White, cx, top - txtH, fontSize);
                 var lab = buf.Sprites[slot.LabelSpriteIndex]; lab.Alignment = TextAlignment.CENTER; buf.Sprites[slot.LabelSpriteIndex] = lab;
                 var val = buf.Sprites[slot.ValSpriteIndex]; val.Alignment = TextAlignment.CENTER; buf.Sprites[slot.ValSpriteIndex] = val;
 
-                AddQuad(buf, new Vector2(cx, top + th / 2f), new Vector2(tw, th), line.Track != null ? ResolveColor(line.Track) : new Color(25, 30, 38));
+                AddQuad(buf, new Vector2(cx, top + th / 2f), new Vector2(tw, th), Trk(line, new Color(25, 30, 38)));
                 slot.FillSpriteIndex = buf.Sprites.Count;
                 if (line.Kind == LineKind.Tank)
                 {
@@ -2134,7 +2160,7 @@ namespace IngameScript
             }
 
             float bh = slot.BarHeight / TankBands;
-            string rc = line.ColorRules != null ? Layout.ResolveConditionalColor(line.ColorRules, value) : null;
+            string rc = line.ColorRules != null ? Layout.ResolveConditionalColor(line.ColorRules, line.ColorBind != null ? ResolveFieldValue(line.ColorBind, line.ColorField) : value) : null;
             Color liquid = rc != null ? ResolveColor(rc) : col;
             string[] stops = rc != null ? (rc.Contains("/") ? rc.Split('/') : null) : line.Gradient && line.GradientColors.Length > 1 ? line.GradientColors : null;
             for (int b = 0; b < TankBands; b++)
@@ -2231,7 +2257,12 @@ namespace IngameScript
                 Color bc = be.Base;
                 try
                 {
-                    if (be.Rules != null) bc = ResolveColor(Layout.ResolveConditionalColor(be.Rules, ResolveFieldValue(be.Bind, be.Field)));
+                    if (be.Rules != null)
+                    {
+                        double bv = ResolveFieldValue(be.Bind, be.Field);
+                        string rn = Layout.ResolveConditionalColor(be.Rules, bv);
+                        bc = rn != null && rn.Contains("/") ? GradColor(rn.Split('/'), bv) : ResolveColor(rn);
+                    }
                     if (be.Flash != null && alertPhase && Layout.ResolveConditionalColor(be.Flash, ResolveFieldValue(be.FlashBind, be.FlashField)) != null) bc = buf.AlertCol;
                 }
                 catch { }
@@ -2289,15 +2320,16 @@ namespace IngameScript
                 if (sweep) value = cp < 0.5 ? cp * 200.0 : 100.0 + (value - 100.0) * (cp - 0.5) * 2.0;
 
                 // One colour choice for every kind: colour rules win, then a gradient, then the flat colour.
+                double cv = line.ColorBind != null ? ResolveFieldValue(line.ColorBind, line.ColorField) : value; // color_by(bind.field): another value drives the colour
                 string colorName = line.ColorRules != null
-                    ? Layout.ResolveConditionalColor(line.ColorRules, value)
+                    ? Layout.ResolveConditionalColor(line.ColorRules, cv)
                     : line.Gradient
-                    ? Layout.GradientColorAt(line.GradientColors, value)
+                    ? Layout.GradientColorAt(line.GradientColors, cv)
                     : line.FlatColor;
                 Color barCol = ResolveColor(colorName);
                 bool isRedAlert = (barCol == Color.Red);
-                if (colorName != null && colorName.Contains("/")) barCol = GradColor(colorName.Split('/'), value); // a rule that answers with a gradient: red/orange // decided by the nearest stop, so red segments still flash
-                if (line.ColorRules == null && line.Gradient && !screen.GradientSteps && line.GradientColors.Length > 1) barCol = GradColor(line.GradientColors, value);
+                if (colorName != null && colorName.Contains("/")) barCol = GradColor(colorName.Split('/'), cv); // a rule that answers with a gradient: red/orange // decided by the nearest stop, so red segments still flash
+                if (line.ColorRules == null && line.Gradient && !screen.GradientSteps && line.GradientColors.Length > 1) barCol = GradColor(line.GradientColors, cv);
 
                 if (isRedAlert && alertPhase)
                 {
@@ -2355,7 +2387,7 @@ namespace IngameScript
                         for (int s = 0; s < segCount; s++)
                         {
                             bool lit = fillVal >= ((s + 0.4) / (double)segCount * 100.0);
-                            Color segCol = lit ? barCol : new Color(24, 28, 36);
+                            Color segCol = lit ? barCol : Trk(line, new Color(24, 28, 36));
                             var segSprite = buf.Sprites[slot.ExtraSpriteIndices[s]];
                             segSprite.Color = segCol;
                             buf.Sprites[slot.ExtraSpriteIndices[s]] = segSprite;
@@ -2476,7 +2508,7 @@ namespace IngameScript
                         for (int p = 0; p < pipCount; p++)
                         {
                             bool lit = value >= ((p + 0.5) / (double)pipCount * 100.0);
-                            Color pipCol = lit ? barCol : new Color(24, 28, 36);
+                            Color pipCol = lit ? barCol : Trk(line, new Color(24, 28, 36));
                             var pipSprite = buf.Sprites[slot.ExtraSpriteIndices[p]];
                             pipSprite.Color = pipCol;
                             buf.Sprites[slot.ExtraSpriteIndices[p]] = pipSprite;

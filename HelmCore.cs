@@ -62,6 +62,7 @@ namespace HelmCore
         public string Unit;           // e.g. "MW", "kL", "km", "t", "%"
         public string Format;         // e.g. "F1", "F0", "N0"
         public int Size;              // size(medium) = 1, size(large) = 2: the row takes 2 or 4 shares of its panel and the bar grows with it
+        public string ColorBind, ColorField; // color_by(bind.field): the colour follows another value than the one the gauge shows
         public string LabelColor, Track; // label_color(...) and track(...): the label text and the empty part of a bar
         public double Max;            // max(N): the value is shown as a percentage of N (0 = off)
         public string MaxBind, MaxField; // max(bind.field): the maximum is read from a block field
@@ -207,6 +208,7 @@ namespace HelmCore
         public string BgTexture;  // bg_texture: name of a built-in sprite drawn over the background
         public string BgTextureColor; // bg_texture_color: its tint (default white at low opacity)
         public string AlertBg;    // background colour flashed while the red alert is on; "none" to disable
+        public string MirrorPanel; // mirror_panel: copy only this panel of the mirrored screen
         public string Mirror;     // name of another screen whose drawing is copied here, scaled
         public string Banner;     // name of a @banner shown full screen instead of panels
         public string BootLogo;   // name of a @banner drawn instead of the default boot emblem
@@ -612,6 +614,11 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     {
                         RequireScreen(current, "boot_log:");
                         current.BootLogs.Add(Unquote(line.Substring("boot_log:".Length).Trim()));
+                    }
+                    else if (line.StartsWith("mirror_panel:"))
+                    {
+                        RequireScreen(current, "mirror_panel:");
+                        current.MirrorPanel = Unquote(line.Substring("mirror_panel:".Length).Trim());
                     }
                     else if (line.StartsWith("mirror:"))
                     {
@@ -1254,6 +1261,13 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                 {
                     string sz = mArgs.Trim().ToLowerInvariant();
                     def.Size = sz == "large" || sz == "fill" ? 2 : sz == "medium" ? 1 : 0;
+                }
+                else if (mFunc == "color_by")
+                {
+                    var cb = mArgs.Trim().Split('.');
+                    if (cb.Length != 2) throw new FormatException("color_by() takes bindname.field");
+                    def.ColorBind = cb[0].Trim();
+                    def.ColorField = cb[1].Trim();
                 }
                 else if (mFunc == "label_color") def.LabelColor = mArgs.Trim();
                 else if (mFunc == "track") def.Track = mArgs.Trim();
