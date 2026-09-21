@@ -484,7 +484,7 @@ namespace IngameScript
 
         private static void ProbeQuad(List<MySprite> sp, float cx, float cy, float w, float h, Color c)
         {
-            sp.Add(new MySprite { Type = SpriteType.TEXTURE, Data = "SquareSimple", Position = new Vector2(cx, cy), Size = new Vector2(w, h), Color = c });
+            sp.Add(new MySprite { Type = SpriteType.TEXTURE, Alignment = TextAlignment.CENTER, Data = "SquareSimple", Position = new Vector2(cx, cy), Size = new Vector2(w, h), Color = c });
         }
 
         private void DrawProbe(IMyTextSurface sf)
@@ -615,6 +615,7 @@ namespace IngameScript
             _pbSurface = prov.GetSurface(0);
             _pbSurface.ContentType = _consoleOn ? ContentType.SCRIPT : ContentType.NONE;
             _pbSurface.Script = "";
+            _pbSurface.ScriptBackgroundColor = Color.Black;
         }
 
         private void UpdateConsole()
@@ -697,7 +698,7 @@ namespace IngameScript
             float x = off.X + size.X * 0.03f;
             float y = off.Y + size.Y * 0.03f;
             var sp = new List<MySprite>();
-            sp.Add(new MySprite { Type = SpriteType.TEXTURE, Data = "SquareSimple", Position = off + size / 2f, Size = size, Color = new Color(12, 12, 16) });
+            sp.Add(new MySprite { Type = SpriteType.TEXTURE, Alignment = TextAlignment.CENTER, Data = "SquareSimple", Position = off + size / 2f, Size = size, Color = new Color(12, 12, 16) });
             foreach (var kv in _con)
             {
                 AddBootText(sp, kv.Key, ConColor(kv.Value), x, y, scale);
@@ -798,7 +799,7 @@ namespace IngameScript
             Vector2 cell = surface.MeasureStringInPixels(new StringBuilder("M"), "Monospace", 1f);
             float scale = Math.Min(size.X * 0.94f / (chars * cell.X), size.Y * 0.94f / (art.Count * cell.Y));
             var sp = new List<MySprite>();
-            sp.Add(new MySprite { Type = SpriteType.TEXTURE, Data = "SquareSimple", Position = off + size / 2f, Size = size, Color = string.IsNullOrEmpty(screen.Background) ? new Color(10, 12, 16) : ResolveColor(screen.Background) });
+            sp.Add(new MySprite { Type = SpriteType.TEXTURE, Alignment = TextAlignment.CENTER, Data = "SquareSimple", Position = off + size / 2f, Size = size, Color = string.IsNullOrEmpty(screen.Background) ? new Color(10, 12, 16) : ResolveColor(screen.Background) });
             AddArt(sp, art, screen, off.X + (size.X - chars * cell.X * scale) / 2f, off.Y + (size.Y - art.Count * cell.Y * scale) / 2f, scale, cell.Y * scale);
             using (var frame = surface.DrawFrame())
             {
@@ -833,7 +834,7 @@ namespace IngameScript
             float lh = cell.Y * scale;
 
             var sp = new List<MySprite>();
-            sp.Add(new MySprite { Type = SpriteType.TEXTURE, Data = "SquareSimple", Position = off + size / 2f, Size = size, Color = new Color(10, 12, 16) });
+            sp.Add(new MySprite { Type = SpriteType.TEXTURE, Alignment = TextAlignment.CENTER, Data = "SquareSimple", Position = off + size / 2f, Size = size, Color = new Color(10, 12, 16) });
 
             if (logo)
             {
@@ -1657,7 +1658,7 @@ namespace IngameScript
 
         private static void AddQuad(ScreenBuffer buf, Vector2 pos, Vector2 size, Color col, float rot = 0f, string data = "SquareSimple")
         {
-            buf.Sprites.Add(new MySprite { Type = SpriteType.TEXTURE, Data = data, Position = pos, Size = size, Color = col, RotationOrScale = rot });
+            buf.Sprites.Add(new MySprite { Type = SpriteType.TEXTURE, Alignment = TextAlignment.CENTER, Data = data, Position = pos, Size = size, Color = col, RotationOrScale = rot });
         }
 
         private void BuildGraphicBuffer(ScreenDef screen, IMyTextSurface surface, ScreenBuffer buf)
@@ -2014,12 +2015,14 @@ namespace IngameScript
                 _screenBuffers[screen] = buf;
             }
 
-            if (!buf.Initialized || buf.LastSurfaceSize != surface.SurfaceSize)
+            // A freshly built screen is always drawn once, even when it has no gauge lines that could change.
+            bool rebuilt = !buf.Initialized || buf.LastSurfaceSize != surface.SurfaceSize;
+            if (rebuilt)
             {
                 BuildGraphicBuffer(screen, surface, buf);
             }
 
-            bool dirty = false;
+            bool dirty = rebuilt;
             bool alertPhase = (_time % screen.AlertPeriod) < screen.AlertPeriod / 2.0;
 
             // Calibration sweep after the boot: gauges run 0 to 100, then settle on the live value.
