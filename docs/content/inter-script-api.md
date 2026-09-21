@@ -21,7 +21,20 @@ line: "DRONE   " status(drone_online.val) flat(#38bdf8)
 line: "ETA     " spark(mission_eta.val) flat(#f59e0b) unit("s")
 ```
 
-Dynamic variables hold numbers only. `default:` must be a number, and a string default is read as 0. Accepted incoming values are numbers, `true` or `on` (stored as 100), and `false` or `off` (stored as 0); any other text is ignored.
+Dynamic variables hold a number or a piece of text.
+
+- **Numbers.** `default: 64` or an incoming `64`. `true` or `on` is stored as 100, and `false` or `off` as 0. Every gauge can read these.
+- **Text.** A quoted default, `default: "STANDBY"`, or any other incoming value, such as `ENGAGING` or `Escort Alpha`. Only `text(...)` lines display it:
+
+```helm
+@bind drone_state = dynamic("drone_a.state", default: "STANDBY")
+@bind drone_fuel  = dynamic("drone_a.fuel", default: 64)
+...
+line: "STATE   " text(drone_state.val) flat(#a78bfa)
+line: "FUEL    " bar(drone_fuel.percent) gradient(#ef4444, #eab308, #22c55e)
+```
+
+Sending a number to a variable that held text replaces the text, and sending text replaces the number. Other gauges (`bar`, `status`, colour rules) read only the number, so a text value cannot change a colour. The `dynamic_strings` preset shows this. The `helmv.ps1` terminal simulator shows the number for a text value; the in-game script and the docs visualizer show the text.
 
 ---
 

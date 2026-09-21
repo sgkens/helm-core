@@ -34,6 +34,7 @@ namespace HelmCore
         }
         public Agg Aggregation = Agg.None;
         public double DefaultValue = 0.0;
+        public string DefaultText;
         public string DynamicKey;
     }
 
@@ -943,6 +944,8 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                         double defVal;
                         if (double.TryParse(kv[1].Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out defVal))
                             def.DefaultValue = defVal;
+                        else
+                            def.DefaultText = Unquote(kv[1].Trim());
                     }
                 }
                 return def;

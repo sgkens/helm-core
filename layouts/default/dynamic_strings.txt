@@ -1,0 +1,17 @@
+# Dynamic Strings
+# Text values on dynamic binds: a quoted default, replaced by text sent over IGC or the run command.
+@bind drone_state = dynamic("drone_a.state", default: "STANDBY")
+@bind drone_task  = dynamic("drone_a.task", default: "IDLE")
+@bind drone_fuel  = dynamic("drone_a.fuel", default: 64)
+
+@screen Drone
+output: "Drone LCD", 0
+profile: standard
+layout: grid(1, 1)
+bg: #0a0c10
+border_color: #a78bfa
+
+@panel d at(0, 0, 1, 1) title: "DRONE A"
+line: "STATE   " text(drone_state.val) flat(#a78bfa)
+line: "TASK    " text(drone_task.val) flat(#38bdf8)
+line: "FUEL    " bar(drone_fuel.percent) gradient(#ef4444, #eab308, #22c55e)

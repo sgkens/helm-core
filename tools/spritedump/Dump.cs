@@ -9,7 +9,7 @@
 // A layout with the comment line "# spritedump: unset" is rendered without injected values (unresolved binds).
 //
 // Usage:
-//   dotnet run --project tools/spritedump -- --out <dir> [--ticks N] [--set name=value ...] <layout.txt | dir> ...
+//   dotnet run --project tools/spritedump -- --out <dir> [--ticks N] [--set name=value ...] [--payload "k=v;k=v"] <layout.txt | dir> ...
 //
 // With --ticks N (N > 0) each frame also carries an animation: the mock telemetry follows a looping
 // timeline for N ticks (6 ticks per second, Update10) and later ticks are exported as deltas against
@@ -38,6 +38,9 @@ namespace Sandbox.ModAPI.Ingame
 
 static class Dump
 {
+    // --payload "key=value;key=value": applied through the script's own ApplyDynamicPayload after mock values are injected.
+    static string Payload;
+
     // Hardware profiles from the Epic 23 table. Texture size is ASSUMED square (larger side);
     // it only affects the viewport offset, which is exported so the viewer can crop.
     static readonly (string Name, int W, int H)[] Profiles =
@@ -207,6 +210,9 @@ static class Dump
             if (!string.IsNullOrEmpty(b.DynamicKey)) dyn[b.DynamicKey] = v;
         }
 
+        if (Payload != null)
+            typeof(Program).GetMethod("ApplyDynamicPayload", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(prog, new object[] { Payload });
+
         var outputs = (Dictionary<ScreenDef, IMyTextSurface>)Get(prog, "_resolvedOutputs");
         var render = typeof(Program).GetMethod("RenderScreen", BindingFlags.Instance | BindingFlags.NonPublic);
         var tick = typeof(Program).GetField("_tickCounter", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -278,6 +284,7 @@ static class Dump
         {
             if (args[i] == "--out" && i + 1 < args.Length) outDir = args[++i];
             else if (args[i] == "--ticks" && i + 1 < args.Length) ticks = int.Parse(args[++i], CultureInfo.InvariantCulture);
+            else if (args[i] == "--payload" && i + 1 < args.Length) Payload = args[++i];
             else if (args[i] == "--set" && i + 1 < args.Length)
             {
                 var kv = args[++i].Split('=');
@@ -287,7 +294,7 @@ static class Dump
         }
         if (outDir == null || inputs.Count == 0)
         {
-            Console.Error.WriteLine("usage: spritedump --out <dir> [--ticks N] [--set bind=value] <layout.txt|dir> ...");
+            Console.Error.WriteLine("usage: spritedump --out <dir> [--ticks N] [--set bind=value] [--payload \"k=v;k=v\"] <layout.txt|dir> ...");
             return 2;
         }
 

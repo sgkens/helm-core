@@ -47,6 +47,8 @@ namespace IngameScript
         // Dynamic Micro-API: In-memory variables for IGC broadcast and CLI injection
         private readonly Dictionary<string, double> _dynamicValues
             = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, string> _dynText
+            = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private IMyBroadcastListener _helmBroadcastListener;
         private bool _globalRedAlert = false;
 
@@ -100,6 +102,7 @@ namespace IngameScript
             public float BarHeight;
             public float BarCenterY;
             public double LastValue = -99999.0;
+            public string LastText;
             public float DisplayValue = -1f; // fluid damping lerp
         }
 
@@ -290,6 +293,7 @@ namespace IngameScript
                     else
                     {
                         double num;
+                        _dynText.Remove(key);
                         if (double.TryParse(valStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out num))
                         {
                             _dynamicValues[key] = num;
@@ -301,6 +305,10 @@ namespace IngameScript
                         else if (valStr.Equals("false", StringComparison.OrdinalIgnoreCase) || valStr.Equals("off", StringComparison.OrdinalIgnoreCase))
                         {
                             _dynamicValues[key] = 0.0;
+                        }
+                        else
+                        {
+                            _dynText[key] = valStr;
                         }
                     }
                 }
@@ -327,6 +335,7 @@ namespace IngameScript
                     if (!_dynamicValues.ContainsKey(k))
                     {
                         _dynamicValues[k] = bind.DefaultValue;
+                        if (bind.DefaultText != null) _dynText[k] = bind.DefaultText;
                     }
                     _resolvedBinds[bind.Name] = blocks;
                     continue;
@@ -1655,8 +1664,13 @@ namespace IngameScript
                 }
                 else // Text line
                 {
-                    if (valueChanged || isRedAlert)
+                    string dt;
+                    BindDef tb;
+                    _bindMap.TryGetValue(line.BindName, out tb);
+                    _dynText.TryGetValue(tb != null && tb.DynamicKey != null ? tb.DynamicKey : line.BindName, out dt);
+                    if (valueChanged || isRedAlert || dt != slot.LastText)
                     {
+                        slot.LastText = dt;
                         dirty = true;
                         Color txtCol = line.ColorRules != null
                             ? ResolveColor(Layout.ResolveConditionalColor(line.ColorRules, value))
@@ -1666,7 +1680,7 @@ namespace IngameScript
                             txtCol = new Color(255, 75, 75);
 
                         var valSprite = buf.Sprites[slot.ValSpriteIndex];
-                        valSprite.Data = FormatDisplayValue(value, line);
+                        valSprite.Data = dt ?? FormatDisplayValue(value, line);
                         valSprite.Color = txtCol;
                         buf.Sprites[slot.ValSpriteIndex] = valSprite;
                     }

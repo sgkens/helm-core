@@ -1,13 +1,14 @@
 ﻿private ParsedConfig _config;private string _lastCustomData=null;private Dictionary<string,List<IMyTerminalBlock>>_resolvedBinds=new Dictionary<string,List<IMyTerminalBlock>>();
 private Dictionary<string,bool>_fallbackUsed=new Dictionary<string,bool>();private Dictionary<string,BindDef>_bindMap=new Dictionary<string,BindDef>();private Dictionary<string,Color>_colorCache=new Dictionary<string,Color>();
 private List<IMyTerminalBlock>_allBlocks=new List<IMyTerminalBlock>();private bool _allLoaded;private string _cfgErr="";private StringBuilder _outErr=new StringBuilder();
-private readonly Dictionary<string,double>_dynamicValues=new Dictionary<string,double>(StringComparer.OrdinalIgnoreCase);private IMyBroadcastListener _helmBroadcastListener;
-private bool _globalRedAlert=false;private Dictionary<ScreenDef,IMyTextSurface>_resolvedOutputs=new Dictionary<ScreenDef,IMyTextSurface>();private Dictionary<ScreenDef,string>_lastSignature=new Dictionary<ScreenDef,string>();
-private static readonly string[]PCT_CACHE=new string[101];static Program(){for(int i=0;i<=100;i++){PCT_CACHE[i]=i+"%";}}private static string GetPercentString(double value){
-int idx=(int)Math.Round(value);if(idx<0)idx=0;else if(idx>100)idx=100;return PCT_CACHE[idx];}private class ScreenBuffer{public List<MySprite>Sprites=new List<MySprite>();
-public List<LineSlot>Slots=new List<LineSlot>();public Vector2 LastSurfaceSize;public bool Initialized=false;}private class LineSlot{public LineDef Line;public int FillSpriteIndex= -1;
-public int ValSpriteIndex= -1;public int LabelSpriteIndex= -1;public bool HasDynamicLabel=false;public List<int>ExtraSpriteIndices=new List<int>();public float[]SparkHistory=new float[8];
-public float BarLeft;public float BarMaxWidth;public float BarHeight;public float BarCenterY;public double LastValue= -99999.0;public float DisplayValue= -1f;}private Dictionary<ScreenDef,ScreenBuffer>_screenBuffers=new Dictionary<ScreenDef,ScreenBuffer>();
+private readonly Dictionary<string,double>_dynamicValues=new Dictionary<string,double>(StringComparer.OrdinalIgnoreCase);private readonly Dictionary<string,string>_dynText=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
+private IMyBroadcastListener _helmBroadcastListener;private bool _globalRedAlert=false;private Dictionary<ScreenDef,IMyTextSurface>_resolvedOutputs=new Dictionary<ScreenDef,IMyTextSurface>();
+private Dictionary<ScreenDef,string>_lastSignature=new Dictionary<ScreenDef,string>();private static readonly string[]PCT_CACHE=new string[101];static Program(){
+for(int i=0;i<=100;i++){PCT_CACHE[i]=i+"%";}}private static string GetPercentString(double value){int idx=(int)Math.Round(value);if(idx<0)idx=0;else if(idx>100)idx=100;
+return PCT_CACHE[idx];}private class ScreenBuffer{public List<MySprite>Sprites=new List<MySprite>();public List<LineSlot>Slots=new List<LineSlot>();public Vector2 LastSurfaceSize;
+public bool Initialized=false;}private class LineSlot{public LineDef Line;public int FillSpriteIndex= -1;public int ValSpriteIndex= -1;public int LabelSpriteIndex= -1;
+public bool HasDynamicLabel=false;public List<int>ExtraSpriteIndices=new List<int>();public float[]SparkHistory=new float[8];public float BarLeft;public float BarMaxWidth;
+public float BarHeight;public float BarCenterY;public double LastValue= -99999.0;public string LastText;public float DisplayValue= -1f;}private Dictionary<ScreenDef,ScreenBuffer>_screenBuffers=new Dictionary<ScreenDef,ScreenBuffer>();
 private int _screenCursor=0;private int _rescanCounter=0;private int _tickCounter=0;private const int RESCAN_EVERY_N_RUNS=100;private const float APPROX_LINE_HEIGHT_PER_FONTSIZE=22f;
 public Program(){Runtime.UpdateFrequency=UpdateFrequency.Update100;try{_helmBroadcastListener=IGC.RegisterBroadcastListener("HELM");_helmBroadcastListener.SetMessageCallback("HELM_IGC");
 }catch{}ReloadConfig();}public void Main(string argument,UpdateType updateType){if((updateType&UpdateType.IGC)!=0||argument=="HELM_IGC"){ProcessIgcMessages();}string rawArg=(argument ?? "").Trim();
@@ -26,15 +27,16 @@ _cfgErr="";if(_config.Errors.Count>0){var sb=new StringBuilder("HELM config erro
 if(msg.Data is string){ApplyDynamicPayload((string)msg.Data);}}}catch{}}private void ApplyDynamicPayload(string payload){if(string.IsNullOrEmpty(payload))return;
 var pairs=payload.Split(';');for(int i=0;i<pairs.Length;i++){var pair=pairs[i].Trim();if(pair.Length==0)continue;int eq=pair.IndexOf('=');if(eq<0)eq=pair.IndexOf(':');
 if(eq>0){string key=pair.Substring(0,eq).Trim();string valStr=pair.Substring(eq+1).Trim();if(key.Equals("alert",StringComparison.OrdinalIgnoreCase)){_globalRedAlert=valStr.Equals("red",StringComparison.OrdinalIgnoreCase)||valStr=="1"||valStr.Equals("true",StringComparison.OrdinalIgnoreCase)||valStr.Equals("on",StringComparison.OrdinalIgnoreCase);
-}else{double num;if(double.TryParse(valStr,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out num)){_dynamicValues[key]=num;
-}else if(valStr.Equals("true",StringComparison.OrdinalIgnoreCase)||valStr.Equals("on",StringComparison.OrdinalIgnoreCase)){_dynamicValues[key]=100.0;}else if(valStr.Equals("false",StringComparison.OrdinalIgnoreCase)||valStr.Equals("off",StringComparison.OrdinalIgnoreCase)){
-_dynamicValues[key]=0.0;}}}}}private void ResolveBindsAndOutputs(){_resolvedBinds.Clear();_resolvedOutputs.Clear();_fallbackUsed.Clear();_outErr.Clear();_allLoaded=false;
-if(_config==null)return;foreach(var bind in _config.Binds){var blocks=new List<IMyTerminalBlock>();if(bind.Kind==BindKind.Dynamic){string k= !string.IsNullOrEmpty(bind.DynamicKey)? bind.DynamicKey : bind.Name;
-if(!_dynamicValues.ContainsKey(k)){_dynamicValues[k]=bind.DefaultValue;}_resolvedBinds[bind.Name]=blocks;continue;}var targets=bind.TargetNames.Count>0 ? bind.TargetNames : new List<string>{
-bind.TargetName};foreach(var targetName in targets){if(string.IsNullOrEmpty(targetName))continue;bool isWildcard=targetName.Contains("*")||targetName.Contains("?");
-if(bind.Kind==BindKind.Group||isWildcard){var group=GridTerminalSystem.GetBlockGroupWithName(targetName);if(group!=null){var groupBlocks=new List<IMyTerminalBlock>();
-group.GetBlocks(groupBlocks);foreach(var gb in groupBlocks){if(!blocks.Contains(gb))blocks.Add(gb);}}else{var allBlocks=AllBlocks();for(int b=0;b<allBlocks.Count;
-b++){var tb=allBlocks[b];if(isWildcard ? Layout.MatchWildcard(targetName,tb.CustomName): string.Equals(targetName,tb.CustomName,StringComparison.OrdinalIgnoreCase)){
+}else{double num;_dynText.Remove(key);if(double.TryParse(valStr,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out num)){
+_dynamicValues[key]=num;}else if(valStr.Equals("true",StringComparison.OrdinalIgnoreCase)||valStr.Equals("on",StringComparison.OrdinalIgnoreCase)){_dynamicValues[key]=100.0;
+}else if(valStr.Equals("false",StringComparison.OrdinalIgnoreCase)||valStr.Equals("off",StringComparison.OrdinalIgnoreCase)){_dynamicValues[key]=0.0;}else{_dynText[key]=valStr;
+}}}}}private void ResolveBindsAndOutputs(){_resolvedBinds.Clear();_resolvedOutputs.Clear();_fallbackUsed.Clear();_outErr.Clear();_allLoaded=false;if(_config==null)return;
+foreach(var bind in _config.Binds){var blocks=new List<IMyTerminalBlock>();if(bind.Kind==BindKind.Dynamic){string k= !string.IsNullOrEmpty(bind.DynamicKey)? bind.DynamicKey : bind.Name;
+if(!_dynamicValues.ContainsKey(k)){_dynamicValues[k]=bind.DefaultValue;if(bind.DefaultText!=null)_dynText[k]=bind.DefaultText;}_resolvedBinds[bind.Name]=blocks;
+continue;}var targets=bind.TargetNames.Count>0 ? bind.TargetNames : new List<string>{bind.TargetName};foreach(var targetName in targets){if(string.IsNullOrEmpty(targetName))continue;
+bool isWildcard=targetName.Contains("*")||targetName.Contains("?");if(bind.Kind==BindKind.Group||isWildcard){var group=GridTerminalSystem.GetBlockGroupWithName(targetName);
+if(group!=null){var groupBlocks=new List<IMyTerminalBlock>();group.GetBlocks(groupBlocks);foreach(var gb in groupBlocks){if(!blocks.Contains(gb))blocks.Add(gb);
+}}else{var allBlocks=AllBlocks();for(int b=0;b<allBlocks.Count;b++){var tb=allBlocks[b];if(isWildcard ? Layout.MatchWildcard(targetName,tb.CustomName): string.Equals(targetName,tb.CustomName,StringComparison.OrdinalIgnoreCase)){
 if(!blocks.Contains(tb))blocks.Add(tb);}}}}else{var block=GridTerminalSystem.GetBlockWithName(targetName);if(block!=null&& !blocks.Contains(block))blocks.Add(block);
 }}if(blocks.Count==0){ResolveFallbackBlocks(bind,targets,blocks);if(blocks.Count>0)_fallbackUsed[bind.Name]=true;}_resolvedBinds[bind.Name]=blocks;}foreach(var screen in _config.Screens){
 if(string.IsNullOrEmpty(screen.OutputBlockName))continue;var outBlock=GridTerminalSystem.GetBlockWithName(screen.OutputBlockName);if(outBlock==null){_outErr.AppendLine($"HELM: output block '{screen.OutputBlockName}' not found");
@@ -214,18 +216,19 @@ if(isMachinery){if(value>0.0){slot.DisplayValue=(slot.DisplayValue+0.3927f)%6.28
 flowCol=new Color(148,163,184);flowText="IDLE";}}else{rot=(value>55.0)? 0f :((value<45.0)? 3.14159f : 1.57079f);flowCol=(value>55.0)? new Color(34,197,94):((value<45.0)? new Color(239,68,68): new Color(148,163,184));
 flowText=(value>55.0)? "CHG" :((value<45.0)? "DSC" : "STBY");}var fillSprite=buf.Sprites[slot.FillSpriteIndex];fillSprite.RotationOrScale=rot;fillSprite.Color=flowCol;
 buf.Sprites[slot.FillSpriteIndex]=fillSprite;var valSprite=buf.Sprites[slot.ValSpriteIndex];valSprite.Data=flowText;valSprite.Color=flowCol;buf.Sprites[slot.ValSpriteIndex]=valSprite;
-}else{if(valueChanged||isRedAlert){dirty=true;Color txtCol=line.ColorRules!=null ? ResolveColor(Layout.ResolveConditionalColor(line.ColorRules,value)): Color.White;
-if(txtCol==Color.Red&&alertPhase)txtCol=new Color(255,75,75);var valSprite=buf.Sprites[slot.ValSpriteIndex];valSprite.Data=FormatDisplayValue(value,line);valSprite.Color=txtCol;
-buf.Sprites[slot.ValSpriteIndex]=valSprite;}}if(slot.HasDynamicLabel&&(valueChanged||isRedAlert)){dirty=true;var lblSprite=buf.Sprites[slot.LabelSpriteIndex];string pctStr=GetPercentString(value);
-string rawVal=FormatDisplayValue(value,line);lblSprite.Data=line.Label.Replace("{percent}",pctStr).Replace("{val}",rawVal);buf.Sprites[slot.LabelSpriteIndex]=lblSprite;
-}}if(dirty){using(var frame=surface.DrawFrame()){frame.AddRange(buf.Sprites);}}}private void RenderScreenAscii(ScreenDef screen,IMyTextSurface surface){surface.FontSize=screen.FontSize;
-var contentLines=new List<KeyValuePair<string,string>>();foreach(var line in screen.Lines){double value=0.0;string text;string color=null;try{value=ResolveFieldValue(line.BindName,line.Field);
-}catch(Exception ex){contentLines.Add(new KeyValuePair<string,string>($"{line.Label}: [UNRESOLVED]","red"));continue;}string valStr=FormatDisplayValue(value,line);
-if(line.Kind==LineKind.Bar){double fillVal=(line.Field=="percent"||line.Field=="pct")? value : ResolvePercentForBind(line.BindName);text=Layout.RenderBarText(line.Label,fillVal,10,valStr);
-color=line.Gradient ? Layout.GradientColorAt(line.GradientColors,fillVal): line.FlatColor;}else if(line.Kind==LineKind.Balance){text=Layout.RenderBalanceText(line.Label,value,10);
-color=line.Gradient ? Layout.GradientColorAt(line.GradientColors,value): line.FlatColor;}else if(line.Kind==LineKind.Toggle){text=Layout.RenderToggleText(line.Label,value);
-color=line.FlatColor ??(value>=50.0 ? "green" : "gray");}else if(line.Kind==LineKind.Checkbox){text=Layout.RenderCheckboxText(line.Label,value);color=line.FlatColor ??(value>=50.0 ? "cyan" : "gray");
-}else if(line.Kind==LineKind.Status){text=Layout.RenderStatusText(line.Label,value);color=line.FlatColor ??(value>=75.0 ? "lime" :(value>=25.0 ? "yellow" : "red"));
+}else{string dt;BindDef tb;_bindMap.TryGetValue(line.BindName,out tb);_dynText.TryGetValue(tb!=null&&tb.DynamicKey!=null ? tb.DynamicKey : line.BindName,out dt);
+if(valueChanged||isRedAlert||dt!=slot.LastText){slot.LastText=dt;dirty=true;Color txtCol=line.ColorRules!=null ? ResolveColor(Layout.ResolveConditionalColor(line.ColorRules,value)): Color.White;
+if(txtCol==Color.Red&&alertPhase)txtCol=new Color(255,75,75);var valSprite=buf.Sprites[slot.ValSpriteIndex];valSprite.Data=dt ?? FormatDisplayValue(value,line);
+valSprite.Color=txtCol;buf.Sprites[slot.ValSpriteIndex]=valSprite;}}if(slot.HasDynamicLabel&&(valueChanged||isRedAlert)){dirty=true;var lblSprite=buf.Sprites[slot.LabelSpriteIndex];
+string pctStr=GetPercentString(value);string rawVal=FormatDisplayValue(value,line);lblSprite.Data=line.Label.Replace("{percent}",pctStr).Replace("{val}",rawVal);
+buf.Sprites[slot.LabelSpriteIndex]=lblSprite;}}if(dirty){using(var frame=surface.DrawFrame()){frame.AddRange(buf.Sprites);}}}private void RenderScreenAscii(ScreenDef screen,IMyTextSurface surface){
+surface.FontSize=screen.FontSize;var contentLines=new List<KeyValuePair<string,string>>();foreach(var line in screen.Lines){double value=0.0;string text;string color=null;
+try{value=ResolveFieldValue(line.BindName,line.Field);}catch(Exception ex){contentLines.Add(new KeyValuePair<string,string>($"{line.Label}: [UNRESOLVED]","red"));
+continue;}string valStr=FormatDisplayValue(value,line);if(line.Kind==LineKind.Bar){double fillVal=(line.Field=="percent"||line.Field=="pct")? value : ResolvePercentForBind(line.BindName);
+text=Layout.RenderBarText(line.Label,fillVal,10,valStr);color=line.Gradient ? Layout.GradientColorAt(line.GradientColors,fillVal): line.FlatColor;}else if(line.Kind==LineKind.Balance){
+text=Layout.RenderBalanceText(line.Label,value,10);color=line.Gradient ? Layout.GradientColorAt(line.GradientColors,value): line.FlatColor;}else if(line.Kind==LineKind.Toggle){
+text=Layout.RenderToggleText(line.Label,value);color=line.FlatColor ??(value>=50.0 ? "green" : "gray");}else if(line.Kind==LineKind.Checkbox){text=Layout.RenderCheckboxText(line.Label,value);
+color=line.FlatColor ??(value>=50.0 ? "cyan" : "gray");}else if(line.Kind==LineKind.Status){text=Layout.RenderStatusText(line.Label,value);color=line.FlatColor ??(value>=75.0 ? "lime" :(value>=25.0 ? "yellow" : "red"));
 }else if(line.Kind==LineKind.Ammo){text=Layout.RenderAmmoText(line.Label,value,8);color=line.Gradient ? Layout.GradientColorAt(line.GradientColors,value):(line.FlatColor ?? "yellow");
 }else if(line.Kind==LineKind.Flow){bool isMachinery=(line.Field=="producing"||line.Field=="active"||line.Field=="running"||line.Field=="state"||(value<=1.0&&line.Field!="percent"));
 if(isMachinery){char[]spinChars=new[]{'|','/','-','\\'};char sc=spinChars[Math.Abs(_tickCounter)%4];text=value>0 ? $"{line.Label} [{sc}] RUN" : $"{line.Label} [==] IDLE";
@@ -240,7 +243,7 @@ y+=lineHeight;}}}private Color ResolveColor(string name){if(string.IsNullOrEmpty
 HelmColor c=HelmColor.Parse(name);k=c.IsTransparent ? Color.Transparent : new Color(c.R,c.G,c.B,c.A);_colorCache[name]=k;return k;}public enum BindKind{Block,Group,Dynamic}
 public enum Agg{None,Avg,Sum,Min,Max}public class BindDef{public string Name;public BindKind Kind;public List<string>TargetNames=new List<string>();public string TargetName{
 get{return TargetNames.Count>0 ? TargetNames[0]: "";}set{if(TargetNames.Count==0)TargetNames.Add(value);else TargetNames[0]=value;}}public Agg Aggregation=Agg.None;
-public double DefaultValue=0.0;public string DynamicKey;}public enum LineKind{Text,Bar,LedBar,Spark,Hazard,Chevron,Dots,Balance,Toggle,Checkbox,Status,Ammo,Flow}
+public double DefaultValue=0.0;public string DefaultText;public string DynamicKey;}public enum LineKind{Text,Bar,LedBar,Spark,Hazard,Chevron,Dots,Balance,Toggle,Checkbox,Status,Ammo,Flow}
 public class ColorRule{public string Expr;public string Color;public bool IsDefault;}public class LineDef{public LineKind Kind;public string Label;public string BindName;
 public string Field;public bool Gradient;public string[]GradientColors;public string FlatColor;public List<ColorRule>ColorRules;public string Direction="right";
 public string Unit;public string Format;}public struct HelmColor{public byte R,G,B,A;public bool IsTransparent;public HelmColor(byte r,byte g,byte b,byte a=255){
@@ -434,8 +437,8 @@ string name=rest.Substring(0,eq).Trim();string expr=rest.Substring(eq+1).Trim();
 string funcName=expr.Substring(0,paren).Trim().ToLowerInvariant();string argsStr=ExtractParenArgs(expr,paren);var args=SplitArgs(argsStr);if(args.Count==0)throw new FormatException("@bind target has no arguments");
 var def=new BindDef{Name=name};if(funcName=="dynamic"||funcName=="var"||funcName=="mem"){def.Kind=BindKind.Dynamic;def.DynamicKey=args.Count>0 ? Unquote(args[0].Trim()): name;
 for(int a=0;a<args.Count;a++){var kv=args[a].Split(new[]{':'},2);if(kv.Length==2&&kv[0].Trim().Equals("default",StringComparison.OrdinalIgnoreCase)){double defVal;
-if(double.TryParse(kv[1].Trim(),System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out defVal))def.DefaultValue=defVal;}}
-return def;}def.Kind=funcName=="group" ? BindKind.Group : BindKind.Block;string aggStr=null;for(int a=0;a<args.Count;a++){var kv=args[a].Split(new[]{':'},2);if(kv.Length==2&&kv[0].Trim().Equals("agg",StringComparison.OrdinalIgnoreCase)){
+if(double.TryParse(kv[1].Trim(),System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out defVal))def.DefaultValue=defVal;else def.DefaultText=Unquote(kv[1].Trim());
+}}return def;}def.Kind=funcName=="group" ? BindKind.Group : BindKind.Block;string aggStr=null;for(int a=0;a<args.Count;a++){var kv=args[a].Split(new[]{':'},2);if(kv.Length==2&&kv[0].Trim().Equals("agg",StringComparison.OrdinalIgnoreCase)){
 aggStr=kv[1].Trim().ToLowerInvariant();}else{def.TargetNames.Add(Unquote(args[a].Trim()));}}if(def.TargetNames.Count==0)throw new FormatException("@bind target requires at least one block or group name");
 if(def.Kind==BindKind.Group){if(aggStr==null)throw new FormatException("group bind requires an explicit 'agg:' (avg/sum/min/max) — no default is assumed (PDR §6)");
 switch(aggStr){case "avg": def.Aggregation=Agg.Avg;break;case "sum": def.Aggregation=Agg.Sum;break;case "min": def.Aggregation=Agg.Min;break;case "max": def.Aggregation=Agg.Max;
