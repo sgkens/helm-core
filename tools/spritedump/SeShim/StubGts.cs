@@ -4,6 +4,7 @@ namespace Sandbox.ModAPI.Ingame
     {
         public dynamic GetBlockGroupWithName(params object[] a) { return null; }
         public dynamic GetBlocks(params object[] a) { return null; }
+        public dynamic GetBlockGroups(params object[] a) { return null; }
         public dynamic GetBlockWithName(params object[] a) { return null; }
     }
 }

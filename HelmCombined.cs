@@ -18,6 +18,7 @@
         private Dictionary<string, Color> _colorCache = new Dictionary<string, Color>();
         private List<IMyTerminalBlock> _allBlocks = new List<IMyTerminalBlock>();
         private bool _allLoaded;
+        private int _foreignBlocks;
         private string _cfgErr = "";
         private StringBuilder _outErr = new StringBuilder();
 
@@ -217,15 +218,60 @@
             if (_outErr.Length > 0) Echo(_outErr.ToString());
         }
 
+        // Every block HELM may use: this construct only (same grid, or subgrids on rotors, pistons and hinges).
+        // GetBlocks also returns blocks of ships docked on a connector; those are dropped and counted.
         private List<IMyTerminalBlock> AllBlocks()
         {
             if (!_allLoaded)
             {
                 _allBlocks.Clear();
                 GridTerminalSystem.GetBlocks(_allBlocks);
+                int reachable = _allBlocks.Count;
+                _allBlocks.RemoveAll(b => !b.IsSameConstructAs(Me));
+                _foreignBlocks = reachable - _allBlocks.Count;
                 _allLoaded = true;
             }
             return _allBlocks;
+        }
+
+        // The first block whose name contains 'name', on this construct. GetBlockWithName returns the first match
+        // on any connected ship, so a docked ship's block can win; search this construct only when it does.
+        private IMyTerminalBlock FindBlock(string name)
+        {
+            var b = GridTerminalSystem.GetBlockWithName(name);
+            if (b == null || b.IsSameConstructAs(Me)) return b;
+            var all = AllBlocks();
+            for (int i = 0; i < all.Count; i++)
+                if (all[i].CustomName.IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0) return all[i];
+            return null;
+        }
+
+        // Blocks of the first group named 'name' that has any on this construct, added to 'into'.
+        private void CollectGroup(string name, List<IMyTerminalBlock> into)
+        {
+            var g = GridTerminalSystem.GetBlockGroupWithName(name);
+            if (g == null) return;
+            int before = into.Count;
+            var tmp = new List<IMyTerminalBlock>();
+            g.GetBlocks(tmp);
+            AddMine(tmp, into);
+            if (into.Count > before) return;
+            var groups = new List<IMyBlockGroup>();
+            GridTerminalSystem.GetBlockGroups(groups);
+            foreach (var x in groups)
+            {
+                if (x.Name.IndexOf(name, StringComparison.OrdinalIgnoreCase) < 0) continue;
+                tmp.Clear();
+                x.GetBlocks(tmp);
+                AddMine(tmp, into);
+                if (into.Count > before) return;
+            }
+        }
+
+        private void AddMine(List<IMyTerminalBlock> from, List<IMyTerminalBlock> into)
+        {
+            foreach (var b in from)
+                if (b.IsSameConstructAs(Me) && !into.Contains(b)) into.Add(b);
         }
 
         // ---------------- config / binding resolution ----------------
@@ -466,11 +512,10 @@
 
                     if (bind.Kind == BindKind.Group || isWildcard)
                     {
-                        var group = GridTerminalSystem.GetBlockGroupWithName(targetName);
-                        if (group != null)
+                        var groupBlocks = new List<IMyTerminalBlock>();
+                        CollectGroup(targetName, groupBlocks);
+                        if (groupBlocks.Count > 0)
                         {
-                            var groupBlocks = new List<IMyTerminalBlock>();
-                            group.GetBlocks(groupBlocks);
                             foreach (var gb in groupBlocks)
                             {
                                 if (!blocks.Contains(gb)) blocks.Add(gb);
@@ -492,7 +537,7 @@
                     }
                     else
                     {
-                        var block = GridTerminalSystem.GetBlockWithName(targetName);
+                        var block = FindBlock(targetName);
                         if (block != null && !blocks.Contains(block)) blocks.Add(block);
                     }
                 }
@@ -510,7 +555,7 @@
             {
                 if (string.IsNullOrEmpty(screen.OutputBlockName)) continue;
 
-                var outBlock = GridTerminalSystem.GetBlockWithName(screen.OutputBlockName);
+                var outBlock = FindBlock(screen.OutputBlockName);
                 if (outBlock == null)
                 {
                     _outErr.AppendLine($"HELM: output block '{screen.OutputBlockName}' not found");
@@ -658,6 +703,9 @@
             }
 
             Echo($"Configuration: {_config.Screens.Count} screens, {_config.Binds.Count} binds");
+            _allLoaded = false;
+            Echo($"Blocks: {AllBlocks().Count} on this construct; {_foreignBlocks} on docked ships (ignored)");
+            _allBlocks.Clear();
             Echo("--- BIND RESOLUTION ---");
             foreach (var bind in _config.Binds)
             {

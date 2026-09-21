@@ -1,6 +1,6 @@
 ﻿private ParsedConfig _config;private string _lastCustomData=null;private Dictionary<string,List<IMyTerminalBlock>>_resolvedBinds=new Dictionary<string,List<IMyTerminalBlock>>();
 private Dictionary<string,bool>_fallbackUsed=new Dictionary<string,bool>();private Dictionary<string,BindDef>_bindMap=new Dictionary<string,BindDef>();private Dictionary<string,Color>_colorCache=new Dictionary<string,Color>();
-private List<IMyTerminalBlock>_allBlocks=new List<IMyTerminalBlock>();private bool _allLoaded;private string _cfgErr="";private StringBuilder _outErr=new StringBuilder();
+private List<IMyTerminalBlock>_allBlocks=new List<IMyTerminalBlock>();private bool _allLoaded;private int _foreignBlocks;private string _cfgErr="";private StringBuilder _outErr=new StringBuilder();
 private readonly Dictionary<string,double>_dynamicValues=new Dictionary<string,double>(StringComparer.OrdinalIgnoreCase);private readonly Dictionary<string,string>_dynText=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
 private IMyBroadcastListener _helmBroadcastListener;private bool _globalRedAlert=false;private Dictionary<ScreenDef,IMyTextSurface>_resolvedOutputs=new Dictionary<ScreenDef,IMyTextSurface>();
 private Dictionary<ScreenDef,string>_lastSignature=new Dictionary<ScreenDef,string>();private static readonly string[]PCT_CACHE=new string[101];static Program(){
@@ -23,8 +23,14 @@ _rescanSec=0;ResolveBindsAndOutputs();}if(_config==null||_config.Screens.Count==
 _idleRuns=active ? 0 : _idleRuns+1;Runtime.UpdateFrequency=_idleRuns<=_config.Screens.Count+1 ? UpdateFrequency.Update10 : UpdateFrequency.Update100;EchoNotes();
 Echo($"HELM [{screen.Name}] instr {Runtime.CurrentInstructionCount}/{Runtime.MaxInstructionCount} — {Runtime.LastRunTimeMs:0.###}ms");}private void EchoNotes(){
 if(_cfgErr.Length>0)Echo(_cfgErr);if(_outErr.Length>0)Echo(_outErr.ToString());}private List<IMyTerminalBlock>AllBlocks(){if(!_allLoaded){_allBlocks.Clear();GridTerminalSystem.GetBlocks(_allBlocks);
-_allLoaded=true;}return _allBlocks;}private void ReloadConfig(){_lastCustomData=Me.CustomData;_config=HelmParser.Parse(_lastCustomData);_cfgErr="";if(_config.Errors.Count>0){
-var sb=new StringBuilder("HELM config errors:\n");foreach(var e in _config.Errors)sb.AppendLine(" - "+e);_cfgErr=sb.ToString();}_bindMap.Clear();foreach(var b in _config.Binds)if(!_bindMap.ContainsKey(b.Name))_bindMap[b.Name]=b;
+int reachable=_allBlocks.Count;_allBlocks.RemoveAll(b=> !b.IsSameConstructAs(Me));_foreignBlocks=reachable-_allBlocks.Count;_allLoaded=true;}return _allBlocks;}
+private IMyTerminalBlock FindBlock(string name){var b=GridTerminalSystem.GetBlockWithName(name);if(b==null||b.IsSameConstructAs(Me))return b;var all=AllBlocks();
+for(int i=0;i<all.Count;i++)if(all[i].CustomName.IndexOf(name,StringComparison.OrdinalIgnoreCase)>=0)return all[i];return null;}private void CollectGroup(string name,List<IMyTerminalBlock>into){
+var g=GridTerminalSystem.GetBlockGroupWithName(name);if(g==null)return;int before=into.Count;var tmp=new List<IMyTerminalBlock>();g.GetBlocks(tmp);AddMine(tmp,into);
+if(into.Count>before)return;var groups=new List<IMyBlockGroup>();GridTerminalSystem.GetBlockGroups(groups);foreach(var x in groups){if(x.Name.IndexOf(name,StringComparison.OrdinalIgnoreCase)<0)continue;
+tmp.Clear();x.GetBlocks(tmp);AddMine(tmp,into);if(into.Count>before)return;}}private void AddMine(List<IMyTerminalBlock>from,List<IMyTerminalBlock>into){foreach(var b in from)if(b.IsSameConstructAs(Me)&& !into.Contains(b))into.Add(b);
+}private void ReloadConfig(){_lastCustomData=Me.CustomData;_config=HelmParser.Parse(_lastCustomData);_cfgErr="";if(_config.Errors.Count>0){var sb=new StringBuilder("HELM config errors:\n");
+foreach(var e in _config.Errors)sb.AppendLine(" - "+e);_cfgErr=sb.ToString();}_bindMap.Clear();foreach(var b in _config.Binds)if(!_bindMap.ContainsKey(b.Name))_bindMap[b.Name]=b;
 _screenBuffers.Clear();_lastSignature.Clear();_bootT0.Clear();ResolveBindsAndOutputs();}private void ProcessIgcMessages(){try{while(_helmBroadcastListener!=null&&_helmBroadcastListener.HasPendingMessage){
 var msg=_helmBroadcastListener.AcceptMessage();if(msg.Data is string){ApplyDynamicPayload((string)msg.Data);}}}catch{}}private void ApplyDynamicPayload(string payload){
 if(string.IsNullOrEmpty(payload))return;var pairs=payload.Split(';');for(int i=0;i<pairs.Length;i++){var pair=pairs[i].Trim();if(pair.Length==0)continue;int eq=pair.IndexOf('=');
@@ -51,12 +57,12 @@ y+=lh;}using(var frame=surface.DrawFrame()){frame.AddRange(sp);}}private void Re
 _outErr.Clear();_allLoaded=false;if(_config==null)return;foreach(var bind in _config.Binds){var blocks=new List<IMyTerminalBlock>();if(bind.Kind==BindKind.Dynamic){
 string k= !string.IsNullOrEmpty(bind.DynamicKey)? bind.DynamicKey : bind.Name;if(!_dynamicValues.ContainsKey(k)){_dynamicValues[k]=bind.DefaultValue;if(bind.DefaultText!=null)_dynText[k]=bind.DefaultText;
 }_resolvedBinds[bind.Name]=blocks;continue;}var targets=bind.TargetNames.Count>0 ? bind.TargetNames : new List<string>{bind.TargetName};foreach(var targetName in targets){
-if(string.IsNullOrEmpty(targetName))continue;bool isWildcard=targetName.Contains("*")||targetName.Contains("?");if(bind.Kind==BindKind.Group||isWildcard){var group=GridTerminalSystem.GetBlockGroupWithName(targetName);
-if(group!=null){var groupBlocks=new List<IMyTerminalBlock>();group.GetBlocks(groupBlocks);foreach(var gb in groupBlocks){if(!blocks.Contains(gb))blocks.Add(gb);
-}}else{var allBlocks=AllBlocks();for(int b=0;b<allBlocks.Count;b++){var tb=allBlocks[b];if(isWildcard ? Layout.MatchWildcard(targetName,tb.CustomName): string.Equals(targetName,tb.CustomName,StringComparison.OrdinalIgnoreCase)){
-if(!blocks.Contains(tb))blocks.Add(tb);}}}}else{var block=GridTerminalSystem.GetBlockWithName(targetName);if(block!=null&& !blocks.Contains(block))blocks.Add(block);
-}}if(blocks.Count==0){ResolveFallbackBlocks(bind,targets,blocks);if(blocks.Count>0)_fallbackUsed[bind.Name]=true;}_resolvedBinds[bind.Name]=blocks;}foreach(var screen in _config.Screens){
-if(string.IsNullOrEmpty(screen.OutputBlockName))continue;var outBlock=GridTerminalSystem.GetBlockWithName(screen.OutputBlockName);if(outBlock==null){_outErr.AppendLine($"HELM: output block '{screen.OutputBlockName}' not found");
+if(string.IsNullOrEmpty(targetName))continue;bool isWildcard=targetName.Contains("*")||targetName.Contains("?");if(bind.Kind==BindKind.Group||isWildcard){var groupBlocks=new List<IMyTerminalBlock>();
+CollectGroup(targetName,groupBlocks);if(groupBlocks.Count>0){foreach(var gb in groupBlocks){if(!blocks.Contains(gb))blocks.Add(gb);}}else{var allBlocks=AllBlocks();
+for(int b=0;b<allBlocks.Count;b++){var tb=allBlocks[b];if(isWildcard ? Layout.MatchWildcard(targetName,tb.CustomName): string.Equals(targetName,tb.CustomName,StringComparison.OrdinalIgnoreCase)){
+if(!blocks.Contains(tb))blocks.Add(tb);}}}}else{var block=FindBlock(targetName);if(block!=null&& !blocks.Contains(block))blocks.Add(block);}}if(blocks.Count==0){
+ResolveFallbackBlocks(bind,targets,blocks);if(blocks.Count>0)_fallbackUsed[bind.Name]=true;}_resolvedBinds[bind.Name]=blocks;}foreach(var screen in _config.Screens){
+if(string.IsNullOrEmpty(screen.OutputBlockName))continue;var outBlock=FindBlock(screen.OutputBlockName);if(outBlock==null){_outErr.AppendLine($"HELM: output block '{screen.OutputBlockName}' not found");
 continue;}IMyTextSurface surface=null;var provider=outBlock as IMyTextSurfaceProvider;var directSurface=outBlock as IMyTextSurface;if(provider!=null&&screen.OutputSurfaceIndex<provider.SurfaceCount){
 surface=provider.GetSurface(screen.OutputSurfaceIndex);}else if(directSurface!=null&&screen.OutputSurfaceIndex==0){surface=directSurface;}if(surface==null){_outErr.AppendLine($"HELM: output block '{screen.OutputBlockName}' has no surface index {screen.OutputSurfaceIndex}");
 continue;}surface.ContentType=ContentType.SCRIPT;surface.Script="";surface.ScriptBackgroundColor=Color.Black;_resolvedOutputs[screen]=surface;}_allBlocks.Clear();
@@ -72,8 +78,9 @@ case 28: return b is IMyWarhead;case 29: return b is IMySensorBlock;case 30: ret
 var kinds=new List<int>();for(int k=0;k<FallbackWords.Length;k++){foreach(var w in FallbackWords[k].Split(','))if(hint.Contains(w)){kinds.Add(k);break;}}if(kinds.Count==0)return;
 var all=AllBlocks();var other=new List<IMyTerminalBlock>();for(int i=0;i<all.Count;i++){var b=all[i];foreach(int k in kinds){if(FallbackIs(k,b)){(b.CubeGrid==Me.CubeGrid ? blocks : other).Add(b);
 break;}}}if(blocks.Count==0)blocks.AddRange(other);}private void RunSelfDiagnostics(){Echo("=== HELM SELF-DIAGNOSTIC AUDIT ===");if(_config==null||_config.Screens.Count==0){
-Echo("[WARN] No active @screen configured in Custom Data.");return;}Echo($"Configuration: {_config.Screens.Count} screens, {_config.Binds.Count} binds");Echo("--- BIND RESOLUTION ---");
-foreach(var bind in _config.Binds){if(bind.Kind==BindKind.Dynamic){string k= !string.IsNullOrEmpty(bind.DynamicKey)? bind.DynamicKey : bind.Name;double v=_dynamicValues.ContainsKey(k)? _dynamicValues[k]: bind.DefaultValue;
+Echo("[WARN] No active @screen configured in Custom Data.");return;}Echo($"Configuration: {_config.Screens.Count} screens, {_config.Binds.Count} binds");_allLoaded=false;
+Echo($"Blocks: {AllBlocks().Count} on this construct; {_foreignBlocks} on docked ships (ignored)");_allBlocks.Clear();Echo("--- BIND RESOLUTION ---");foreach(var bind in _config.Binds){
+if(bind.Kind==BindKind.Dynamic){string k= !string.IsNullOrEmpty(bind.DynamicKey)? bind.DynamicKey : bind.Name;double v=_dynamicValues.ContainsKey(k)? _dynamicValues[k]: bind.DefaultValue;
 Echo($"[OK] @bind {bind.Name} (dynamic variable '{k}' = {v})");continue;}List<IMyTerminalBlock>blocks;if(_resolvedBinds.TryGetValue(bind.Name,out blocks)){if(blocks.Count>0){
 string fbTag=_fallbackUsed.ContainsKey(bind.Name)&&_fallbackUsed[bind.Name]? " [fallback: typed match]" : "";Echo($"[OK] @bind {bind.Name} ({blocks.Count} blocks matched{fbTag})");
 }else{string targets=string.Join(", ",bind.TargetNames.Count>0 ? bind.TargetNames : new List<string>{bind.TargetName});Echo($"[WARN] @bind {bind.Name} -> 0 blocks matched \"{targets}\"");

@@ -32,11 +32,12 @@ namespace Sandbox.ModAPI.Ingame
     {
         public dynamic GetBlockGroupWithName(params object[] a) { return null; }
         public dynamic GetBlocks(params object[] a) { return null; }
+        public dynamic GetBlockGroups(params object[] a) { return null; }
         public dynamic GetBlockWithName(params object[] a) { return null; }
     }
 }
 
-static class Dump
+public static class Dump
 {
     // --payload "key=value;key=value": applied through the script's own ApplyDynamicPayload after mock values are injected.
     static string Payload;
@@ -51,14 +52,15 @@ static class Dump
         ("CornerLCD", 512, 128), ("CockpitCorner", 256, 128),
     };
 
-    class MockMe : IMyTerminalBlock
+    public class MockMe : IMyTerminalBlock
     {
         public string CustomName { get; set; } = "Programmable Block";
         public string CustomData { get; set; }
         public IMyCubeGrid CubeGrid { get { return null; } }
+        public dynamic IsSameConstructAs(params object[] a) { return true; }
     }
 
-    class MockSurface : IMyTextSurface
+    public class MockSurface : IMyTextSurface
     {
         readonly Vector2 _size, _tex;
         public List<MySprite> Last = new List<MySprite>();
@@ -178,7 +180,7 @@ static class Dump
         return Math.Max(0.0, Math.Min(100.0, v));
     }
 
-    static object Get(object o, string field)
+    public static object Get(object o, string field)
     {
         var f = o.GetType().GetField(field, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
         if (f == null) throw new InvalidOperationException("Program has no field " + field);

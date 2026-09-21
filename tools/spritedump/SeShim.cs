@@ -148,6 +148,7 @@ namespace Sandbox.ModAPI.Ingame
     public struct MyIGCMessage { public object Data; public string Tag; }
     public interface IMyCubeGrid { }
     public partial interface IMyGridTerminalSystem { }
+    public interface IMyBlockGroup { string Name { get; } void GetBlocks(List<IMyTerminalBlock> blocks, Func<IMyTerminalBlock, bool> collect = null); }
     public interface IMyIntergridCommunicationSystem { IMyBroadcastListener RegisterBroadcastListener(string tag); }
     public interface IMyGridProgramRuntimeInfo { UpdateFrequency UpdateFrequency { get; set; } double LastRunTimeMs { get; } TimeSpan TimeSinceLastRun { get; } int CurrentInstructionCount { get; } int MaxInstructionCount { get; } int CurrentCallChainDepth { get; } int MaxCallChainDepth { get; } }
 
@@ -161,7 +162,8 @@ namespace Sandbox.ModAPI.Ingame
         public Action<string> Echo = s => { };
         public IMyGridProgramRuntimeInfo Runtime = new StubRuntime();
         public IMyIntergridCommunicationSystem IGC = new StubIgc();
-        public IMyGridTerminalSystem GridTerminalSystem = new StubGts();
+        public static IMyGridTerminalSystem BootstrapGts;
+        public IMyGridTerminalSystem GridTerminalSystem = BootstrapGts ?? new StubGts();
     }
 
     public class StubRuntime : IMyGridProgramRuntimeInfo

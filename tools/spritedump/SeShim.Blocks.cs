@@ -5,8 +5,13 @@ namespace Sandbox.ModAPI.Ingame
     public partial interface IMyGridTerminalSystem
     {
         dynamic GetBlocks(params object[] a);
-        dynamic GetBlockGroupWithName(params object[] a);
         dynamic GetBlockWithName(params object[] a);
+        dynamic GetBlockGroupWithName(params object[] a);
+        dynamic GetBlockGroups(params object[] a);
+    }
+    public partial interface IMyTerminalBlock
+    {
+        dynamic IsSameConstructAs(params object[] a);
     }
     public partial interface IMyBatteryBlock
     {
