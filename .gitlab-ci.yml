@@ -6,7 +6,7 @@
 # Pipeline Stages:
 #   1. validate   — C# unit test suite (zero SE dependency, via mono/mcs)
 #   2. build      — Combine + minify via Build-Release.ps1
-#   3. gate       — Enforce PB 100,000-character hard ceiling
+#   3. gate       — Enforce PB 100,000-character hard ceiling; compile, token-check and render the script
 #   4. package    — Create versioned .zip archive + upload to GitLab Generic Packages
 #   4b. gate      — combined-compile-check compiles the minified script against the stand-in API
 #   5. deploy     — Export display frames (docs-frames, build stage), then build the 11ty
@@ -86,6 +86,14 @@ build-release:
     - echo ""
     - echo "  HelmCombined.cs     $(wc -c < HelmCombined.cs) chars"
     - echo "  HelmCombined.min.cs $(wc -c < HelmCombined.min.cs) chars"
+    # The combined scripts are committed (players paste them into the game). A fresh build must equal them.
+    - |
+      if ! git diff --quiet -- HelmCombined.cs HelmCombined.min.cs; then
+        echo "The committed HelmCombined.cs / HelmCombined.min.cs are stale."
+        echo "Run 'pwsh ./Build-Release.ps1' and commit the result."
+        git diff --stat -- HelmCombined.cs HelmCombined.min.cs
+        exit 1
+      fi
   artifacts:
     name: "helm-build-${CI_COMMIT_SHORT_SHA}"
     paths:
@@ -155,6 +163,21 @@ combined-compile-check:
     - build-release
   script:
     - dotnet build tools/spritedump/CombinedCheck
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH =~ /^release\//'
+    - if: '$CI_COMMIT_TAG'
+
+# ---------------------------------------------------------------------------
+# minify-verify — The minified script must be the same program as HelmCombined.cs:
+# Roslyn lexes both and their token streams (ignoring whitespace and comments) must be identical.
+# ---------------------------------------------------------------------------
+minify-verify:
+  stage: gate
+  needs:
+    - build-release
+  script:
+    - dotnet run --project tools/minify-check -- HelmCombined.cs HelmCombined.min.cs
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH =~ /^release\//'
