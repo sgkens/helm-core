@@ -39,21 +39,22 @@ static class ScopeTest {
     // the docked ship's blocks come FIRST, which is how GetBlockWithName finds the wrong one
     var fBat = new FBlock { Ship = dock, CustomName = "Main Battery" }; var mBat = new FBlock { Ship = mine, CustomName = "Main Battery" };
     var fTank = new FBlock { Ship = dock, CustomName = "H2 Tank Alpha" }; var mTank = new FBlock { Ship = sub, CustomName = "H2 Tank Alpha" };
-    var fLcd = new FLcd(dock, "Cockpit"); var mLcd = new FLcd(mine, "Cockpit");
+    var fLcd = new FLcd(dock, "Cockpit"); var mLcd = new FLcd(mine, "Cockpit"); var aLcd = new FLcd(mine, "AmmoLcd");
     mBat.Invs = new[] { new FInv { Iron = 100, Ice = 5 }, new FInv { Iron = 50 } };
     mTank.Invs = new[] { new FInv { Iron = 25 } };
     fBat.Invs = new[] { new FInv { Iron = 9999 } };
     var gts = new FGts();
-    gts.All.AddRange(new IMyTerminalBlock[] { fBat, fTank, fLcd, mBat, mTank, mLcd, me });
+    gts.All.AddRange(new IMyTerminalBlock[] { fBat, fTank, fLcd, mBat, mTank, mLcd, aLcd, me });
     var gDock = new FGroup { Name = "Fleet" }; gDock.Blocks.Add(fBat); gDock.Blocks.Add(fTank);
     var gMine = new FGroup { Name = "Fleet" }; gMine.Blocks.Add(mBat); gMine.Blocks.Add(mTank);
     gts.Groups.Add(gDock); gts.Groups.Add(gMine);
     var gOnlyDock = new FGroup { Name = "DockOnly" }; gOnlyDock.Blocks.Add(fBat); gts.Groups.Add(gOnlyDock);
-    me.CustomData = "@bind bat = block(\"Main Battery\")\n@bind tank = block(\"H2 Tank\")\n@bind fleet = group(\"Fleet\", agg: avg)\n@bind wild = group(\"*Tank*\", agg: avg)\n@bind lost = group(\"DockOnly\", agg: avg)\n@bind none = block(\"Nothing Here\")\n@bind fleetsum = group(\"Fleet\", agg: sum)\n@screen S\noutput: \"Cockpit\", 0\nlayout: grid(1, 1)\n@panel p at(0, 0, 1, 1) title: \"T\"\nline: \"B\" bar(bat.percent) flat(cyan)\n";
+    me.CustomData = "@bind bat = block(\"Main Battery\")\n@bind tank = block(\"H2 Tank\")\n@bind fleet = group(\"Fleet\", agg: avg)\n@bind wild = group(\"*Tank*\", agg: avg)\n@bind lost = group(\"DockOnly\", agg: avg)\n@bind none = block(\"Nothing Here\")\n@bind fleetsum = group(\"Fleet\", agg: sum)\n@screen S\noutput: \"Cockpit\", 0\nlayout: grid(1, 1)\n@panel p at(0, 0, 1, 1) title: \"T\"\nline: \"B\" bar(bat.percent) flat(cyan)\n@screen A2\noutput: \"AmmoLcd\", 0\nlayout: grid(1, 1)\n@panel q at(0, 0, 1, 1) title: \"T\"\nline: \"HALF\" bar(bat.ingot:Iron) max(300) flat(cyan)\nline: \"OVER\" bar(bat.ingot:Iron) max(100) flat(cyan)\n";
     MyGridProgram.BootstrapMe = me; MyGridProgram.BootstrapGts = gts;
     var prog = new Program();
     var binds = (Dictionary<string, List<IMyTerminalBlock>>)Dump.Get(prog, "_resolvedBinds");
     var outs = (Dictionary<ScreenDef, IMyTextSurface>)Dump.Get(prog, "_resolvedOutputs");
+    var cfg0 = (ParsedConfig)Dump.Get(prog, "_config");
     Check(((string)Dump.Get(prog, "_cfgErr")).Length == 0, "test layout parses without errors");
     Func<string, string> show = k => binds.ContainsKey(k) ? string.Join(", ", binds[k].Select(b => b.ToString())) : "(none)";
     foreach (var k in new[] { "bat", "tank", "fleet", "wild", "lost", "none" }) Console.WriteLine("  bind {0,-6} -> {1}", k, show(k));
@@ -63,7 +64,7 @@ static class ScopeTest {
     Check(binds["wild"].Count == 1 && binds["wild"][0] == mTank, "wildcard '*Tank*' matches this construct only");
     Check(binds["lost"].Count == 0, "group that exists only on the docked ship resolves to nothing");
     Check(binds["none"].Count == 0, "unknown name resolves to nothing");
-    Check(outs.Count == 1 && outs.Values.First() == (IMyTextSurface)mLcd, "output 'Cockpit': this ship's LCD is drawn on, the docked ship's LCD is not touched");
+    Check(outs.Count == 2 && outs[cfg0.Screens[0]] == (IMyTextSurface)mLcd, "output 'Cockpit': this ship's LCD is drawn on, the docked ship's LCD is not touched");
     // Item amounts: "kind:Subtype" reads the amount of one item across all of a block's inventories.
     var rfv = typeof(Program).GetMethod("ResolveFieldValue", BindingFlags.Instance | BindingFlags.NonPublic);
     Func<string, string, double> field = (b, f) => (double)rfv.Invoke(prog, new object[] { b, f });
@@ -72,6 +73,25 @@ static class ScopeTest {
     Check(field("bat", "component:SteelPlate") == 0, "items: an item the block does not hold is 0");
     Check(field("fleetsum", "ingot:Iron") == 175, "items: a group with agg: sum adds its blocks (150 + 25)");
     Check(field("fleet", "ingot:Iron") == 87.5, "items: a group with agg: avg averages them");
+
+    // max(N): the bar fills to amount/N (capped at 100%) while the text keeps the real amount.
+    var render = typeof(Program).GetMethod("RenderScreen", BindingFlags.Instance | BindingFlags.NonPublic);
+    var ammo = cfg0.Screens[1];
+    for (int pass = 0; pass < 40; pass++) render.Invoke(prog, new object[] { ammo });
+    var bufs = Dump.Get(prog, "_screenBuffers");
+    var buf = bufs.GetType().GetProperty("Item").GetValue(bufs, new object[] { ammo });
+    var slots = (System.Collections.IList)buf.GetType().GetField("Slots").GetValue(buf);
+    var sprites = (List<VRage.Game.GUI.TextPanel.MySprite>)buf.GetType().GetField("Sprites").GetValue(buf);
+    Func<int, string, double> barInfo = (n, what) => {
+        var slot = slots[n]; var t = slot.GetType();
+        float max = (float)t.GetField("BarMaxWidth").GetValue(slot);
+        var fill = sprites[(int)t.GetField("FillSpriteIndex").GetValue(slot)];
+        return what == "fill" ? fill.Size.Value.X / max : double.Parse(sprites[(int)t.GetField("ValSpriteIndex").GetValue(slot)].Data);
+    };
+    Check(Math.Abs(barInfo(0, "fill") - 0.5) < 0.01, "max: 150 of max(300) fills the bar to 50%: " + barInfo(0, "fill").ToString("0.000"));
+    Check(barInfo(0, "text") == 150, "max: the text keeps the real amount (150)");
+    Check(Math.Abs(barInfo(1, "fill") - 1.0) < 0.01, "max: 150 of max(100) is capped at a full bar: " + barInfo(1, "fill").ToString("0.000"));
+    Check(barInfo(1, "text") == 150, "max: the capped bar still prints 150");
 
     // Console: the same model is echoed to the info pane and drawn on the Programmable Block's own screen.
     var echo = new System.Text.StringBuilder();
@@ -83,7 +103,7 @@ static class ScopeTest {
     Console.WriteLine("--- info pane ---\n" + text + "-----------------");
     Check(text.Contains("HELM-[Kernel-(v0.0.0)]"), "console: header with the version");
     Check(text.Contains("krn-cfg") && text.Contains("cfg-dsp") && text.Contains("perf"), "console: krn-cfg, cfg-dsp and perf sections");
-    Check(text.Contains("screens 1") && text.Contains("binds 5/7"), "console: 1 screen; 5 of 7 binds matched a block");
+    Check(text.Contains("screens 2") && text.Contains("binds 5/7"), "console: 2 screens; 5 of 7 binds matched a block");
     Check(text.Contains("docked-ignored 3"), "console: three blocks on the docked ship were ignored");
     Check(text.Contains("512x512"), "console: display list shows the surface size");
     Check(text.Contains(" instr ") && text.Contains(" peak "), "console: perf shows the last run's instructions and the peak");
