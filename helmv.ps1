@@ -13,16 +13,11 @@
 [CmdletBinding(DefaultParameterSetName = 'Builtin')]
 param(
     [Parameter(ParameterSetName = 'Builtin', Position = 0)]
-    [ValidateSet('rover', 'airlock', 'bridge', 'hazard_demo', 'mining', 'fighter', 'cargo', 'monolith',
-                 'bridge_matrix', 'cargo_overview', 'battery_monolith', 'reactor_monolith', 'cargo_monolith',
-                 'tactical_defense', 'thruster_balance', 'split_flight_deck', 'refinery_monolith',
-                 'jump_drive_spool', 'medical_life_support', 'rover_cockpit', 'airlock_security',
-                 'mining_rig', 'fighter_hud', 'hazard_alert', 'assembler_monolith', 'dynamic_telemetry',
-                 'planetary_base', 'command_carrier', 'survival_essentials', 'deep_space_explorer',
-                 'mining_fleet_coordinator', 'atmospheric_lander',
-                 'single_line', 'power_only', 'cargo_minimal', 'corner_gauge_cluster', 'all_gauges_showcase', 'long_labels', 'numeric_extremes', 'border_styles_gallery', 'title_alignment',
-                 'template_stamp', 'multi_screen_one_pb', 'grid_4x4', 'panel_spans', 'transparent_bg', 'gradient_stress', 'units_all', 'boot_custom', 'alert_states', 'hangar_bay', 'solar_farm', 'piston_crane', 'docking_control', 'hydrogen_plant', 'sensor_security', 'trading_station', 'missing_binds', 'template_nested', 'dynamic_strings', 'background_lab', 'cargo_contents', 'fighter_ammo', 'startup_banner', 'projector_welder', 'rover_suspension', 'top_contents', 'tank_fullscreen', 'tank_trio', 'vertical_bars', 'bar_sizes', 'combo_dashboard')]
+    [ArgumentCompleter({ param($cmd, $par, $word) $d = [System.IO.Path]::Combine([System.IO.Path]::GetDirectoryName((Get-Command $cmd).Source), 'layouts', 'default'); [System.IO.Directory]::GetFiles($d, '*.txt') | ForEach-Object { [System.IO.Path]::GetFileNameWithoutExtension($_) } | Where-Object { $_ -like "$word*" } | Sort-Object })]
     [string]$Preset = 'bridge',
+
+    [Parameter()]
+    [string]$ScreenName,
 
     [Parameter(ParameterSetName = 'Custom', Mandatory = $true)]
     [string]$CustomPreset,
@@ -968,6 +963,36 @@ if ($parsedConfig.Errors.Count -gt 0) {
 }
 
 $screen = $parsedConfig.Screens[0]
+if ($ScreenName) {
+    # -ScreenName picks one screen of a multi-screen layout by name or by position (0 = first).
+    $picked = $null
+    $idx = 0
+    if ([int]::TryParse($ScreenName, [ref]$idx)) { if ($idx -ge 0 -and $idx -lt $parsedConfig.Screens.Count) { $picked = $parsedConfig.Screens[$idx] } }
+    else { $picked = $parsedConfig.Screens | Where-Object { $_.Name -eq $ScreenName } | Select-Object -First 1 }
+    if ($null -eq $picked) {
+        Write-Error "Screen '$ScreenName' not found. This layout has: $([string]::Join(', ', ($parsedConfig.Screens | ForEach-Object { $_.Name })))"
+        exit 1
+    }
+    $screen = $picked
+}
+
+# Notes printed after the simulation (the alternate screen buffer would hide them): parser warnings, and what this text preview cannot draw.
+$notes = [System.Collections.Generic.List[string]]::new()
+foreach ($w in $parsedConfig.Warnings) { $notes.Add("warning: $w") }
+if ($parsedConfig.Screens.Count -gt 1 -and -not $ScreenName) {
+    $notes.Add("this layout has $($parsedConfig.Screens.Count) screens; showing '$($screen.Name)'. Use -ScreenName <name|number> for the others")
+}
+$notePanels = if ($screen.Panels.Count -gt 0) { $screen.Panels } else { @([pscustomobject]@{ Lines = $screen.Lines; Orientation = 'horizontal'; BgGradient = $null; BgRules = $null }) }
+$noteLines = @($notePanels | ForEach-Object { $_.Lines })
+if (@($noteLines | Where-Object { $_.Kind -eq 'Tank' }).Count -gt 0) { $notes.Add("tank/tube/bucket lines are drawn as plain bars here; the liquid, wave and bubbles show only in the game") }
+if (@($notePanels | Where-Object { $_.Orientation -eq 'vertical' }).Count -gt 0) { $notes.Add("vertical panels are drawn as horizontal ones here") }
+if (@($noteLines | Where-Object { $_.Size -gt 0 }).Count -gt 0) { $notes.Add("size(medium|large) does not change the row height in this preview") }
+if (@($noteLines | Where-Object { $_.LabelColor -or $_.Track -or $_.ColorBind }).Count -gt 0) { $notes.Add("label_color, track and color_by are ignored in this preview") }
+if (@($noteLines | Where-Object { $null -ne $_.ColorRules -and @($_.ColorRules | Where-Object { $_.Color -like '*/*' }).Count -gt 0 }).Count -gt 0) { $notes.Add("colour rules that answer with a gradient (a/b) are not blended in this preview") }
+if ($screen.Mirror) { $notes.Add("mirror: '$($screen.Mirror)' is not drawn here; use -ScreenName to preview the source screen") }
+if ($screen.Banner) { $notes.Add("banner: '$($screen.Banner)' is drawn only in the game") }
+if ($screen.BgGradient -or $screen.BgTexture -or $screen.BgRules -or @($notePanels | Where-Object { $_.BgGradient -or $_.BgRules }).Count -gt 0) { $notes.Add("gradient, texture and value-driven backgrounds are shown as one card colour here") }
+if ($parsedConfig.Screens.Count -ge 1 -and $screen.GridCols * $screen.GridRows -gt 1) { $notes.Add("panels are stacked or set two to a row; at(col, row, spanX, spanY) positions are not drawn to scale") }
 $sim = [TelemetrySim]::new()
 
 # Calculate game-accurate refresh cadence
@@ -1848,5 +1873,6 @@ finally {
         Restore-TerminalFont -Quiet
     }
     Write-Host "`n$($script:ESC)[38;2;34;197;94mHELM TUI Simulation Finished.$($script:ANSI.Reset)"
+    foreach ($n in $notes) { Write-Host "$($script:ESC)[38;2;234;179;8mhelmv: $n$($script:ANSI.Reset)" }
 }
 

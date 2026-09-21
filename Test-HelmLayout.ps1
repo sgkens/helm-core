@@ -39,16 +39,11 @@
 [CmdletBinding(DefaultParameterSetName = 'Preset')]
 param(
     [Parameter(ParameterSetName = 'Preset', Position = 0)]
-    [ValidateSet('rover', 'airlock', 'bridge', 'hazard_demo', 'mining', 'fighter', 'cargo', 'monolith',
-                 'bridge_matrix', 'cargo_overview', 'battery_monolith', 'reactor_monolith', 'cargo_monolith',
-                 'tactical_defense', 'thruster_balance', 'split_flight_deck', 'refinery_monolith',
-                 'jump_drive_spool', 'medical_life_support', 'rover_cockpit', 'airlock_security',
-                 'mining_rig', 'fighter_hud', 'hazard_alert', 'assembler_monolith', 'dynamic_telemetry',
-                 'planetary_base', 'command_carrier', 'survival_essentials', 'deep_space_explorer',
-                 'mining_fleet_coordinator', 'atmospheric_lander',
-                 'single_line', 'power_only', 'cargo_minimal', 'corner_gauge_cluster', 'all_gauges_showcase', 'long_labels', 'numeric_extremes', 'border_styles_gallery', 'title_alignment',
-                 'template_stamp', 'multi_screen_one_pb', 'grid_4x4', 'panel_spans', 'transparent_bg', 'gradient_stress', 'units_all', 'boot_custom', 'alert_states', 'hangar_bay', 'solar_farm', 'piston_crane', 'docking_control', 'hydrogen_plant', 'sensor_security', 'trading_station', 'missing_binds', 'template_nested', 'dynamic_strings', 'background_lab', 'cargo_contents', 'fighter_ammo', 'startup_banner', 'projector_welder', 'rover_suspension', 'top_contents', 'tank_fullscreen', 'tank_trio', 'vertical_bars', 'bar_sizes', 'combo_dashboard')]
+    [ArgumentCompleter({ param($cmd, $par, $word) $d = [System.IO.Path]::Combine([System.IO.Path]::GetDirectoryName((Get-Command $cmd).Source), 'layouts', 'default'); [System.IO.Directory]::GetFiles($d, '*.txt') | ForEach-Object { [System.IO.Path]::GetFileNameWithoutExtension($_) } | Where-Object { $_ -like "$word*" } | Sort-Object })]
     [string]$Preset = 'bridge',
+
+    [Parameter()]
+    [string]$ScreenName,
 
     [Parameter(ParameterSetName = 'Path', Mandatory = $true)]
     [Alias('FilePath', 'File')]
@@ -180,6 +175,7 @@ if ($resolvedCustomPath) {
     $forwardArgs['Preset'] = $Preset
 }
 
+if ($ScreenName) { $forwardArgs['ScreenName'] = $ScreenName }
 if ($Boot) { $forwardArgs['Boot'] = $true }
 if ($BootDuration -gt 0) { $forwardArgs['BootDuration'] = $BootDuration }
 if ($ShowStats) { $forwardArgs['ShowStats'] = $true }
