@@ -13,7 +13,25 @@ Before installing HELM Core:
   `World Settings -> Advanced -> Enable In-Game Scripts [x]`.
 - Have at least one **Programmable Block** and at least one **Text Panel** or cockpit surface on your grid.
 
-## 2. Installing the Script
+## 2. How HELM Is Organized
+
+HELM is configured in one place: the **Custom Data of the Programmable Block that runs the script**. The screens it draws on are only targets. They need no script and no configuration of their own.
+
+```mermaid
+flowchart LR
+    CD["Programmable Block<br/>Custom Data<br/>(your layout)"] --> S["HELM script<br/>(same block)"]
+    S -->|"output: 'Cockpit', 0"| L1["Cockpit surface 0"]
+    S -->|"output: 'Bridge LCD', 0"| L2["Bridge LCD"]
+    S -->|"output: 'Airlock LCD', 0"| L3["Airlock LCD"]
+    B["Batteries, tanks, doors, ..."] -->|"@bind"| S
+```
+
+- **Do not** put a script on each LCD or cockpit, and do not paste a layout into an LCD's own Custom Data. HELM ignores it.
+- **Do** give each screen block a name, and use that name in `output:`. HELM switches the surface to script mode itself.
+- One Programmable Block can drive many screens. Add one `@screen` per display to the same Custom Data.
+- `@bind` lines connect names in your layout to real blocks or groups on the grid.
+
+## 3. Installing the Script
 
 1. Build or locate a **Programmable Block** on your grid.
 2. Open its terminal interface and click **Edit Code**.
@@ -25,7 +43,7 @@ Before installing HELM Core:
 [Programmable Block] -> Edit -> Paste -> Check Code -> OK
 ```
 
-## 3. Configuring Custom Data
+## 4. Configuring Custom Data
 
 HELM Core reads its display configuration directly from the Programmable Block's **Custom Data** field.
 
@@ -67,7 +85,7 @@ line: "CARGO   " bar(cargo.percent) flat(#94a3b8)
 
 HELM will detect the changes, compile the AST, bind to matching grid blocks, and begin rendering immediately.
 
-## 4. Setting Up Target Screens
+## 5. Setting Up Target Screens
 
 The `output:` directive specifies where the layout renders:
 
@@ -86,7 +104,7 @@ output: "<Block Name>", <surface_index>
 
 > **Tip:** You can declare multiple `@screen` blocks in Custom Data to power 10+ different LCDs from a single Programmable Block!
 
-## 5. Verify & Troubleshoot
+## 6. Verify & Troubleshoot
 
 Open the Programmable Block terminal. The output pane shows one line per run, with the screen that was drawn, the instruction count and the run time (example values):
 
@@ -94,7 +112,24 @@ Open the Programmable Block terminal. The output pane shows one line per run, wi
 HELM [SurvivalCockpit] instr 1234/50000 — 0.2ms
 ```
 
-If a block is missing or renamed, HELM enters safe fallback mode and marks the telemetry line with `---` without crashing or throwing script exceptions.
+If a block is missing or renamed, HELM does not crash. The value of the affected gauge shows a red `ERR`, and the problem is listed in the Programmable Block's output pane on every run:
+
+```text
+HELM: output block 'Cockpit' not found
+```
+
+Configuration errors (a misspelled directive, a bad number) are listed the same way, with the line they came from.
+
+### Common First-Time Mistakes
+
+| Symptom | Cause | Fix |
+| :--- | :--- | :--- |
+| Nothing changes on the screen | The layout was pasted into the LCD's Custom Data | Paste it into the Programmable Block's Custom Data |
+| `output block '...' not found` | The name in `output:` does not match the block name | Rename the block or the `output:` line so the two match exactly |
+| A cockpit shows nothing on one screen | Wrong surface number | Cockpit surfaces are numbered from 0; try `output: "Cockpit", 1` |
+| Gauges show `ERR` | An `@bind` name matches no block | Check the block or group name, or run `scan` to see which binds matched nothing |
+| Layout edits take a moment to appear | The script re-reads Custom Data on its next run, about two seconds later | Run the block with argument `reload` to apply them at once |
+| Check Code reports errors | The editor still contains part of the old script | Select everything in the editor and replace it with `HelmCombined.min.cs` |
 
 ### Common Commands
 
