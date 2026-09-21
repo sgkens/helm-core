@@ -81,6 +81,22 @@ title_color: #<hexcolor>
 - `gradient_mode: smooth` or `steps`: How gradients pick a colour. Default `smooth`.
 - `border: style`: Modular border character set.
 
+### Tanks and Vertical Bars
+
+A panel with `orientation: vertical`, or with a `tank(...)` line, lays its lines out as **columns**: the value on top, the bar or tube in the middle, the label below. The bar or tube fills the height of its panel.
+
+```helm
+@panel p at(0, 0, 1, 1) title: "SHIP"
+orientation: vertical
+line: "PWR" bar(pwr.percent) gradient(#ef4444, #eab308, #22c55e)
+line: "H2 " tank(h2.percent) gradient(#1e3a8a, #38bdf8)
+```
+
+- **`tank(...)`** (also `tube(...)` and `bucket(...)`) draws a liquid tube. The liquid rises from the bottom with the value, a line of characters slides along its surface, and three bubbles rise through it. It moves, so a screen with a tank redraws at the fast rate.
+- **Colour:** `flat(...)` colours the whole liquid. `gradient(...)` runs through the liquid from the bottom to the top (a thermometer). `color(bind.field > 90 : red, default: cyan)` picks one colour from the value. On a vertical `bar(...)` a gradient follows the value, as on any bar.
+- **Sizes:** the gauge fills its panel, so a panel that spans the whole screen is the large size, and a grid of panels gives medium ones (`grid(3, 1)` is three tubes side by side). See the `tank_fullscreen`, `tank_trio` and `vertical_bars` presets.
+- **`max(N)`** works as on any gauge, so an item amount can fill a tube. `helmv.ps1` does not draw vertical panels or tanks.
+
 ### Backgrounds
 
 A screen is drawn in layers: the screen background, then a card behind each panel of a multi-panel screen, then the panel contents.
