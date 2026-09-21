@@ -477,6 +477,7 @@ Calibration sweeps (gauges running from 0 to 100 during boot) are shown by `helm
 
 - `boot_msg: "..."`: Custom header message displayed upon power-on.
 - `boot_stagger: <ticks>`: Stagger interval in game ticks between sequential screens across your ship or station.
+- `boot_batch: <count>`: How many screens power on together before the next stagger step (default `1`). With `boot_batch: 4` and `boot_stagger: 30`, four screens start, then the next four half a second later. At most four boot frames are drawn per run, so large setups stay within the instruction limit.
 - `boot_duration: <seconds | ticks>`: Total boot sequence duration. `3s` is seconds; a bare number is game ticks (60 per second), so `180` is also 3 seconds. `0` disables the boot. Default `2.5s`.
 - `boot_color: <color>`: Solid ANSI/SE color for the startup diagnostic logo.
 - `boot_gradient(stop1, stop2, ...)`: Multi-stop procedural vertical color gradient across the ASCII banner lines (e.g. `boot_gradient(cyan, blue, magenta)`).

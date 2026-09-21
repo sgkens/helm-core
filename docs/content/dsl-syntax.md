@@ -77,6 +77,33 @@ title_color: #<hexcolor>
 - `border_color: #hex`: Screen border frame color.
 - `border: style`: Modular border character set.
 
+### ASCII Banners
+
+A banner is a block of your own ASCII art. Paste it between `@banner <name>` and `@end`. The lines are kept exactly as written, so `#`, quotes and spaces in the art are safe, and the common left indent is removed.
+
+```helm
+@banner emblem
+   /\
+  /  \
+ /____\
+@end
+
+@screen Splash
+output: "Bridge LCD", 0
+banner: emblem
+banner_gradient(#e879f9, #7c3aed)
+bg: #0a0c10
+```
+
+| Directive | Where | Meaning |
+| :--- | :--- | :--- |
+| `@banner <name>` ... `@end` | Top level | Defines the art |
+| `banner: <name>` | `@screen` | Shows the art full screen, scaled to fill the surface. The screen draws nothing else |
+| `boot_logo: <name>` | `@screen` | Uses the art as the boot logo instead of the default emblem |
+| `banner_color: <color>` / `banner_gradient(...)` | `@screen` | Colour of the art (the same setting as `boot_color` and `boot_gradient`) |
+
+Keep lines within the width of the display: about 30 characters on a 1x1 panel, 60 on a wide panel and 16 on a corner LCD. A banner that does not exist is reported as a configuration error. `helmv.ps1` does not draw banners.
+
 ### Boot Sequence Directives
 
 Each screen plays a boot sequence when the script starts, and again on the `boot` run argument. Editing the layout does not replay it. `boot_duration: 0` skips it, `3s` is seconds and a bare number is game ticks (`180` is 3 seconds):
