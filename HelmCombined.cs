@@ -109,6 +109,7 @@
         private int _idleRuns = 0;       // consecutive runs in which nothing was redrawn
         private Dictionary<ScreenDef, double> _bootT0 = new Dictionary<ScreenDef, double>();
         private Dictionary<ScreenDef, double> _drawAt = new Dictionary<ScreenDef, double>(); // refresh: earliest next draw
+        private Dictionary<ScreenDef, double> _calibT0 = new Dictionary<ScreenDef, double>(); // when a screen's calibration sweep started
         private int _tickCounter = 0;
         private const string HELM_VERSION = "0.11.0"; // stamped from the VERSION file by Build-Release.ps1
         private IMyTextSurface _pbSurface;             // the Programmable Block's own screen (console)
@@ -338,6 +339,7 @@
             _lastSignature.Clear();
             _bootT0.Clear();
             _drawAt.Clear();
+            _calibT0.Clear();
             ResolveBindsAndOutputs();
         }
 
@@ -566,6 +568,7 @@
             {
                 // Rebuild the normal screen from scratch so it draws on its next turn.
                 _bootT0.Remove(s);
+                if (s.BootCalibrate > 0f) _calibT0[s] = _time;
                 _screenBuffers.Remove(s);
                 _lastSignature.Remove(s);
             }
@@ -1826,6 +1829,14 @@
             bool dirty = false;
             bool alertPhase = (_time % screen.AlertPeriod) < screen.AlertPeriod / 2.0;
 
+            // Calibration sweep after the boot: gauges run 0 to 100, then settle on the live value.
+            double cp = -1.0, cs;
+            if (_calibT0.TryGetValue(screen, out cs))
+            {
+                cp = (_time - cs) / screen.BootCalibrate;
+                if (cp >= 1.0) { _calibT0.Remove(screen); cp = 1.0; }
+            }
+
             // Red alert (run argument "alert red"): the background flashes to alert_bg. alert_bg: none turns it off.
             bool wantAlert = _globalRedAlert && alertPhase && buf.AlertCol.A > 0;
             if (buf.BgIndex >= 0 && wantAlert != buf.AlertShown)
@@ -1902,6 +1913,8 @@
                 // max(N): gauges work on the percentage of N; the text keeps the real amount.
                 double raw = value;
                 if (mx > 0) value = Math.Min(100.0, raw / mx * 100.0);
+                bool sweep = cp >= 0.0 && line.Kind != LineKind.Text && line.Kind != LineKind.Toggle && line.Kind != LineKind.Checkbox && line.Kind != LineKind.Status && line.Kind != LineKind.Flow;
+                if (sweep) value = cp < 0.5 ? cp * 200.0 : 100.0 + (value - 100.0) * (cp - 0.5) * 2.0;
 
                 string colorName = line.Gradient
                     ? Layout.GradientColorAt(line.GradientColors, value)
@@ -1916,7 +1929,7 @@
                     dirty = true;
                 }
 
-                bool valueChanged = Math.Abs(raw - slot.LastValue) > 0.1;
+                bool valueChanged = sweep || Math.Abs(raw - slot.LastValue) > 0.1;
                 if (valueChanged) slot.LastValue = raw;
 
                 if (line.Kind == LineKind.Bar)
@@ -2515,6 +2528,7 @@
         public string BootMessage;
         public int BootStaggerTicks = 10;
         public int BootBatch = 1; // screens that power on together
+        public float BootCalibrate = 1.2f; // boot_calibrate: seconds the gauges sweep 0 to 100 to the live value after the boot (0 = off)
         public bool GradientSteps; // gradient_mode: steps - gradients pick the nearest stop instead of blending
         public string PanelBg;    // colour of the default card behind panels of a multi-panel screen; "none" for no card (default: a faint white overlay)
         public string BgTexture;  // bg_texture: name of a built-in sprite drawn over the background
@@ -2861,6 +2875,12 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     {
                         RequireScreen(current, "boot_stagger:");
                         current.BootStaggerTicks = int.Parse(line.Substring("boot_stagger:".Length).Trim());
+                    }
+                    else if (line.StartsWith("boot_calibrate:"))
+                    {
+                        RequireScreen(current, "boot_calibrate:");
+                        string cv = line.Substring("boot_calibrate:".Length).Trim().ToLowerInvariant().TrimEnd('s');
+                        current.BootCalibrate = cv == "off" ? 0f : Math.Max(0f, float.Parse(cv, System.Globalization.CultureInfo.InvariantCulture));
                     }
                     else if (line.StartsWith("boot_batch:"))
                     {

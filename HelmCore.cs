@@ -199,6 +199,7 @@ namespace HelmCore
         public string BootMessage;
         public int BootStaggerTicks = 10;
         public int BootBatch = 1; // screens that power on together
+        public float BootCalibrate = 1.2f; // boot_calibrate: seconds the gauges sweep 0 to 100 to the live value after the boot (0 = off)
         public bool GradientSteps; // gradient_mode: steps - gradients pick the nearest stop instead of blending
         public string PanelBg;    // colour of the default card behind panels of a multi-panel screen; "none" for no card (default: a faint white overlay)
         public string BgTexture;  // bg_texture: name of a built-in sprite drawn over the background
@@ -578,6 +579,12 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     {
                         RequireScreen(current, "boot_stagger:");
                         current.BootStaggerTicks = int.Parse(line.Substring("boot_stagger:".Length).Trim());
+                    }
+                    else if (line.StartsWith("boot_calibrate:"))
+                    {
+                        RequireScreen(current, "boot_calibrate:");
+                        string cv = line.Substring("boot_calibrate:".Length).Trim().ToLowerInvariant().TrimEnd('s');
+                        current.BootCalibrate = cv == "off" ? 0f : Math.Max(0f, float.Parse(cv, System.Globalization.CultureInfo.InvariantCulture));
                     }
                     else if (line.StartsWith("boot_batch:"))
                     {

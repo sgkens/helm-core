@@ -216,6 +216,11 @@ line: ""O2""  bar(o2_$screen.percent) flat(cyan)
         Check(HelmParser.Parse("@screen a").Screens[0].BootBatch == 1, "boot_batch defaults to 1");
         Check(HelmParser.Parse("@screen a\nboot_batch: 0").Screens[0].BootBatch == 1, "boot_batch below 1 is clamped to 1");
 
+        // --- boot_calibrate ---
+        Check(Math.Abs(HelmParser.Parse("@screen a").Screens[0].BootCalibrate - 1.2f) < 0.001f, "boot_calibrate defaults to 1.2 s");
+        Check(HelmParser.Parse("@screen a\nboot_calibrate: 0").Screens[0].BootCalibrate == 0f && HelmParser.Parse("@screen a\nboot_calibrate: off").Screens[0].BootCalibrate == 0f, "boot_calibrate: 0 and off switch the sweep off");
+        Check(Math.Abs(HelmParser.Parse("@screen a\nboot_calibrate: 2.5s").Screens[0].BootCalibrate - 2.5f) < 0.001f, "boot_calibrate: 2.5s parsed");
+
         // --- gradient_mode ---
         Check(!HelmParser.Parse("@screen a").Screens[0].GradientSteps, "gradients blend by default");
         Check(HelmParser.Parse("@screen a\ngradient_mode: steps").Screens[0].GradientSteps && !HelmParser.Parse("@screen a\ngradient_mode: smooth").Screens[0].GradientSteps, "gradient_mode: steps selects the nearest stop, smooth blends");

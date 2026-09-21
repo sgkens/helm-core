@@ -138,6 +138,7 @@ namespace IngameScript
         private int _idleRuns = 0;       // consecutive runs in which nothing was redrawn
         private Dictionary<ScreenDef, double> _bootT0 = new Dictionary<ScreenDef, double>();
         private Dictionary<ScreenDef, double> _drawAt = new Dictionary<ScreenDef, double>(); // refresh: earliest next draw
+        private Dictionary<ScreenDef, double> _calibT0 = new Dictionary<ScreenDef, double>(); // when a screen's calibration sweep started
         private int _tickCounter = 0;
         private const string HELM_VERSION = "0.0.0"; // stamped from the VERSION file by Build-Release.ps1
         private IMyTextSurface _pbSurface;             // the Programmable Block's own screen (console)
@@ -367,6 +368,7 @@ namespace IngameScript
             _lastSignature.Clear();
             _bootT0.Clear();
             _drawAt.Clear();
+            _calibT0.Clear();
             ResolveBindsAndOutputs();
         }
 
@@ -595,6 +597,7 @@ namespace IngameScript
             {
                 // Rebuild the normal screen from scratch so it draws on its next turn.
                 _bootT0.Remove(s);
+                if (s.BootCalibrate > 0f) _calibT0[s] = _time;
                 _screenBuffers.Remove(s);
                 _lastSignature.Remove(s);
             }
@@ -1855,6 +1858,14 @@ namespace IngameScript
             bool dirty = false;
             bool alertPhase = (_time % screen.AlertPeriod) < screen.AlertPeriod / 2.0;
 
+            // Calibration sweep after the boot: gauges run 0 to 100, then settle on the live value.
+            double cp = -1.0, cs;
+            if (_calibT0.TryGetValue(screen, out cs))
+            {
+                cp = (_time - cs) / screen.BootCalibrate;
+                if (cp >= 1.0) { _calibT0.Remove(screen); cp = 1.0; }
+            }
+
             // Red alert (run argument "alert red"): the background flashes to alert_bg. alert_bg: none turns it off.
             bool wantAlert = _globalRedAlert && alertPhase && buf.AlertCol.A > 0;
             if (buf.BgIndex >= 0 && wantAlert != buf.AlertShown)
@@ -1931,6 +1942,8 @@ namespace IngameScript
                 // max(N): gauges work on the percentage of N; the text keeps the real amount.
                 double raw = value;
                 if (mx > 0) value = Math.Min(100.0, raw / mx * 100.0);
+                bool sweep = cp >= 0.0 && line.Kind != LineKind.Text && line.Kind != LineKind.Toggle && line.Kind != LineKind.Checkbox && line.Kind != LineKind.Status && line.Kind != LineKind.Flow;
+                if (sweep) value = cp < 0.5 ? cp * 200.0 : 100.0 + (value - 100.0) * (cp - 0.5) * 2.0;
 
                 string colorName = line.Gradient
                     ? Layout.GradientColorAt(line.GradientColors, value)
@@ -1945,7 +1958,7 @@ namespace IngameScript
                     dirty = true;
                 }
 
-                bool valueChanged = Math.Abs(raw - slot.LastValue) > 0.1;
+                bool valueChanged = sweep || Math.Abs(raw - slot.LastValue) > 0.1;
                 if (valueChanged) slot.LastValue = raw;
 
                 if (line.Kind == LineKind.Bar)
