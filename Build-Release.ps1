@@ -112,27 +112,32 @@ Write-Host "  [$step/$stepTotal] Combine" -ForegroundColor Yellow
 $programContent = Get-Content (Join-Path $ScriptDir "Program.cs")   -Raw
 $coreContent    = Get-Content (Join-Path $ScriptDir "HelmCore.cs")  -Raw
 
-# Strip `using HelmCore;` from Program.cs (namespace is inlined below)
-$combinedProgram = $programContent -replace 'using HelmCore;\r?\n', ''
+# The Programmable Block editor compiles the pasted text as the BODY of
+#   partial class Program : MyGridProgram { <text> }
+# with the game's usings already in place. The text therefore has no `using`, no `namespace` and no
+# class declaration, and every helper type must be nested inside Program.
 
-# Extract the body inside `namespace HelmCore { ... }`
+# Body of `partial class Program : MyGridProgram { ... }` in Program.cs. The file ends with the class
+# brace and then the namespace brace.
+$classMatch  = [regex]::Match($programContent, '(?m)^\s*partial class Program\b')
+if (-not $classMatch.Success) { throw "Program.cs: 'partial class Program' declaration not found" }
+$classOpen   = $programContent.IndexOf('{', $classMatch.Index)
+$nsClose     = $programContent.LastIndexOf('}')
+$classClose  = $programContent.LastIndexOf('}', $nsClose - 1)
+$progBody    = $programContent.Substring($classOpen + 1, $classClose - $classOpen - 1).Trim("`r", "`n")
+
+# Body inside `namespace HelmCore { ... }` in HelmCore.cs (types nested into Program below)
 $startNs = $coreContent.IndexOf("namespace HelmCore")
-if ($startNs -ge 0) {
-    $openBrace  = $coreContent.IndexOf('{', $startNs)
-    $lastBrace  = $coreContent.LastIndexOf('}')
-    $coreBody   = $coreContent.Substring($openBrace + 1, $lastBrace - $openBrace - 1).Trim()
-} else {
-    $coreBody = $coreContent
-}
-
-# Strip the closing brace of `namespace IngameScript` — we're splicing inside it
-$lastProgBrace = $combinedProgram.LastIndexOf('}')
-$progBody      = $combinedProgram.Substring(0, $lastProgBrace).TrimEnd()
+if ($startNs -lt 0) { throw "HelmCore.cs: 'namespace HelmCore' not found" }
+$openBrace  = $coreContent.IndexOf('{', $startNs)
+$lastBrace  = $coreContent.LastIndexOf('}')
+$coreBody   = $coreContent.Substring($openBrace + 1, $lastBrace - $openBrace - 1).Trim("`r", "`n")
 
 $combined = @"
 // ==============================================================================
 // HELM: High-Efficiency Lightweight Monitor for Space Engineers
-// Single-file combined distribution for Programmable Block
+// Paste into the Programmable Block editor (replaces everything in it).
+// This is the body of Program: no usings, namespace or class declaration.
 // ==============================================================================
 
 $progBody
@@ -142,7 +147,6 @@ $progBody
     // ==========================================================================
 
 $coreBody
-}
 "@
 
 $combinedPath = Join-Path $ScriptDir "HelmCombined.cs"
@@ -304,6 +308,13 @@ if (-not $NoMinify) {
     [System.IO.File]::WriteAllText($minPath, $minified, [System.Text.Encoding]::UTF8)
     $minCharCount = $minified.Length
     $headroom     = $BudgetHardLimit - $minCharCount
+
+    # Wrap the body the way the game does, for the compile check (tools/spritedump/CombinedCheck).
+    $wrapped = "using System;using System.Collections;using System.Collections.Generic;using System.Linq;using System.Text;" +
+               "using Sandbox.ModAPI.Ingame;using VRage.Game.GUI.TextPanel;using VRageMath;" +
+               "namespace IngameScript{public partial class Program:MyGridProgram{`n" + $minified + "`n}}"
+    $wrapPath = Join-Path (Join-Path (Join-Path (Join-Path $ScriptDir "tools") "spritedump") "CombinedCheck") "Wrapped.g.cs"
+    [System.IO.File]::WriteAllText($wrapPath, $wrapped, (New-Object System.Text.UTF8Encoding($false)))
 
     Write-Host "      HelmCombined.min.cs  $minCharCount chars ($([Math]::Round($minCharCount / 1000, 1)) k)" -ForegroundColor Green
 

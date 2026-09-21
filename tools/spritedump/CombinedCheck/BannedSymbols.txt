@@ -1,0 +1,18 @@
+# APIs the Programmable Block compiler rejects ("The type or member ... is prohibited").
+# Add a line for each one an in-game run reports. Format: https://github.com/dotnet/roslyn-analyzers/blob/main/src/Microsoft.CodeAnalysis.BannedApiAnalyzers/BannedApiAnalyzers.Help.md
+T:System.Tuple;Reported by the game (in-game run 1). Use KeyValuePair or a small class.
+T:System.Tuple`1;Reported by the game. Use KeyValuePair or a small class.
+T:System.Tuple`2;Reported by the game (in-game run 1). Use KeyValuePair or a small class.
+T:System.Tuple`3;Reported by the game. Use a small class.
+T:System.Tuple`4;Reported by the game. Use a small class.
+T:System.IO.File;Prohibited in Programmable Block scripts.
+T:System.IO.Path;Prohibited in Programmable Block scripts.
+T:System.IO.Directory;Prohibited in Programmable Block scripts.
+T:System.IO.Stream;Prohibited in Programmable Block scripts.
+T:System.IO.StreamReader;Prohibited in Programmable Block scripts.
+T:System.IO.StreamWriter;Prohibited in Programmable Block scripts.
+T:System.Threading.Thread;Prohibited in Programmable Block scripts.
+T:System.Diagnostics.Stopwatch;Prohibited in Programmable Block scripts.
+T:System.Diagnostics.Debug;Prohibited in Programmable Block scripts.
+T:System.Console;Prohibited in Programmable Block scripts. Use Echo.
+T:System.Environment;Prohibited in Programmable Block scripts.

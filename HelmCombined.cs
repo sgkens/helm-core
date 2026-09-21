@@ -1,32 +1,9 @@
 ﻿// ==============================================================================
 // HELM: High-Efficiency Lightweight Monitor for Space Engineers
-// Single-file combined distribution for Programmable Block
+// Paste into the Programmable Block editor (replaces everything in it).
+// This is the body of Program: no usings, namespace or class declaration.
 // ==============================================================================
 
-// Program.cs — SE-specific adapter for HELM.
-//
-// Status: this file compiles against the stand-in API in tools/spritedump (no errors) and its
-// sprite output is exported for the docs. It has NOT been run in Space Engineers: instruction
-// counts, allocation behaviour and real font metrics are unmeasured. HelmCore.cs has the unit
-// tests (Tests.cs); Program.cs has none.
-//
-// Deployment note: this is written as an MDK-style project (HelmCore.cs +
-// this file, separate namespaces). If pasting directly into the in-game PB
-// editor without MDK, the HelmCore.cs types need to be nested inside the
-// Program class body instead of living in their own namespace — the in-game
-// editor only auto-wraps a single "partial class Program : MyGridProgram".
-
-using System;
-using System.Collections.Generic;
-using System.Text;
-using Sandbox.ModAPI.Ingame;
-using VRage.Game.GUI.TextPanel;
-using VRageMath;
-
-namespace IngameScript
-{
-    partial class Program : MyGridProgram
-    {
         // ---- state ----
         private ParsedConfig _config;
         private string _lastCustomData = null;
@@ -395,11 +372,12 @@ namespace IngameScript
 
                 IMyTextSurface surface = null;
                 var provider = outBlock as IMyTextSurfaceProvider;
+                var directSurface = outBlock as IMyTextSurface;
                 if (provider != null && screen.OutputSurfaceIndex < provider.SurfaceCount)
                 {
                     surface = provider.GetSurface(screen.OutputSurfaceIndex);
                 }
-                else if (outBlock is IMyTextSurface directSurface && screen.OutputSurfaceIndex == 0)
+                else if (directSurface != null && screen.OutputSurfaceIndex == 0)
                 {
                     surface = directSurface;
                 }
@@ -544,7 +522,8 @@ namespace IngameScript
                     continue;
                 }
 
-                if (_resolvedBinds.TryGetValue(bind.Name, out var blocks))
+                List<IMyTerminalBlock> blocks;
+                if (_resolvedBinds.TryGetValue(bind.Name, out blocks))
                 {
                     if (blocks.Count > 0)
                     {
@@ -573,7 +552,8 @@ namespace IngameScript
             Echo("--- SURFACE OUTPUT AUDIT ---");
             foreach (var screen in _config.Screens)
             {
-                if (_resolvedOutputs.TryGetValue(screen, out var surface))
+                IMyTextSurface surface;
+                if (_resolvedOutputs.TryGetValue(screen, out surface))
                 {
                     var size = surface.SurfaceSize;
                     var stats = Layout.ComputeStats(screen);
@@ -977,12 +957,15 @@ namespace IngameScript
             if (bindDef != null && bindDef.Kind == BindKind.Dynamic)
             {
                 string k = !string.IsNullOrEmpty(bindDef.DynamicKey) ? bindDef.DynamicKey : bindName;
-                if (_dynamicValues.TryGetValue(k, out var dVal)) return dVal;
+                double dVal;
+                if (_dynamicValues.TryGetValue(k, out dVal)) return dVal;
                 return bindDef.DefaultValue;
             }
-            if (_dynamicValues.TryGetValue(bindName, out var dynVal)) return dynVal;
+            double dynVal;
+            if (_dynamicValues.TryGetValue(bindName, out dynVal)) return dynVal;
 
-            if (!_resolvedBinds.TryGetValue(bindName, out var blocks) || blocks.Count == 0)
+            List<IMyTerminalBlock> blocks;
+            if (!_resolvedBinds.TryGetValue(bindName, out blocks) || blocks.Count == 0)
                 throw new InvalidOperationException($"HELM: bind '{bindName}' resolved to zero blocks — check the name/typo");
 
             if (blocks.Count == 1)
@@ -1000,12 +983,15 @@ namespace IngameScript
             if (bindDef != null && bindDef.Kind == BindKind.Dynamic)
             {
                 string k = !string.IsNullOrEmpty(bindDef.DynamicKey) ? bindDef.DynamicKey : bindName;
-                if (_dynamicValues.TryGetValue(k, out var dVal)) return dVal;
+                double dVal;
+                if (_dynamicValues.TryGetValue(k, out dVal)) return dVal;
                 return bindDef.DefaultValue;
             }
-            if (_dynamicValues.TryGetValue(bindName, out var dynVal)) return dynVal;
+            double dynVal;
+            if (_dynamicValues.TryGetValue(bindName, out dynVal)) return dynVal;
 
-            if (!_resolvedBinds.TryGetValue(bindName, out var blocks) || blocks.Count == 0) return 0.0;
+            List<IMyTerminalBlock> blocks;
+            if (!_resolvedBinds.TryGetValue(bindName, out blocks) || blocks.Count == 0) return 0.0;
             if (blocks.Count == 1) return ResolvePercent(blocks[0]);
 
             var values = new List<double>();
@@ -1026,7 +1012,8 @@ namespace IngameScript
 
         private void RenderScreen(ScreenDef screen)
         {
-            if (!_resolvedOutputs.TryGetValue(screen, out var surface))
+            IMyTextSurface surface;
+            if (!_resolvedOutputs.TryGetValue(screen, out surface))
                 return;
 
             if (screen.Border.Equals("ascii", StringComparison.OrdinalIgnoreCase))
@@ -1045,7 +1032,7 @@ namespace IngameScript
 
         private static void AddQuad(ScreenBuffer buf, Vector2 pos, Vector2 size, Color col, float rot = 0f, string data = "SquareSimple")
         {
-            buf.Sprites.Add(new MySprite { Type = SpriteType.TEXTURE, Data = data, Position = pos, Size = size, Color = col, Rotation = rot });
+            buf.Sprites.Add(new MySprite { Type = SpriteType.TEXTURE, Data = data, Position = pos, Size = size, Color = col, RotationOrScale = rot });
         }
 
         private void BuildGraphicBuffer(ScreenDef screen, IMyTextSurface surface, ScreenBuffer buf)
@@ -1339,7 +1326,8 @@ namespace IngameScript
 
         private void RenderScreenGraphic(ScreenDef screen, IMyTextSurface surface)
         {
-            if (!_screenBuffers.TryGetValue(screen, out var buf))
+            ScreenBuffer buf;
+            if (!_screenBuffers.TryGetValue(screen, out buf))
             {
                 buf = new ScreenBuffer();
                 _screenBuffers[screen] = buf;
@@ -1633,7 +1621,7 @@ namespace IngameScript
                     }
 
                     var fillSprite = buf.Sprites[slot.FillSpriteIndex];
-                    fillSprite.Rotation = rot;
+                    fillSprite.RotationOrScale = rot;
                     fillSprite.Color = flowCol;
                     buf.Sprites[slot.FillSpriteIndex] = fillSprite;
 
@@ -1689,7 +1677,7 @@ namespace IngameScript
         {
             surface.FontSize = screen.FontSize;
 
-            var contentLines = new List<Tuple<string, string>>();
+            var contentLines = new List<KeyValuePair<string, string>>();
 
             foreach (var line in screen.Lines)
             {
@@ -1703,7 +1691,7 @@ namespace IngameScript
                 }
                 catch (Exception ex)
                 {
-                    contentLines.Add(Tuple.Create($"{line.Label}: [UNRESOLVED]", "red"));
+                    contentLines.Add(new KeyValuePair<string, string>($"{line.Label}: [UNRESOLVED]", "red"));
                     continue;
                 }
 
@@ -1768,17 +1756,18 @@ namespace IngameScript
                         : null;
                 }
 
-                contentLines.Add(Tuple.Create(text, color));
+                contentLines.Add(new KeyValuePair<string, string>(text, color));
             }
 
             var borderedRaw = Layout.RenderBorderedWindow(
-                new List<string>(contentLines.ConvertAll(t => t.Item1)),
+                new List<string>(contentLines.ConvertAll(t => t.Key)),
                 width: screen.Width
             );
 
             // Dirty-flag check
             string signature = string.Join("\n", borderedRaw);
-            if (_lastSignature.TryGetValue(screen, out var prevSig) && prevSig == signature)
+            string prevSig;
+            if (_lastSignature.TryGetValue(screen, out prevSig) && prevSig == signature)
                 return;
             _lastSignature[screen] = signature;
 
@@ -1798,7 +1787,7 @@ namespace IngameScript
                 {
                     string colorName = null;
                     if (i > 0 && i < borderedRaw.Count - 1)
-                        colorName = contentLines[i - 1].Item2;
+                        colorName = contentLines[i - 1].Value;
 
                     var sprite = MySprite.CreateText(
                         borderedRaw[i],
@@ -1824,13 +1813,13 @@ namespace IngameScript
             _colorCache[name] = k;
             return k;
         }
-    }
+    
 
     // ==========================================================================
     // HELM CORE LIBRARY: DSL Parser, Layout, Color Engine, Aggregator
     // ==========================================================================
 
-// ---------- Data model ----------
+    // ---------- Data model ----------
 
     public enum BindKind { Block, Group, Dynamic }
     public enum Agg { None, Avg, Sum, Min, Max }
@@ -3410,4 +3399,3 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
             return stats;
         }
     }
-}

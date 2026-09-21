@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The Space Engineers API stand-in as a library, so tools/spritedump/CombinedCheck can compile the script
+       at the game's language version (C# 6) while the stand-in itself uses current C#. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <NoWarn>CS0169;CS0414;CS0649;CS0219;CS8981;CS0168</NoWarn>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../SeShim.cs" />
+    <Compile Include="../SeShim.Blocks.cs" />
+    <Compile Include="StubGts.cs" />
+  </ItemGroup>
+</Project>

@@ -37,3 +37,4 @@ context-source/
 decom/
 DEVTRACKER-PENDING.md
 .smoke/
+tools/spritedump/CombinedCheck/Wrapped.g.cs

@@ -99,6 +99,7 @@ build-release:
     paths:
       - HelmCombined.cs
       - HelmCombined.min.cs
+      - tools/spritedump/CombinedCheck/Wrapped.g.cs
       - layouts/
       - WORKSHOP.md
       - README.md

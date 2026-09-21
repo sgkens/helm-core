@@ -1,5 +1,4 @@
-﻿using System;using System.Collections.Generic;using System.Text;using Sandbox.ModAPI.Ingame;using VRage.Game.GUI.TextPanel;using VRageMath;namespace IngameScript{
-partial class Program : MyGridProgram{private ParsedConfig _config;private string _lastCustomData=null;private Dictionary<string,List<IMyTerminalBlock>>_resolvedBinds=new Dictionary<string,List<IMyTerminalBlock>>();
+﻿private ParsedConfig _config;private string _lastCustomData=null;private Dictionary<string,List<IMyTerminalBlock>>_resolvedBinds=new Dictionary<string,List<IMyTerminalBlock>>();
 private Dictionary<string,bool>_fallbackUsed=new Dictionary<string,bool>();private Dictionary<string,BindDef>_bindMap=new Dictionary<string,BindDef>();private Dictionary<string,Color>_colorCache=new Dictionary<string,Color>();
 private List<IMyTerminalBlock>_allBlocks=new List<IMyTerminalBlock>();private bool _allLoaded;private string _cfgErr="";private StringBuilder _outErr=new StringBuilder();
 private readonly Dictionary<string,double>_dynamicValues=new Dictionary<string,double>(StringComparer.OrdinalIgnoreCase);private IMyBroadcastListener _helmBroadcastListener;
@@ -39,8 +38,8 @@ b++){var tb=allBlocks[b];if(isWildcard ? Layout.MatchWildcard(targetName,tb.Cust
 if(!blocks.Contains(tb))blocks.Add(tb);}}}}else{var block=GridTerminalSystem.GetBlockWithName(targetName);if(block!=null&& !blocks.Contains(block))blocks.Add(block);
 }}if(blocks.Count==0){ResolveFallbackBlocks(bind,targets,blocks);if(blocks.Count>0)_fallbackUsed[bind.Name]=true;}_resolvedBinds[bind.Name]=blocks;}foreach(var screen in _config.Screens){
 if(string.IsNullOrEmpty(screen.OutputBlockName))continue;var outBlock=GridTerminalSystem.GetBlockWithName(screen.OutputBlockName);if(outBlock==null){_outErr.AppendLine($"HELM: output block '{screen.OutputBlockName}' not found");
-continue;}IMyTextSurface surface=null;var provider=outBlock as IMyTextSurfaceProvider;if(provider!=null&&screen.OutputSurfaceIndex<provider.SurfaceCount){surface=provider.GetSurface(screen.OutputSurfaceIndex);
-}else if(outBlock is IMyTextSurface directSurface&&screen.OutputSurfaceIndex==0){surface=directSurface;}if(surface==null){_outErr.AppendLine($"HELM: output block '{screen.OutputBlockName}' has no surface index {screen.OutputSurfaceIndex}");
+continue;}IMyTextSurface surface=null;var provider=outBlock as IMyTextSurfaceProvider;var directSurface=outBlock as IMyTextSurface;if(provider!=null&&screen.OutputSurfaceIndex<provider.SurfaceCount){
+surface=provider.GetSurface(screen.OutputSurfaceIndex);}else if(directSurface!=null&&screen.OutputSurfaceIndex==0){surface=directSurface;}if(surface==null){_outErr.AppendLine($"HELM: output block '{screen.OutputBlockName}' has no surface index {screen.OutputSurfaceIndex}");
 continue;}surface.ContentType=ContentType.SCRIPT;surface.Script="";surface.ScriptBackgroundColor=Color.Black;_resolvedOutputs[screen]=surface;}_allBlocks.Clear();
 }private static readonly string[]FallbackWords={"batt,power,pwr","reactor,nuke","solar","wind","tank,hydro,hydrogen,o2,oxygen","vent,air,press","cargo,container,store,inv","jump,drive","thrust,engine","susp,wheel,brake","door,gate,airlock","connect","asm,assembler,fab,prod","refin,smelt,furnace","drill,mine,bore","weld","grind","o2h2,gen,generator","turret,gun,cannon,weapon,defense","proj,blueprint","gyro","grav,gravity","gear,magplate,landing","ant,comm,radio","beacon","light,spot","piston","rotor,hinge","warhead","sensor","camera","parachute","tcb,customturret"}
 ;private static bool FallbackIs(int k,IMyTerminalBlock b){switch(k){case 0: return b is IMyBatteryBlock;case 1: return b is IMyReactor;case 2: return b is IMySolarPanel;
@@ -56,12 +55,12 @@ var all=AllBlocks();var other=new List<IMyTerminalBlock>();for(int i=0;i<all.Cou
 break;}}}if(blocks.Count==0)blocks.AddRange(other);}private void RunSelfDiagnostics(){Echo("=== HELM SELF-DIAGNOSTIC AUDIT ===");if(_config==null||_config.Screens.Count==0){
 Echo("[WARN] No active @screen configured in Custom Data.");return;}Echo($"Configuration: {_config.Screens.Count} screens, {_config.Binds.Count} binds");Echo("--- BIND RESOLUTION ---");
 foreach(var bind in _config.Binds){if(bind.Kind==BindKind.Dynamic){string k= !string.IsNullOrEmpty(bind.DynamicKey)? bind.DynamicKey : bind.Name;double v=_dynamicValues.ContainsKey(k)? _dynamicValues[k]: bind.DefaultValue;
-Echo($"[OK] @bind {bind.Name} (dynamic variable '{k}' = {v})");continue;}if(_resolvedBinds.TryGetValue(bind.Name,out var blocks)){if(blocks.Count>0){string fbTag=_fallbackUsed.ContainsKey(bind.Name)&&_fallbackUsed[bind.Name]? " [fallback: typed match]" : "";
-Echo($"[OK] @bind {bind.Name} ({blocks.Count} blocks matched{fbTag})");}else{string targets=string.Join(", ",bind.TargetNames.Count>0 ? bind.TargetNames : new List<string>{
-bind.TargetName});Echo($"[WARN] @bind {bind.Name} -> 0 blocks matched \"{targets}\"");}}else{Echo($"[ERR] @bind {bind.Name} -> unresolved");}}if(_dynamicValues.Count>0){
-Echo($"--- DYNAMIC VARIABLES ({_dynamicValues.Count}) ---");foreach(var kvp in _dynamicValues)Echo($"[VAR] {kvp.Key} = {kvp.Value}");}Echo("--- SURFACE OUTPUT AUDIT ---");
-foreach(var screen in _config.Screens){if(_resolvedOutputs.TryGetValue(screen,out var surface)){var size=surface.SurfaceSize;var stats=Layout.ComputeStats(screen);
-Echo($"[OK] Screen \"{screen.Name}\" [{screen.Profile}] -> {screen.OutputBlockName} [#{screen.OutputSurfaceIndex}] ({size.X:0}x{size.Y:0} px, {stats.TotalAllocatedSprites} sprites)");
+Echo($"[OK] @bind {bind.Name} (dynamic variable '{k}' = {v})");continue;}List<IMyTerminalBlock>blocks;if(_resolvedBinds.TryGetValue(bind.Name,out blocks)){if(blocks.Count>0){
+string fbTag=_fallbackUsed.ContainsKey(bind.Name)&&_fallbackUsed[bind.Name]? " [fallback: typed match]" : "";Echo($"[OK] @bind {bind.Name} ({blocks.Count} blocks matched{fbTag})");
+}else{string targets=string.Join(", ",bind.TargetNames.Count>0 ? bind.TargetNames : new List<string>{bind.TargetName});Echo($"[WARN] @bind {bind.Name} -> 0 blocks matched \"{targets}\"");
+}}else{Echo($"[ERR] @bind {bind.Name} -> unresolved");}}if(_dynamicValues.Count>0){Echo($"--- DYNAMIC VARIABLES ({_dynamicValues.Count}) ---");foreach(var kvp in _dynamicValues)Echo($"[VAR] {kvp.Key} = {kvp.Value}");
+}Echo("--- SURFACE OUTPUT AUDIT ---");foreach(var screen in _config.Screens){IMyTextSurface surface;if(_resolvedOutputs.TryGetValue(screen,out surface)){var size=surface.SurfaceSize;
+var stats=Layout.ComputeStats(screen);Echo($"[OK] Screen \"{screen.Name}\" [{screen.Profile}] -> {screen.OutputBlockName} [#{screen.OutputSurfaceIndex}] ({size.X:0}x{size.Y:0} px, {stats.TotalAllocatedSprites} sprites)");
 }else{Echo($"[ERR] Screen \"{screen.Name}\" -> Missing block \"{screen.OutputBlockName}\" [#{screen.OutputSurfaceIndex}]");}}Echo("--- PERFORMANCE STATUS ---");
 Echo($"Instruction Usage: {Runtime.CurrentInstructionCount}/{Runtime.MaxInstructionCount} | Allocs: 0-byte GC");Echo("=== DIAGNOSTIC AUDIT COMPLETE ===");}private double ResolvePercent(IMyTerminalBlock block){
 if(block==null)return 0.0;var battery=block as IMyBatteryBlock;if(battery!=null)return battery.MaxStoredPower>0 ?(battery.CurrentStoredPower/battery.MaxStoredPower)*100.0 : 0.0;
@@ -111,17 +110,18 @@ if(camera!=null){if(f=="range")return camera.AvailableScanRange;if(f=="active")r
 if(f=="open"||f=="openratio")return(double)chute.OpenRatio;}var tcb=block as IMyTurretControlBlock;if(tcb!=null){if(f=="target"||f=="hastarget")return tcb.HasTarget ? 1.0 : 0.0;
 if(f=="azimuth")return tcb.Azimuth*180.0/Math.PI;if(f=="elevation")return tcb.Elevation*180.0/Math.PI;}var func=block as IMyFunctionalBlock;if(func!=null){return func.Enabled ? 1.0 : 0.0;
 }return 0.0;}private double ResolveFieldValue(string bindName,string field){BindDef bindDef;_bindMap.TryGetValue(bindName,out bindDef);if(bindDef!=null&&bindDef.Kind==BindKind.Dynamic){
-string k= !string.IsNullOrEmpty(bindDef.DynamicKey)? bindDef.DynamicKey : bindName;if(_dynamicValues.TryGetValue(k,out var dVal))return dVal;return bindDef.DefaultValue;
-}if(_dynamicValues.TryGetValue(bindName,out var dynVal))return dynVal;if(!_resolvedBinds.TryGetValue(bindName,out var blocks)||blocks.Count==0)throw new InvalidOperationException($"HELM: bind '{bindName}' resolved to zero blocks — check the name/typo");
+string k= !string.IsNullOrEmpty(bindDef.DynamicKey)? bindDef.DynamicKey : bindName;double dVal;if(_dynamicValues.TryGetValue(k,out dVal))return dVal;return bindDef.DefaultValue;
+}double dynVal;if(_dynamicValues.TryGetValue(bindName,out dynVal))return dynVal;List<IMyTerminalBlock>blocks;if(!_resolvedBinds.TryGetValue(bindName,out blocks)||blocks.Count==0)throw new InvalidOperationException($"HELM: bind '{bindName}' resolved to zero blocks — check the name/typo");
 if(blocks.Count==1)return ResolveBlockField(blocks[0],field);var values=new List<double>();foreach(var b in blocks)values.Add(ResolveBlockField(b,field));return Aggregator.Aggregate(bindDef!=null ? bindDef.Aggregation : Agg.Avg,values);
 }private double ResolvePercentForBind(string bindName){BindDef bindDef;_bindMap.TryGetValue(bindName,out bindDef);if(bindDef!=null&&bindDef.Kind==BindKind.Dynamic){
-string k= !string.IsNullOrEmpty(bindDef.DynamicKey)? bindDef.DynamicKey : bindName;if(_dynamicValues.TryGetValue(k,out var dVal))return dVal;return bindDef.DefaultValue;
-}if(_dynamicValues.TryGetValue(bindName,out var dynVal))return dynVal;if(!_resolvedBinds.TryGetValue(bindName,out var blocks)||blocks.Count==0)return 0.0;if(blocks.Count==1)return ResolvePercent(blocks[0]);
-var values=new List<double>();foreach(var b in blocks)values.Add(ResolvePercent(b));return Aggregator.Aggregate(bindDef!=null ? bindDef.Aggregation : Agg.Avg,values);
+string k= !string.IsNullOrEmpty(bindDef.DynamicKey)? bindDef.DynamicKey : bindName;double dVal;if(_dynamicValues.TryGetValue(k,out dVal))return dVal;return bindDef.DefaultValue;
+}double dynVal;if(_dynamicValues.TryGetValue(bindName,out dynVal))return dynVal;List<IMyTerminalBlock>blocks;if(!_resolvedBinds.TryGetValue(bindName,out blocks)||blocks.Count==0)return 0.0;
+if(blocks.Count==1)return ResolvePercent(blocks[0]);var values=new List<double>();foreach(var b in blocks)values.Add(ResolvePercent(b));return Aggregator.Aggregate(bindDef!=null ? bindDef.Aggregation : Agg.Avg,values);
 }private static string FormatDisplayValue(double value,LineDef line){if(line==null||(string.IsNullOrEmpty(line.Unit)&&string.IsNullOrEmpty(line.Format)&&line.Field=="percent")){
-return GetPercentString(value);}return Layout.FormatDisplayValue(value,line.Unit,line.Format);}private void RenderScreen(ScreenDef screen){if(!_resolvedOutputs.TryGetValue(screen,out var surface))return;
-if(screen.Border.Equals("ascii",StringComparison.OrdinalIgnoreCase)){RenderScreenAscii(screen,surface);}else{RenderScreenGraphic(screen,surface);}}private static void AddQuad(ScreenBuffer buf,Vector2 pos,Vector2 size,Color col,float rot=0f,string data="SquareSimple"){
-buf.Sprites.Add(new MySprite{Type=SpriteType.TEXTURE,Data=data,Position=pos,Size=size,Color=col,Rotation=rot});}private void BuildGraphicBuffer(ScreenDef screen,IMyTextSurface surface,ScreenBuffer buf){
+return GetPercentString(value);}return Layout.FormatDisplayValue(value,line.Unit,line.Format);}private void RenderScreen(ScreenDef screen){IMyTextSurface surface;
+if(!_resolvedOutputs.TryGetValue(screen,out surface))return;if(screen.Border.Equals("ascii",StringComparison.OrdinalIgnoreCase)){RenderScreenAscii(screen,surface);
+}else{RenderScreenGraphic(screen,surface);}}private static void AddQuad(ScreenBuffer buf,Vector2 pos,Vector2 size,Color col,float rot=0f,string data="SquareSimple"){
+buf.Sprites.Add(new MySprite{Type=SpriteType.TEXTURE,Data=data,Position=pos,Size=size,Color=col,RotationOrScale=rot});}private void BuildGraphicBuffer(ScreenDef screen,IMyTextSurface surface,ScreenBuffer buf){
 buf.Sprites.Clear();buf.Slots.Clear();Vector2 surfaceSize=surface.SurfaceSize;Vector2 textureSize=surface.TextureSize;Vector2 viewportOffset=(textureSize-surfaceSize)/2f;
 float paddingX=Math.Max(4f,surfaceSize.X*0.02f);float paddingY=Math.Max(4f,surfaceSize.Y*0.02f);if(screen.Profile=="compact"||(screen.Profile=="auto"&&surfaceSize.Y<=260f&&surfaceSize.Y>150f)){
 paddingX=4f;paddingY=4f;}else if(screen.Profile=="corner"||(screen.Profile=="auto"&&surfaceSize.Y<=150f)){paddingX=2f;paddingY=2f;}float usableW=surfaceSize.X-(paddingX*2f);
@@ -171,9 +171,9 @@ float gap=2f;float pipW=Math.Max(2f,(barWidth-(gap*(pipCount-1)))/pipCount);for(
 }}else if(line.Kind==LineKind.Flow){AddQuad(buf,new Vector2(barLeft+(barWidth/2f),centerY),new Vector2(barWidth,barHeight),new Color(20,24,30));slot.FillSpriteIndex=buf.Sprites.Count;
 float indW=Math.Max(4f,barHeight);AddQuad(buf,new Vector2(barLeft+(barWidth/2f),centerY),new Vector2(indW,indW),ResolveColor(line.FlatColor),0f,"Triangle");}}var valSprite=MySprite.CreateText("---",font,Color.White,fontSize,TextAlignment.RIGHT);
 valSprite.Position=new Vector2(pLeft+pWidth-innerPadX,textY);slot.ValSpriteIndex=buf.Sprites.Count;buf.Sprites.Add(valSprite);buf.Slots.Add(slot);}}buf.LastSurfaceSize=surfaceSize;
-buf.Initialized=true;}private void RenderScreenGraphic(ScreenDef screen,IMyTextSurface surface){if(!_screenBuffers.TryGetValue(screen,out var buf)){buf=new ScreenBuffer();
-_screenBuffers[screen]=buf;}if(!buf.Initialized||buf.LastSurfaceSize!=surface.SurfaceSize){BuildGraphicBuffer(screen,surface,buf);}bool dirty=false;bool alertPhase=(_tickCounter%16)<8;
-for(int i=0;i<buf.Slots.Count;i++){var slot=buf.Slots[i];var line=slot.Line;double value;bool hasErr=false;try{value=ResolveFieldValue(line.BindName,line.Field);
+buf.Initialized=true;}private void RenderScreenGraphic(ScreenDef screen,IMyTextSurface surface){ScreenBuffer buf;if(!_screenBuffers.TryGetValue(screen,out buf)){
+buf=new ScreenBuffer();_screenBuffers[screen]=buf;}if(!buf.Initialized||buf.LastSurfaceSize!=surface.SurfaceSize){BuildGraphicBuffer(screen,surface,buf);}bool dirty=false;
+bool alertPhase=(_tickCounter%16)<8;for(int i=0;i<buf.Slots.Count;i++){var slot=buf.Slots[i];var line=slot.Line;double value;bool hasErr=false;try{value=ResolveFieldValue(line.BindName,line.Field);
 }catch{hasErr=true;value=0.0;}if(hasErr){if(slot.LastValue!= -99999.0||(slot.ValSpriteIndex>=0&&buf.Sprites[slot.ValSpriteIndex].Data!="ERR")){dirty=true;slot.LastValue= -99999.0;
 if(slot.ValSpriteIndex>=0){var s=buf.Sprites[slot.ValSpriteIndex];s.Data="ERR";s.Color=Color.Red;buf.Sprites[slot.ValSpriteIndex]=s;}}continue;}string colorName=line.Gradient ? Layout.GradientColorAt(line.GradientColors,value): line.FlatColor;
 Color barCol=ResolveColor(colorName);bool isRedAlert=(barCol==Color.Red);if(isRedAlert&&alertPhase){barCol=new Color(255,75,75);dirty=true;}bool valueChanged=Math.Abs(value-slot.LastValue)>0.1;
@@ -211,16 +211,16 @@ valSprite.Data=FormatDisplayValue(value,line);valSprite.Color=barCol;buf.Sprites
 Color flowCol;string flowText;bool isMachinery=(line.Field=="producing"||line.Field=="active"||line.Field=="running"||line.Field=="state"||(value<=1.0&&line.Field!="percent"));
 if(isMachinery){if(value>0.0){slot.DisplayValue=(slot.DisplayValue+0.3927f)%6.28318f;rot=slot.DisplayValue;flowCol=new Color(34,197,94);flowText="RUN";}else{rot=0f;
 flowCol=new Color(148,163,184);flowText="IDLE";}}else{rot=(value>55.0)? 0f :((value<45.0)? 3.14159f : 1.57079f);flowCol=(value>55.0)? new Color(34,197,94):((value<45.0)? new Color(239,68,68): new Color(148,163,184));
-flowText=(value>55.0)? "CHG" :((value<45.0)? "DSC" : "STBY");}var fillSprite=buf.Sprites[slot.FillSpriteIndex];fillSprite.Rotation=rot;fillSprite.Color=flowCol;
+flowText=(value>55.0)? "CHG" :((value<45.0)? "DSC" : "STBY");}var fillSprite=buf.Sprites[slot.FillSpriteIndex];fillSprite.RotationOrScale=rot;fillSprite.Color=flowCol;
 buf.Sprites[slot.FillSpriteIndex]=fillSprite;var valSprite=buf.Sprites[slot.ValSpriteIndex];valSprite.Data=flowText;valSprite.Color=flowCol;buf.Sprites[slot.ValSpriteIndex]=valSprite;
 }else{if(valueChanged||isRedAlert){dirty=true;Color txtCol=line.ColorRules!=null ? ResolveColor(Layout.ResolveConditionalColor(line.ColorRules,value)): Color.White;
 if(txtCol==Color.Red&&alertPhase)txtCol=new Color(255,75,75);var valSprite=buf.Sprites[slot.ValSpriteIndex];valSprite.Data=FormatDisplayValue(value,line);valSprite.Color=txtCol;
 buf.Sprites[slot.ValSpriteIndex]=valSprite;}}if(slot.HasDynamicLabel&&(valueChanged||isRedAlert)){dirty=true;var lblSprite=buf.Sprites[slot.LabelSpriteIndex];string pctStr=GetPercentString(value);
 string rawVal=FormatDisplayValue(value,line);lblSprite.Data=line.Label.Replace("{percent}",pctStr).Replace("{val}",rawVal);buf.Sprites[slot.LabelSpriteIndex]=lblSprite;
 }}if(dirty){using(var frame=surface.DrawFrame()){frame.AddRange(buf.Sprites);}}}private void RenderScreenAscii(ScreenDef screen,IMyTextSurface surface){surface.FontSize=screen.FontSize;
-var contentLines=new List<Tuple<string,string>>();foreach(var line in screen.Lines){double value=0.0;string text;string color=null;try{value=ResolveFieldValue(line.BindName,line.Field);
-}catch(Exception ex){contentLines.Add(Tuple.Create($"{line.Label}: [UNRESOLVED]","red"));continue;}string valStr=FormatDisplayValue(value,line);if(line.Kind==LineKind.Bar){
-double fillVal=(line.Field=="percent"||line.Field=="pct")? value : ResolvePercentForBind(line.BindName);text=Layout.RenderBarText(line.Label,fillVal,10,valStr);
+var contentLines=new List<KeyValuePair<string,string>>();foreach(var line in screen.Lines){double value=0.0;string text;string color=null;try{value=ResolveFieldValue(line.BindName,line.Field);
+}catch(Exception ex){contentLines.Add(new KeyValuePair<string,string>($"{line.Label}: [UNRESOLVED]","red"));continue;}string valStr=FormatDisplayValue(value,line);
+if(line.Kind==LineKind.Bar){double fillVal=(line.Field=="percent"||line.Field=="pct")? value : ResolvePercentForBind(line.BindName);text=Layout.RenderBarText(line.Label,fillVal,10,valStr);
 color=line.Gradient ? Layout.GradientColorAt(line.GradientColors,fillVal): line.FlatColor;}else if(line.Kind==LineKind.Balance){text=Layout.RenderBalanceText(line.Label,value,10);
 color=line.Gradient ? Layout.GradientColorAt(line.GradientColors,value): line.FlatColor;}else if(line.Kind==LineKind.Toggle){text=Layout.RenderToggleText(line.Label,value);
 color=line.FlatColor ??(value>=50.0 ? "green" : "gray");}else if(line.Kind==LineKind.Checkbox){text=Layout.RenderCheckboxText(line.Label,value);color=line.FlatColor ??(value>=50.0 ? "cyan" : "gray");
@@ -229,14 +229,14 @@ color=line.FlatColor ??(value>=50.0 ? "green" : "gray");}else if(line.Kind==Line
 }else if(line.Kind==LineKind.Flow){bool isMachinery=(line.Field=="producing"||line.Field=="active"||line.Field=="running"||line.Field=="state"||(value<=1.0&&line.Field!="percent"));
 if(isMachinery){char[]spinChars=new[]{'|','/','-','\\'};char sc=spinChars[Math.Abs(_tickCounter)%4];text=value>0 ? $"{line.Label} [{sc}] RUN" : $"{line.Label} [==] IDLE";
 color=value>0 ? "green" : "gray";}else{text=Layout.RenderFlowText(line.Label,value,_tickCounter);color=line.FlatColor ??(value>55.0 ? "green" :(value<45.0 ? "red" : "cyan"));
-}}else{text=$"{line.Label}: {valStr}";color=line.ColorRules!=null ? Layout.ResolveConditionalColor(line.ColorRules,value): null;}contentLines.Add(Tuple.Create(text,color));
-}var borderedRaw=Layout.RenderBorderedWindow(new List<string>(contentLines.ConvertAll(t=>t.Item1)),width: screen.Width);string signature=string.Join("\n",borderedRaw);
-if(_lastSignature.TryGetValue(screen,out var prevSig)&&prevSig==signature)return;_lastSignature[screen]=signature;using(var frame=surface.DrawFrame()){float y=4f;
-float lineHeight=APPROX_LINE_HEIGHT_PER_FONTSIZE*screen.FontSize;try{var measured=surface.MeasureStringInPixels(new StringBuilder("A"),"Monospace",screen.FontSize);
-if(measured.Y>0)lineHeight=measured.Y;}catch{}for(int i=0;i<borderedRaw.Count;i++){string colorName=null;if(i>0&&i<borderedRaw.Count-1)colorName=contentLines[i-1].Item2;
+}}else{text=$"{line.Label}: {valStr}";color=line.ColorRules!=null ? Layout.ResolveConditionalColor(line.ColorRules,value): null;}contentLines.Add(new KeyValuePair<string,string>(text,color));
+}var borderedRaw=Layout.RenderBorderedWindow(new List<string>(contentLines.ConvertAll(t=>t.Key)),width: screen.Width);string signature=string.Join("\n",borderedRaw);
+string prevSig;if(_lastSignature.TryGetValue(screen,out prevSig)&&prevSig==signature)return;_lastSignature[screen]=signature;using(var frame=surface.DrawFrame()){
+float y=4f;float lineHeight=APPROX_LINE_HEIGHT_PER_FONTSIZE*screen.FontSize;try{var measured=surface.MeasureStringInPixels(new StringBuilder("A"),"Monospace",screen.FontSize);
+if(measured.Y>0)lineHeight=measured.Y;}catch{}for(int i=0;i<borderedRaw.Count;i++){string colorName=null;if(i>0&&i<borderedRaw.Count-1)colorName=contentLines[i-1].Value;
 var sprite=MySprite.CreateText(borderedRaw[i],"Monospace",ResolveColor(colorName),screen.FontSize,TextAlignment.LEFT);sprite.Position=new Vector2(4f,y);frame.Add(sprite);
 y+=lineHeight;}}}private Color ResolveColor(string name){if(string.IsNullOrEmpty(name))return Color.White;Color k;if(_colorCache.TryGetValue(name,out k))return k;
-HelmColor c=HelmColor.Parse(name);k=c.IsTransparent ? Color.Transparent : new Color(c.R,c.G,c.B,c.A);_colorCache[name]=k;return k;}}public enum BindKind{Block,Group,Dynamic}
+HelmColor c=HelmColor.Parse(name);k=c.IsTransparent ? Color.Transparent : new Color(c.R,c.G,c.B,c.A);_colorCache[name]=k;return k;}public enum BindKind{Block,Group,Dynamic}
 public enum Agg{None,Avg,Sum,Min,Max}public class BindDef{public string Name;public BindKind Kind;public List<string>TargetNames=new List<string>();public string TargetName{
 get{return TargetNames.Count>0 ? TargetNames[0]: "";}set{if(TargetNames.Count==0)TargetNames.Add(value);else TargetNames[0]=value;}}public Agg Aggregation=Agg.None;
 public double DefaultValue=0.0;public string DynamicKey;}public enum LineKind{Text,Bar,LedBar,Spark,Hazard,Chevron,Dots,Balance,Toggle,Checkbox,Status,Ammo,Flow}
@@ -523,4 +523,4 @@ stats.DynamicFillSprites++;stats.TotalAllocatedSprites+=3;stats.MutatedPerTick++
 stats.DynamicFillSprites++;stats.TotalAllocatedSprites+=2;stats.MutatedPerTick++;break;case LineKind.Status: case LineKind.Flow: stats.StaticTrackSprites++;stats.DynamicFillSprites+=2;
 stats.TotalAllocatedSprites+=3;stats.MutatedPerTick+=2;break;case LineKind.Ammo: stats.DynamicFillSprites+=8;stats.TotalAllocatedSprites+=8;stats.MutatedPerTick+=8;
 break;default: stats.MutatedPerTick++;break;}}}stats.EstInstructionCountNormal=25+(stats.LineCount*2);stats.EstInstructionCountRedraw=180+(stats.MutatedPerTick*4);
-stats.EstimatedGcAllocBytes=0.0;return stats;}}}
+stats.EstimatedGcAllocBytes=0.0;return stats;}}
