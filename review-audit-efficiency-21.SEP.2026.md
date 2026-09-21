@@ -97,3 +97,19 @@ No source change, no behaviour change. Verification: 204 unit tests, the combine
 10. M5: in-game run, which settles R1 and P6.
 
 After items 1 to 5 the script has roughly 6,000 to 10,000 characters of headroom, which pays for text dynamic values (M8, 553) and the boot sequence with room to spare.
+
+## Remediation status (same day)
+
+| Finding | Status |
+| :--- | :--- |
+| R1 fallback scan | Fixed in `d4b77fd`: keywords matched once per bind, one shared block list per rescan, one pass. The 33 keyword-to-type rules were compared mechanically with the old code. The instruction cost is still an estimate until the M5 run |
+| R2 config errors | Fixed: kept and echoed on every run, including output-block problems |
+| P1 colour parsing | Fixed: cache by name |
+| P2 bind lookup | Fixed: dictionary built at reload |
+| P1 + P2 result | Allocation per redraw on `planetary_base` 6,532 to 385 bytes; `all_gauges_showcase` 4,218 to 493 bytes; time about 22% lower. Rendered output byte-identical for 51 layouts, 5 profiles, 48 ticks |
+| S1 minifier | Fixed in `51768ab`: 98,740 to 87,822 characters (12,178 remaining, was 1,260), verified by `tools/minify-check` (23,875 tokens identical). The old comment stripper also left some comments in the file; that is fixed |
+| Q1 stale committed build | Fixed in `42825a9`: `build-release` fails when the committed combined scripts differ from a fresh build; new `minify-verify` job. Not yet run on GitLab |
+| P3 per-run read cache, P4 colour rules, P5 culture-sensitive calls, P7 | Open |
+| S2 dead code, S3 repeated sprite updates, S4 merged block table | Open. S1 removed the urgency; do them when a feature needs the space |
+| P6 refresh rate and damping | Open, needs a decision and the M5 run |
+| Boot sequence, smooth gradients, field case | Open, needs a decision (implement or correct the docs) |
