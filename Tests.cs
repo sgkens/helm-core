@@ -216,6 +216,21 @@ line: ""O2""  bar(o2_$screen.percent) flat(cyan)
         Check(HelmParser.Parse("@screen a").Screens[0].BootBatch == 1, "boot_batch defaults to 1");
         Check(HelmParser.Parse("@screen a\nboot_batch: 0").Screens[0].BootBatch == 1, "boot_batch below 1 is clamped to 1");
 
+        // --- scope: all and max(bind.field) ---
+        var cfgScope = HelmParser.Parse("@bind a = group(\"G\", agg: sum, scope: all)\n@bind b = group(\"G\", agg: sum)\n@bind c = block(\"B\", scope: all)\n@screen s\noutput: \"x\", 0\n@panel p at(0, 0, 1, 1) title: \"T\"\nline: \"A\" bar(a.ammo:X) max(b.ammo:X) flat(cyan)\nline: \"B\" bar(a.percent) max(1.5) flat(cyan)\n");
+        Check(cfgScope.Errors.Count == 0, "scope and max(bind.field) parse without errors: " + string.Join(" | ", cfgScope.Errors));
+        Check(cfgScope.Binds[0].AllShips && !cfgScope.Binds[1].AllShips && cfgScope.Binds[2].AllShips, "scope: all sets AllShips on a group and a block bind, and is off by default");
+        var linesM = cfgScope.Screens[0].Panels[0].Lines;
+        Check(linesM[0].MaxBind == "b" && linesM[0].MaxField == "ammo:X" && linesM[0].Max == 0 && linesM[0].HasMax, "max(b.ammo:X) reads the maximum from a block field");
+        Check(linesM[1].Max == 1.5 && linesM[1].MaxBind == null && linesM[1].HasMax, "max(1.5) is still a number");
+        Check(!HelmParser.Parse("@screen s\noutput: \"x\", 0\n@panel p at(0, 0, 1, 1) title: \"T\"\nline: \"A\" bar(a.b) max(a.b.c) flat(cyan)\n").Errors.Count.Equals(0), "max(a.b.c) is reported as an error");
+
+        // --- refresh: and alert_period: ---
+        Check(HelmParser.Parse("@screen a").Screens[0].RefreshTicks == 0, "refresh defaults to 0 (draw every run)");
+        Check(HelmParser.Parse("@screen a\nrefresh: 600").Screens[0].RefreshTicks == 600, "refresh: 600 parsed");
+        Check(Math.Abs(HelmParser.Parse("@screen a").Screens[0].AlertPeriod - 1.6f) < 0.001f, "alert_period defaults to 1.6 s");
+        Check(Math.Abs(HelmParser.Parse("@screen a\nalert_period: 0.8s").Screens[0].AlertPeriod - 0.8f) < 0.001f, "alert_period: 0.8s parsed");
+
         // --- Backgrounds ---
         var cfgBg = HelmParser.Parse("@screen a\noutput: \"x\", 0\nbg_gradient(#000000, #ffffff)\npanel_bg: none\nalert_bg: #7f1d1d\n@panel p at(0, 0, 1, 1) title: \"T\"\nbg: #123456\n");
         Check(cfgBg.Errors.Count == 0, "background directives parse without errors: " + string.Join(" | ", cfgBg.Errors));

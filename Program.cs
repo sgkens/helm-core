@@ -45,6 +45,7 @@ namespace IngameScript
         private Dictionary<string, BindDef> _bindMap = new Dictionary<string, BindDef>();
         private Dictionary<string, Color> _colorCache = new Dictionary<string, Color>();
         private List<IMyTerminalBlock> _allBlocks = new List<IMyTerminalBlock>();
+        private List<IMyTerminalBlock> _rawBlocks = new List<IMyTerminalBlock>();
         private bool _allLoaded;
         private int _foreignBlocks;
         private string _cfgErr = "";
@@ -124,6 +125,7 @@ namespace IngameScript
         private double _time = 0;        // seconds since the script started (Runtime.TimeSinceLastRun)
         private int _idleRuns = 0;       // consecutive runs in which nothing was redrawn
         private Dictionary<ScreenDef, double> _bootT0 = new Dictionary<ScreenDef, double>();
+        private Dictionary<ScreenDef, double> _drawAt = new Dictionary<ScreenDef, double>(); // refresh: earliest next draw
         private int _tickCounter = 0;
         private const string HELM_VERSION = "0.0.0"; // stamped from the VERSION file by Build-Release.ps1
         private IMyTextSurface _pbSurface;             // the Programmable Block's own screen (console)
@@ -245,7 +247,12 @@ namespace IngameScript
             // Screens that are booting draw their boot frame every run (cheap); the others take turns.
             bool active = _bootT0.Count > 0;
             if (active) RenderBoots();
-            if (!_bootT0.ContainsKey(screen) && RenderScreen(screen)) active = true;
+            double due;
+            if (!_bootT0.ContainsKey(screen) && !(_drawAt.TryGetValue(screen, out due) && _time < due))
+            {
+                if (RenderScreen(screen)) active = true;
+                if (screen.RefreshTicks > 0) _drawAt[screen] = _time + screen.RefreshTicks / 60.0;
+            }
 
             // Fast (Update10) while anything is booting, changing, easing or alerting; slow (Update100) once
             // every screen has been idle for a few runs. Refresh rates are to be revisited after more in-game
@@ -269,26 +276,28 @@ namespace IngameScript
 
         // Every block HELM may use: this construct only (same grid, or subgrids on rotors, pistons and hinges).
         // GetBlocks also returns blocks of ships docked on a connector; those are dropped and counted.
-        private List<IMyTerminalBlock> AllBlocks()
+        // all = true also returns blocks of ships docked on a connector (a bind with scope: all).
+        private List<IMyTerminalBlock> AllBlocks(bool all = false)
         {
             if (!_allLoaded)
             {
+                _rawBlocks.Clear();
+                GridTerminalSystem.GetBlocks(_rawBlocks);
                 _allBlocks.Clear();
-                GridTerminalSystem.GetBlocks(_allBlocks);
-                int reachable = _allBlocks.Count;
+                _allBlocks.AddRange(_rawBlocks);
                 _allBlocks.RemoveAll(b => !b.IsSameConstructAs(Me));
-                _foreignBlocks = reachable - _allBlocks.Count;
+                _foreignBlocks = _rawBlocks.Count - _allBlocks.Count;
                 _allLoaded = true;
             }
-            return _allBlocks;
+            return all ? _rawBlocks : _allBlocks;
         }
 
         // The first block whose name contains 'name', on this construct. GetBlockWithName returns the first match
         // on any connected ship, so a docked ship's block can win; search this construct only when it does.
-        private IMyTerminalBlock FindBlock(string name)
+        private IMyTerminalBlock FindBlock(string name, bool anyShip = false)
         {
             var b = GridTerminalSystem.GetBlockWithName(name);
-            if (b == null || b.IsSameConstructAs(Me)) return b;
+            if (b == null || anyShip || b.IsSameConstructAs(Me)) return b;
             var all = AllBlocks();
             for (int i = 0; i < all.Count; i++)
                 if (all[i].CustomName.IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0) return all[i];
@@ -296,14 +305,14 @@ namespace IngameScript
         }
 
         // Blocks of the first group named 'name' that has any on this construct, added to 'into'.
-        private void CollectGroup(string name, List<IMyTerminalBlock> into)
+        private void CollectGroup(string name, List<IMyTerminalBlock> into, bool all = false)
         {
             var g = GridTerminalSystem.GetBlockGroupWithName(name);
             if (g == null) return;
             int before = into.Count;
             var tmp = new List<IMyTerminalBlock>();
             g.GetBlocks(tmp);
-            AddMine(tmp, into);
+            AddMine(tmp, into, all);
             if (into.Count > before) return;
             var groups = new List<IMyBlockGroup>();
             GridTerminalSystem.GetBlockGroups(groups);
@@ -312,15 +321,15 @@ namespace IngameScript
                 if (x.Name.IndexOf(name, StringComparison.OrdinalIgnoreCase) < 0) continue;
                 tmp.Clear();
                 x.GetBlocks(tmp);
-                AddMine(tmp, into);
+                AddMine(tmp, into, all);
                 if (into.Count > before) return;
             }
         }
 
-        private void AddMine(List<IMyTerminalBlock> from, List<IMyTerminalBlock> into)
+        private void AddMine(List<IMyTerminalBlock> from, List<IMyTerminalBlock> into, bool all = false)
         {
             foreach (var b in from)
-                if (b.IsSameConstructAs(Me) && !into.Contains(b)) into.Add(b);
+                if ((all || b.IsSameConstructAs(Me)) && !into.Contains(b)) into.Add(b);
         }
 
         // ---------------- config / binding resolution ----------------
@@ -345,6 +354,7 @@ namespace IngameScript
             _screenBuffers.Clear();
             _lastSignature.Clear();
             _bootT0.Clear();
+            _drawAt.Clear();
             ResolveBindsAndOutputs();
         }
 
@@ -707,7 +717,7 @@ namespace IngameScript
                     if (bind.Kind == BindKind.Group || isWildcard)
                     {
                         var groupBlocks = new List<IMyTerminalBlock>();
-                        CollectGroup(targetName, groupBlocks);
+                        CollectGroup(targetName, groupBlocks, bind.AllShips);
                         if (groupBlocks.Count > 0)
                         {
                             foreach (var gb in groupBlocks)
@@ -718,7 +728,7 @@ namespace IngameScript
                         else
                         {
                             // Search all terminal blocks for wildcard or exact match
-                            var allBlocks = AllBlocks();
+                            var allBlocks = AllBlocks(bind.AllShips);
                             for (int b = 0; b < allBlocks.Count; b++)
                             {
                                 var tb = allBlocks[b];
@@ -731,7 +741,7 @@ namespace IngameScript
                     }
                     else
                     {
-                        var block = FindBlock(targetName);
+                        var block = FindBlock(targetName, bind.AllShips);
                         if (block != null && !blocks.Contains(block)) blocks.Add(block);
                     }
                 }
@@ -781,6 +791,7 @@ namespace IngameScript
             }
 
             _allBlocks.Clear();
+            _rawBlocks.Clear();
         }
 
         // Keyword hints (matched against the bind name and targets) for each block type tried when a bind matches no block by name.
@@ -1764,7 +1775,7 @@ namespace IngameScript
             }
 
             bool dirty = false;
-            bool alertPhase = (_tickCounter % 16) < 8;
+            bool alertPhase = (_time % screen.AlertPeriod) < screen.AlertPeriod / 2.0;
 
             // Red alert (run argument "alert red"): the background flashes to alert_bg. alert_bg: none turns it off.
             bool wantAlert = _globalRedAlert && alertPhase && buf.AlertCol.A > 0;
@@ -1787,9 +1798,11 @@ namespace IngameScript
                 double value;
                 bool hasErr = false;
 
+                double mx = line.Max;
                 try
                 {
                     value = ResolveFieldValue(line.BindName, line.Field);
+                    if (line.MaxBind != null) mx = ResolveFieldValue(line.MaxBind, line.MaxField);
                 }
                 catch
                 {
@@ -1816,7 +1829,7 @@ namespace IngameScript
 
                 // max(N): gauges work on the percentage of N; the text keeps the real amount.
                 double raw = value;
-                if (line.Max > 0) value = Math.Min(100.0, raw / line.Max * 100.0);
+                if (mx > 0) value = Math.Min(100.0, raw / mx * 100.0);
 
                 string colorName = line.Gradient
                     ? Layout.GradientColorAt(line.GradientColors, value)
@@ -1835,7 +1848,7 @@ namespace IngameScript
 
                 if (line.Kind == LineKind.Bar)
                 {
-                    double fillVal = (line.Max > 0 || line.Field == "percent" || line.Field == "pct") ? value : ResolvePercentForBind(line.BindName);
+                    double fillVal = (line.HasMax || line.Field == "percent" || line.Field == "pct") ? value : ResolvePercentForBind(line.BindName);
                     if (slot.DisplayValue < 0f) slot.DisplayValue = (float)fillVal;
                     float target = (float)fillVal;
                     if (Math.Abs(slot.DisplayValue - target) > 0.05f)
@@ -1869,7 +1882,7 @@ namespace IngameScript
                     if (valueChanged || isRedAlert)
                     {
                         dirty = true;
-                        double fillVal = (line.Max > 0 || line.Field == "percent" || line.Field == "pct") ? value : ResolvePercentForBind(line.BindName);
+                        double fillVal = (line.HasMax || line.Field == "percent" || line.Field == "pct") ? value : ResolvePercentForBind(line.BindName);
                         int segCount = slot.ExtraSpriteIndices.Count;
                         for (int s = 0; s < segCount; s++)
                         {
@@ -2102,9 +2115,11 @@ namespace IngameScript
                 string text;
                 string color = null;
 
+                double mx = line.Max;
                 try
                 {
                     value = ResolveFieldValue(line.BindName, line.Field);
+                    if (line.MaxBind != null) mx = ResolveFieldValue(line.MaxBind, line.MaxField);
                 }
                 catch (Exception ex)
                 {
@@ -2113,12 +2128,12 @@ namespace IngameScript
                 }
 
                 double raw = value;
-                if (line.Max > 0) value = Math.Min(100.0, raw / line.Max * 100.0);
+                if (mx > 0) value = Math.Min(100.0, raw / mx * 100.0);
                 string valStr = FormatDisplayValue(raw, line);
 
                 if (line.Kind == LineKind.Bar)
                 {
-                    double fillVal = (line.Max > 0 || line.Field == "percent" || line.Field == "pct") ? value : ResolvePercentForBind(line.BindName);
+                    double fillVal = (line.HasMax || line.Field == "percent" || line.Field == "pct") ? value : ResolvePercentForBind(line.BindName);
                     text = Layout.RenderBarText(line.Label, fillVal, 10, valStr);
                     color = line.Gradient
                         ? Layout.GradientColorAt(line.GradientColors, fillVal)

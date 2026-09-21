@@ -36,6 +36,7 @@ namespace HelmCore
         public double DefaultValue = 0.0;
         public string DefaultText;
         public string DynamicKey;
+        public bool AllShips;   // scope: all - also use blocks on ships docked on a connector
     }
 
     public enum LineKind { Text, Bar, LedBar, Spark, Hazard, Chevron, Dots, Balance, Toggle, Checkbox, Status, Ammo, Flow }
@@ -61,6 +62,8 @@ namespace HelmCore
         public string Unit;           // e.g. "MW", "kL", "km", "t", "%"
         public string Format;         // e.g. "F1", "F0", "N0"
         public double Max;            // max(N): the value is shown as a percentage of N (0 = off)
+        public string MaxBind, MaxField; // max(bind.field): the maximum is read from a block field
+        public bool HasMax { get { return Max > 0 || MaxBind != null; } }
     }
 
     // ---------- Color Science / Parsing ----------
@@ -209,7 +212,8 @@ namespace HelmCore
         }
 
         public float FontSize = 1.0f;
-        public int RefreshTicks = 100;
+        public int RefreshTicks = 0;      // refresh: draw this screen at most every N ticks (0 = every run)
+        public float AlertPeriod = 1.6f;  // alert_period: seconds for one on/off flash cycle
         public int GridCols = 1;
         public int GridRows = 1;
         public int Width = 30; // default content width in characters
@@ -518,6 +522,11 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     {
                         RequireScreen(current, "layout:");
                         ParseLayout(line.Substring("layout:".Length).Trim(), current);
+                    }
+                    else if (line.StartsWith("alert_period:"))
+                    {
+                        RequireScreen(current, "alert_period:");
+                        current.AlertPeriod = Math.Max(0.2f, float.Parse(line.Substring("alert_period:".Length).Trim().TrimEnd('s'), System.Globalization.CultureInfo.InvariantCulture));
                     }
                     else if (line.StartsWith("refresh:"))
                     {
@@ -1035,6 +1044,10 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                 {
                     aggStr = kv[1].Trim().ToLowerInvariant();
                 }
+                else if (kv.Length == 2 && kv[0].Trim().Equals("scope", StringComparison.OrdinalIgnoreCase))
+                {
+                    def.AllShips = kv[1].Trim().Equals("all", StringComparison.OrdinalIgnoreCase);
+                }
                 else
                 {
                     def.TargetNames.Add(Unquote(args[a].Trim()));
@@ -1206,7 +1219,15 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                 }
                 else if (mFunc == "max")
                 {
-                    def.Max = double.Parse(mArgs.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture);
+                    double mv;
+                    if (double.TryParse(mArgs.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out mv)) def.Max = mv;
+                    else
+                    {
+                        var mp = mArgs.Trim().Split('.');
+                        if (mp.Length != 2) throw new FormatException("max() takes a number or bindname.field");
+                        def.MaxBind = mp[0].Trim();
+                        def.MaxField = mp[1].Trim();
+                    }
                 }
                 else if (mFunc == "format" || mFunc == "fmt")
                 {
