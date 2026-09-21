@@ -1981,10 +1981,19 @@ namespace IngameScript
                             AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(barWidth, barHeight), track);
                             slot.FillSpriteIndex = buf.Sprites.Count;
                             AddQuad(buf, new Vector2(barLeft, centerY), new Vector2(0f, barHeight), ResolveColor(line.FlatColor));
+                            // Dressing on top of the fill: division ticks, threshold markers, an outline.
+                            bool rev = line.Direction == "left";
+                            for (int tk = 1; tk < line.Ticks; tk++)
+                                AddQuad(buf, new Vector2(barLeft + barWidth * tk / line.Ticks, centerY), new Vector2(1f, barHeight), new Color(0, 0, 0, 150));
+                            if (line.Marks != null)
+                                foreach (double mk in line.Marks)
+                                    AddQuad(buf, new Vector2(barLeft + barWidth * (float)(rev ? 1.0 - mk / 100.0 : mk / 100.0), centerY), new Vector2(2f, barHeight + 6f), Color.White);
+                            if (line.Outline != null)
+                                AddFrame(buf, "single", null, line.Outline, true, barLeft, centerY - barHeight / 2f, barLeft + barWidth, centerY + barHeight / 2f);
                         }
                         else if (line.Kind == LineKind.LedBar)
                         {
-                            int segCount = 10;
+                            int segCount = line.Segs > 0 ? line.Segs : 10;
                             float gap = 2f;
                             float segW = Math.Max(2f, (barWidth - (gap * (segCount - 1))) / segCount);
                             for (int s = 0; s < segCount; s++)
@@ -1996,7 +2005,8 @@ namespace IngameScript
                         else if (line.Kind == LineKind.Spark)
                         {
                             AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(barWidth, barHeight), Trk(line, new Color(20, 24, 30)));
-                            int pointCount = 8;
+                            int pointCount = line.Segs > 0 ? line.Segs : 8;
+                            slot.SparkHistory = new float[pointCount];
                             float gap = 2f;
                             float colW = Math.Max(2f, (barWidth - (gap * (pointCount - 1))) / pointCount);
                             for (int p = 0; p < pointCount; p++)
@@ -2030,7 +2040,7 @@ namespace IngameScript
                         }
                         else if (line.Kind == LineKind.Dots)
                         {
-                            int dotCount = 12;
+                            int dotCount = line.Segs > 0 ? line.Segs : 12;
                             float gap = 2f;
                             float dotW = Math.Max(2f, (barWidth - (gap * (dotCount - 1))) / dotCount);
                             float dotDim = Math.Min(dotW, barHeight);
@@ -2398,7 +2408,7 @@ namespace IngameScript
 
                         var fillSprite = buf.Sprites[slot.FillSpriteIndex];
                         fillSprite.Size = new Vector2(fillW, slot.BarHeight);
-                        fillSprite.Position = new Vector2(slot.BarLeft + (fillW / 2f), slot.BarCenterY);
+                        fillSprite.Position = new Vector2(line.Direction == "left" ? slot.BarLeft + slot.BarMaxWidth - (fillW / 2f) : slot.BarLeft + (fillW / 2f), slot.BarCenterY);
                         fillSprite.Color = barCol;
                         buf.Sprites[slot.FillSpriteIndex] = fillSprite;
 
@@ -2429,9 +2439,9 @@ namespace IngameScript
                     if (valueChanged || isRedAlert)
                     {
                         dirty = true;
-                        for (int h = 0; h < 7; h++)
+                        for (int h = 0; h < slot.SparkHistory.Length - 1; h++)
                             slot.SparkHistory[h] = slot.SparkHistory[h + 1];
-                        slot.SparkHistory[7] = (float)value;
+                        slot.SparkHistory[slot.SparkHistory.Length - 1] = (float)value;
 
                         int pointCount = slot.ExtraSpriteIndices.Count;
                         for (int p = 0; p < pointCount; p++)

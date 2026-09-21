@@ -61,6 +61,10 @@ namespace HelmCore
         public string Direction = "right"; // "right", "left", "up", "down"
         public string Unit;           // e.g. "MW", "kL", "km", "t", "%"
         public string Format;         // e.g. "F1", "F0", "N0"
+        public List<double> Marks;    // marker(N, ...): threshold ticks on a bar, in percent of the bar
+        public int Segs;              // segments(N) for led and dots, points(N) for spark (2 to 40; 0 = the default)
+        public int Ticks;             // ticks(N): a bar divided into N parts
+        public string Outline;        // outline(color): a frame around a bar
         public int Size;              // size(medium) = 1, size(large) = 2: the row takes 2 or 4 shares of its panel and the bar grows with it
         public string ColorBind, ColorField; // color_by(bind.field): the colour follows another value than the one the gauge shows
         public string LabelColor, Track; // label_color(...) and track(...): the label text and the empty part of a bar
@@ -1262,6 +1266,19 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     string sz = mArgs.Trim().ToLowerInvariant();
                     def.Size = sz == "large" || sz == "fill" ? 2 : sz == "medium" ? 1 : 0;
                 }
+                else if (mFunc == "marker")
+                {
+                    def.Marks = new List<double>();
+                    foreach (var mk in SplitArgs(mArgs))
+                    {
+                        double mv2;
+                        if (!double.TryParse(mk, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out mv2)) throw new FormatException("marker() takes numbers from 0 to 100");
+                        def.Marks.Add(mv2);
+                    }
+                }
+                else if (mFunc == "ticks") def.Ticks = int.Parse(mArgs.Trim());
+                else if (mFunc == "segments" || mFunc == "points") def.Segs = Math.Max(2, Math.Min(40, int.Parse(mArgs.Trim())));
+                else if (mFunc == "outline") def.Outline = mArgs.Trim();
                 else if (mFunc == "color_by")
                 {
                     var cb = mArgs.Trim().Split('.');

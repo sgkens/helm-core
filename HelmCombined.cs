@@ -1952,10 +1952,19 @@
                             AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(barWidth, barHeight), track);
                             slot.FillSpriteIndex = buf.Sprites.Count;
                             AddQuad(buf, new Vector2(barLeft, centerY), new Vector2(0f, barHeight), ResolveColor(line.FlatColor));
+                            // Dressing on top of the fill: division ticks, threshold markers, an outline.
+                            bool rev = line.Direction == "left";
+                            for (int tk = 1; tk < line.Ticks; tk++)
+                                AddQuad(buf, new Vector2(barLeft + barWidth * tk / line.Ticks, centerY), new Vector2(1f, barHeight), new Color(0, 0, 0, 150));
+                            if (line.Marks != null)
+                                foreach (double mk in line.Marks)
+                                    AddQuad(buf, new Vector2(barLeft + barWidth * (float)(rev ? 1.0 - mk / 100.0 : mk / 100.0), centerY), new Vector2(2f, barHeight + 6f), Color.White);
+                            if (line.Outline != null)
+                                AddFrame(buf, "single", null, line.Outline, true, barLeft, centerY - barHeight / 2f, barLeft + barWidth, centerY + barHeight / 2f);
                         }
                         else if (line.Kind == LineKind.LedBar)
                         {
-                            int segCount = 10;
+                            int segCount = line.Segs > 0 ? line.Segs : 10;
                             float gap = 2f;
                             float segW = Math.Max(2f, (barWidth - (gap * (segCount - 1))) / segCount);
                             for (int s = 0; s < segCount; s++)
@@ -1967,7 +1976,8 @@
                         else if (line.Kind == LineKind.Spark)
                         {
                             AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(barWidth, barHeight), Trk(line, new Color(20, 24, 30)));
-                            int pointCount = 8;
+                            int pointCount = line.Segs > 0 ? line.Segs : 8;
+                            slot.SparkHistory = new float[pointCount];
                             float gap = 2f;
                             float colW = Math.Max(2f, (barWidth - (gap * (pointCount - 1))) / pointCount);
                             for (int p = 0; p < pointCount; p++)
@@ -2001,7 +2011,7 @@
                         }
                         else if (line.Kind == LineKind.Dots)
                         {
-                            int dotCount = 12;
+                            int dotCount = line.Segs > 0 ? line.Segs : 12;
                             float gap = 2f;
                             float dotW = Math.Max(2f, (barWidth - (gap * (dotCount - 1))) / dotCount);
                             float dotDim = Math.Min(dotW, barHeight);
@@ -2369,7 +2379,7 @@
 
                         var fillSprite = buf.Sprites[slot.FillSpriteIndex];
                         fillSprite.Size = new Vector2(fillW, slot.BarHeight);
-                        fillSprite.Position = new Vector2(slot.BarLeft + (fillW / 2f), slot.BarCenterY);
+                        fillSprite.Position = new Vector2(line.Direction == "left" ? slot.BarLeft + slot.BarMaxWidth - (fillW / 2f) : slot.BarLeft + (fillW / 2f), slot.BarCenterY);
                         fillSprite.Color = barCol;
                         buf.Sprites[slot.FillSpriteIndex] = fillSprite;
 
@@ -2400,9 +2410,9 @@
                     if (valueChanged || isRedAlert)
                     {
                         dirty = true;
-                        for (int h = 0; h < 7; h++)
+                        for (int h = 0; h < slot.SparkHistory.Length - 1; h++)
                             slot.SparkHistory[h] = slot.SparkHistory[h + 1];
-                        slot.SparkHistory[7] = (float)value;
+                        slot.SparkHistory[slot.SparkHistory.Length - 1] = (float)value;
 
                         int pointCount = slot.ExtraSpriteIndices.Count;
                         for (int p = 0; p < pointCount; p++)
@@ -2802,6 +2812,10 @@
         public string Direction = "right"; // "right", "left", "up", "down"
         public string Unit;           // e.g. "MW", "kL", "km", "t", "%"
         public string Format;         // e.g. "F1", "F0", "N0"
+        public List<double> Marks;    // marker(N, ...): threshold ticks on a bar, in percent of the bar
+        public int Segs;              // segments(N) for led and dots, points(N) for spark (2 to 40; 0 = the default)
+        public int Ticks;             // ticks(N): a bar divided into N parts
+        public string Outline;        // outline(color): a frame around a bar
         public int Size;              // size(medium) = 1, size(large) = 2: the row takes 2 or 4 shares of its panel and the bar grows with it
         public string ColorBind, ColorField; // color_by(bind.field): the colour follows another value than the one the gauge shows
         public string LabelColor, Track; // label_color(...) and track(...): the label text and the empty part of a bar
@@ -3970,6 +3984,19 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     string sz = mArgs.Trim().ToLowerInvariant();
                     def.Size = sz == "large" || sz == "fill" ? 2 : sz == "medium" ? 1 : 0;
                 }
+                else if (mFunc == "marker")
+                {
+                    def.Marks = new List<double>();
+                    foreach (var mk in SplitArgs(mArgs))
+                    {
+                        double mv2;
+                        if (!double.TryParse(mk, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out mv2)) throw new FormatException("marker() takes numbers from 0 to 100");
+                        def.Marks.Add(mv2);
+                    }
+                }
+                else if (mFunc == "ticks") def.Ticks = int.Parse(mArgs.Trim());
+                else if (mFunc == "segments" || mFunc == "points") def.Segs = Math.Max(2, Math.Min(40, int.Parse(mArgs.Trim())));
+                else if (mFunc == "outline") def.Outline = mArgs.Trim();
                 else if (mFunc == "color_by")
                 {
                     var cb = mArgs.Trim().Split('.');
