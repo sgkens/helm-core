@@ -1826,6 +1826,7 @@ namespace IngameScript
                 paddingX = 2f;
                 paddingY = 2f;
             }
+            if (screen.Padding >= 0f) paddingX = paddingY = screen.Padding;
             float usableW = surfaceSize.X - (paddingX * 2f);
 
             Color bgCol = new Color(10, 12, 16);
@@ -1870,7 +1871,7 @@ namespace IngameScript
                 panels = new List<PanelDef> { new PanelDef { Name = "main", Col = 0, Row = 0, SpanX = screen.GridCols, SpanY = screen.GridRows, Lines = screen.Lines } };
             }
 
-            float gutter = 8f;
+            float gutter = screen.Gap >= 0f ? screen.Gap : 8f;
             foreach (var panel in panels)
             {
                 var pRect = Layout.ComputePanelRect(
@@ -1981,16 +1982,18 @@ namespace IngameScript
 
                     slot.LabelSpriteIndex = buf.Sprites.Count;
                     slot.HasDynamicLabel = line.Label != null && (line.Label.Contains("{val}") || line.Label.Contains("{percent}"));
+                    float iconW = line.Icon != null ? 18f * fontSize : 0f;
                     var labelSprite = MySprite.CreateText(line.Label, font, line.LabelColor != null ? ResolveColor(line.LabelColor) : Color.White, fontSize, TextAlignment.LEFT);
-                    labelSprite.Position = new Vector2(pLeft + innerPadX, textY);
+                    labelSprite.Position = new Vector2(pLeft + innerPadX + iconW, textY);
                     buf.Sprites.Add(labelSprite);
+                    if (line.Icon != null) AddQuad(buf, new Vector2(pLeft + innerPadX + iconW / 2f, centerY), new Vector2(iconW - 2f, iconW - 2f), Color.White, 0f, line.Icon);
 
                     float labelWidth = Math.Max(24f * fontSize, (line.Label.Length + 1) * 12f * fontSize);
-                    float valueWidth = (!string.IsNullOrEmpty(line.Unit) || !string.IsNullOrEmpty(line.Format)) ? 64f * fontSize : 52f * fontSize;
+                    float valueWidth = line.NoValue ? 0f : (!string.IsNullOrEmpty(line.Unit) || !string.IsNullOrEmpty(line.Format)) ? 64f * fontSize : 52f * fontSize;
 
                     if (line.Kind != LineKind.Text)
                     {
-                        float barLeft = pLeft + innerPadX + labelWidth;
+                        float barLeft = pLeft + innerPadX + iconW + labelWidth;
                         float barRight = pLeft + pWidth - innerPadX - valueWidth;
                         float barWidth = Math.Max(16f, barRight - barLeft);
                         float barHeight = Math.Max(line.Kind == LineKind.Spark ? 8f : 4f, Math.Min((line.Kind == LineKind.Spark ? 20f : 16f) * fontSize, rowHeight * (line.Kind == LineKind.Spark ? 0.55f : 0.45f)));
@@ -2277,7 +2280,7 @@ namespace IngameScript
         private static void SetVal(ScreenBuffer buf, LineSlot slot, string text, Color col)
         {
             var v = buf.Sprites[slot.ValSpriteIndex];
-            v.Data = text;
+            v.Data = slot.Line.NoValue ? "" : text;
             v.Color = col;
             buf.Sprites[slot.ValSpriteIndex] = v;
         }
@@ -2416,6 +2419,12 @@ namespace IngameScript
                 {
                     barCol = new Color(255, 75, 75);
                     dirty = true;
+                }
+
+                if (line.BlinkRules != null && Layout.ResolveConditionalColor(line.BlinkRules, ResolveFieldValue(line.BlinkBind, line.BlinkField)) != null)
+                {
+                    isRedAlert = dirty = true;
+                    if (alertPhase) barCol = new Color(barCol.R / 3, barCol.G / 3, barCol.B / 3);
                 }
 
                 bool valueChanged = sweep || Math.Abs(raw - slot.LastValue) > 0.1;

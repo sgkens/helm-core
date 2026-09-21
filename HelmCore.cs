@@ -62,6 +62,10 @@ namespace HelmCore
         public string Unit;           // e.g. "MW", "kL", "km", "t", "%"
         public string Format;         // e.g. "F1", "F0", "N0"
         public List<double> Marks;    // marker(N, ...): threshold ticks on a bar, in percent of the bar
+        public string Icon;           // icon(Name): a built-in sprite drawn before the label
+        public List<ColorRule> BlinkRules; // blink(bind.field > N): the gauge flashes while the comparison is true
+        public string BlinkBind, BlinkField;
+        public bool NoValue;          // value(off): no value text, and the gauge uses its space
         public int Segs;              // segments(N) for led and dots, points(N) for spark (2 to 40; 0 = the default)
         public int Ticks;             // ticks(N): a bar divided into N parts
         public string Outline;        // outline(color): a frame around a bar
@@ -207,6 +211,7 @@ namespace HelmCore
         public int BootStaggerTicks = 10;
         public int BootBatch = 1; // screens that power on together
         public float BootCalibrate = 1.2f; // boot_calibrate: seconds the gauges sweep 0 to 100 to the live value after the boot (0 = off)
+        public float Gap = -1f, Padding = -1f; // gap: pixels between panels; padding: pixels around the screen (-1 = the default)
         public bool GradientSteps; // gradient_mode: steps - gradients pick the nearest stop instead of blending
         public string PanelBg;    // colour of the default card behind panels of a multi-panel screen; "none" for no card (default: a faint white overlay)
         public string BgTexture;  // bg_texture: name of a built-in sprite drawn over the background
@@ -675,6 +680,13 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     {
                         RequireScreen(current, "bg_texture_color:");
                         current.BgTextureColor = line.Substring("bg_texture_color:".Length).Trim();
+                    }
+                    else if (line.StartsWith("gap:") || line.StartsWith("padding:"))
+                    {
+                        bool isGap = line.StartsWith("gap:");
+                        RequireScreen(current, isGap ? "gap:" : "padding:");
+                        float pv = float.Parse(line.Substring(line.IndexOf(':') + 1).Trim(), System.Globalization.CultureInfo.InvariantCulture);
+                        if (isGap) current.Gap = pv; else current.Padding = pv;
                     }
                     else if (line.StartsWith("gradient_mode:"))
                     {
@@ -1277,6 +1289,14 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                         def.Marks.Add(mv2);
                     }
                 }
+                else if (mFunc == "icon") def.Icon = mArgs.Trim();
+                else if (mFunc == "blink")
+                {
+                    string bx = mArgs.Trim(), bc = StripLeadingFieldRef(bx);
+                    SplitRef(bx.Substring(0, bx.Length - bc.Length), out def.BlinkBind, out def.BlinkField);
+                    def.BlinkRules = new List<ColorRule> { new ColorRule { Expr = bc, Color = "on" } };
+                }
+                else if (mFunc == "value") def.NoValue = mArgs.Trim().Equals("off", StringComparison.OrdinalIgnoreCase);
                 else if (mFunc == "ticks") def.Ticks = int.Parse(mArgs.Trim());
                 else if (mFunc == "segments" || mFunc == "points") def.Segs = Math.Max(2, Math.Min(40, int.Parse(mArgs.Trim())));
                 else if (mFunc == "outline") def.Outline = mArgs.Trim();
