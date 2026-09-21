@@ -138,6 +138,12 @@ namespace IngameScript
         private int _idleRuns = 0;       // consecutive runs in which nothing was redrawn
         private Dictionary<ScreenDef, double> _bootT0 = new Dictionary<ScreenDef, double>();
         private Dictionary<ScreenDef, double> _drawAt = new Dictionary<ScreenDef, double>(); // refresh: earliest next draw
+        private Dictionary<string, int> _topN = new Dictionary<string, int>();      // bind -> highest topN rank used by a line
+        private List<string> _topKeys = new List<string>();
+        private Dictionary<string, double> _topAcc = new Dictionary<string, double>();
+        private List<MyInventoryItem> _itemBuf = new List<MyInventoryItem>();
+        private int _topBind = -1, _topBlock;   // position of the contents scan (-1 = waiting for the next pass)
+        private double _topAt;
         private Dictionary<ScreenDef, double> _calibT0 = new Dictionary<ScreenDef, double>(); // when a screen's calibration sweep started
         private int _tickCounter = 0;
         private const string HELM_VERSION = "0.0.0"; // stamped from the VERSION file by Build-Release.ps1
@@ -273,6 +279,7 @@ namespace IngameScript
             _idleRuns = active ? 0 : _idleRuns + 1;
             Runtime.UpdateFrequency = _idleRuns <= _config.Screens.Count + 1 ? UpdateFrequency.Update10 : UpdateFrequency.Update100;
 
+            ScanTop();
             UpdateConsole();
             EchoNotes();
 
@@ -369,6 +376,7 @@ namespace IngameScript
             _bootT0.Clear();
             _drawAt.Clear();
             _calibT0.Clear();
+            FindTopLines();
             ResolveBindsAndOutputs();
         }
 
@@ -428,6 +436,87 @@ namespace IngameScript
                         }
                     }
                 }
+            }
+        }
+
+        // ---------------- contents ranking ----------------
+        // text(bind.top1) shows the largest item held by the bind's blocks, top2 the next, and so on. The blocks are
+        // read a few per run within an instruction budget, one pass every 15 s, and the ranking is published when a pass ends.
+
+        private static bool IsTop(string f)
+        {
+            return f.Length > 3 && f.StartsWith("top") && char.IsDigit(f[3]);
+        }
+
+        private void FindTopLines()
+        {
+            _topN.Clear();
+            _topKeys.Clear();
+            _topBind = -1;
+            _topAt = 0;
+            foreach (var sc in _config.Screens)
+            {
+                var lists = new List<List<LineDef>>();
+                foreach (var pn in sc.Panels) lists.Add(pn.Lines);
+                if (sc.Panels.Count == 0) lists.Add(sc.Lines);
+                foreach (var ls in lists)
+                    foreach (var ln in ls)
+                    {
+                        if (!IsTop(ln.Field)) continue;
+                        int n = int.Parse(ln.Field.Substring(3));
+                        int have;
+                        _topN.TryGetValue(ln.BindName, out have);
+                        _topN[ln.BindName] = Math.Max(have, n);
+                    }
+            }
+            _topKeys.AddRange(_topN.Keys);
+        }
+
+        private void ScanTop()
+        {
+            if (_topKeys.Count == 0) return;
+            if (_topBind < 0)
+            {
+                if (_time < _topAt) return;
+                _topBind = 0;
+                _topBlock = 0;
+                _topAcc.Clear();
+            }
+            while (_topBind < _topKeys.Count && Runtime.CurrentInstructionCount < 20000)
+            {
+                string bn = _topKeys[_topBind];
+                List<IMyTerminalBlock> blocks;
+                _resolvedBinds.TryGetValue(bn, out blocks);
+                if (blocks != null && _topBlock < blocks.Count)
+                {
+                    var b = blocks[_topBlock++];
+                    for (int i = 0; i < b.InventoryCount; i++)
+                    {
+                        _itemBuf.Clear();
+                        b.GetInventory(i).GetItems(_itemBuf);
+                        foreach (var it in _itemBuf)
+                        {
+                            string kind = it.Type.TypeId.Replace("MyObjectBuilder_", "");
+                            string k = kind == "Ore" || kind == "Ingot" ? it.Type.SubtypeId + " " + kind.ToLowerInvariant() : it.Type.SubtypeId;
+                            double have;
+                            _topAcc.TryGetValue(k, out have);
+                            _topAcc[k] = have + (double)it.Amount;
+                        }
+                    }
+                    continue;
+                }
+                var ranked = new List<KeyValuePair<string, double>>(_topAcc);
+                ranked.Sort((x, y) => y.Value.CompareTo(x.Value));
+                for (int r = 1; r <= _topN[bn]; r++)
+                    _dynText[bn + ".top" + r] = r <= ranked.Count ? ranked[r - 1].Key + " " + Layout.FormatDisplayValue(ranked[r - 1].Value, "auto") : "-";
+                _topAcc.Clear();
+                _topBind++;
+                _topBlock = 0;
+            }
+            if (_topBind >= _topKeys.Count)
+            {
+                _topBind = -1;
+                _topAt = _time + 15.0;
             }
         }
 
@@ -2175,7 +2264,7 @@ namespace IngameScript
                     string dt;
                     BindDef tb;
                     _bindMap.TryGetValue(line.BindName, out tb);
-                    _dynText.TryGetValue(tb != null && tb.DynamicKey != null ? tb.DynamicKey : line.BindName, out dt);
+                    _dynText.TryGetValue(IsTop(line.Field) ? line.BindName + "." + line.Field : (tb != null && tb.DynamicKey != null ? tb.DynamicKey : line.BindName), out dt);
                     if (valueChanged || isRedAlert || dt != slot.LastText)
                     {
                         slot.LastText = dt;

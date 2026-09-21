@@ -78,6 +78,12 @@ namespace VRage.Game.GUI.TextPanel
 
 namespace VRage.Game.ModAPI.Ingame
 {
+    public struct MyInventoryItem
+    {
+        public MyItemType Type;
+        public double Amount;
+    }
+
     public struct MyItemType
     {
         public string TypeId, SubtypeId;

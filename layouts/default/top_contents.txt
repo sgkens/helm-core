@@ -1,0 +1,19 @@
+# Top Contents
+# The five largest items held by a cargo group, ranked by amount and refreshed every 15 seconds.
+# text(bind.top1) is the largest item, top2 the next, and so on. Ore and ingots are named with their kind.
+@bind cargo = group("Cargo Containers", agg: sum)
+
+@screen Top
+output: "Contents LCD", 0
+profile: standard
+layout: grid(1, 1)
+bg: #0a0c10
+border_color: #94a3b8
+
+@panel p at(0, 0, 1, 1) title: "TOP ITEMS"
+line: "1       " text(cargo.top1) flat(#f8fafc)
+line: "2       " text(cargo.top2) flat(#e2e8f0)
+line: "3       " text(cargo.top3) flat(#cbd5e1)
+line: "4       " text(cargo.top4) flat(#94a3b8)
+line: "5       " text(cargo.top5) flat(#64748b)
+line: "CARGO   " bar(cargo.percent) gradient(#22c55e, #eab308, #ef4444)
