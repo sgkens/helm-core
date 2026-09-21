@@ -99,7 +99,7 @@ line: "URANIUM " text(reactor.ingot:Uranium) unit("kg")
 | `ammo` | Ammunition magazines | `ammo:NATO_25x184mm` |
 
 - The subtype is the game's internal name (`SteelPlate`, not "Steel Plate"), and it must not contain a dot.
-- Use `text(...)`. A `bar(...)` on an item field draws the block's fill percentage, as it does for other fields, and prints the amount.
+- Use `text(...)` for the amount alone. Add `max(N)` to draw a bar or a chart against a full amount, for example an ammunition load: `bar(guns.ammo:NATO_25x184mm) max(1200)`. Without `max(N)`, a `bar(...)` on an item field draws the block's fill percentage and prints the amount.
 - Each item line reads every block in its bind on every redraw. Bind a group instead of many single blocks, and check the `instr` figure in the console on a large grid before adding many item lines.
 - Listing everything a container holds is not supported.
 
@@ -182,6 +182,8 @@ line: "<LABEL8>" <kind>(<bind>.<field>) <color_spec> [unit("<unit>")] [dir:<up|d
    - `gradient(#hex1, #hex2, ...)`: Procedural multi-stop color gradient calculated from current value.
 5. **Optional Modifiers**:
    - `unit("MW")`: Overrides or specifies engineering measurement units.
+   - `max(N)`: Treats `N` as the full amount. Bars, sparklines, gradients and colour rules work on the percentage of `N` (capped at 100%), and the printed value stays the real amount. Use it with [item amounts](#item-amounts-cargo-and-reactor-contents) or any raw value:
+     `line: "GATLING " bar(guns.ammo:NATO_25x184mm) max(1200) gradient(#ef4444, #eab308, #22c55e)`.
    - `dir: up|down`: Sets flow direction.
 
 ### Complete Panel Example
