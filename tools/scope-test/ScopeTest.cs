@@ -58,6 +58,32 @@ static class ScopeTest {
     Check(binds["lost"].Count == 0, "group that exists only on the docked ship resolves to nothing");
     Check(binds["none"].Count == 0, "unknown name resolves to nothing");
     Check(outs.Count == 1 && outs.Values.First() == (IMyTextSurface)mLcd, "output 'Cockpit': this ship's LCD is drawn on, the docked ship's LCD is not touched");
+    // Console: the same model is echoed to the info pane and drawn on the Programmable Block's own screen.
+    var echo = new System.Text.StringBuilder();
+    prog.Echo = t => echo.Append(t);
+    var pb = new Dump.MockSurface(512, 320);
+    typeof(Program).GetField("_pbSurface", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(prog, pb);
+    prog.Main("", UpdateType.Update10);
+    string text = echo.ToString();
+    Console.WriteLine("--- info pane ---\n" + text + "-----------------");
+    Check(text.Contains("HELM-[Kernel-(v0.0.0)]"), "console: header with the version");
+    Check(text.Contains("krn-cfg") && text.Contains("cfg-dsp") && text.Contains("perf"), "console: krn-cfg, cfg-dsp and perf sections");
+    Check(text.Contains("screens 1") && text.Contains("binds 4/6"), "console: 1 screen; 4 of 6 binds matched a block");
+    Check(text.Contains("docked-ignored 3"), "console: three blocks on the docked ship were ignored");
+    Check(text.Contains("512x512"), "console: display list shows the surface size");
+    Check(text.Contains(" instr ") && text.Contains(" peak "), "console: perf shows the last run's instructions and the peak");
+    Check(pb.Last.Count > 0, "console: drawn on the Programmable Block's screen");
+    bool fits = pb.Last.Count > 0;
+    foreach (var sp in pb.Last)
+    {
+        if (sp.Data == null || sp.Data == "SquareSimple") continue;
+        // Positions include the offset of the (square) texture around the visible surface.
+        float sc = sp.RotationOrScale;
+        float offX = (pb.TextureSize.X - pb.SurfaceSize.X) / 2f, offY = (pb.TextureSize.Y - pb.SurfaceSize.Y) / 2f;
+        float right = sp.Position.Value.X - offX + sp.Data.Length * 13f * sc, bottom = sp.Position.Value.Y - offY + 22f * sc;
+        if (right > pb.SurfaceSize.X || bottom > pb.SurfaceSize.Y) { fits = false; Console.WriteLine("  overflow: '" + sp.Data + "' right " + right + " bottom " + bottom); }
+    }
+    Check(fits, "console: every line fits inside the block's 512x320 screen");
     Console.WriteLine(fails == 0 ? "ALL PASS" : fails + " FAILED");
     return fails;
   }
