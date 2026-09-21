@@ -126,6 +126,10 @@ $nsClose     = $programContent.LastIndexOf('}')
 $classClose  = $programContent.LastIndexOf('}', $nsClose - 1)
 $progBody    = $programContent.Substring($classOpen + 1, $classClose - $classOpen - 1).Trim("`r", "`n")
 
+# Code between "#if HELM_TOOLS" and "#endif" is for the test tools only and is not shipped.
+$toolsBlock = '(?ms)^[ \t]*#if HELM_TOOLS[^\n]*\n.*?^[ \t]*#endif[^\n]*\n'
+$progBody = [regex]::Replace([string]$progBody, $toolsBlock, '')
+
 # Stamp the version from the VERSION file into the script (shown in the console header). An empty file keeps 0.0.0.
 $verFile = [System.IO.Path]::Combine($ScriptDir, 'VERSION')
 if ([System.IO.File]::Exists($verFile)) {
@@ -141,6 +145,8 @@ if ($startNs -lt 0) { throw "HelmCore.cs: 'namespace HelmCore' not found" }
 $openBrace  = $coreContent.IndexOf('{', $startNs)
 $lastBrace  = $coreContent.LastIndexOf('}')
 $coreBody   = $coreContent.Substring($openBrace + 1, $lastBrace - $openBrace - 1).Trim("`r", "`n")
+
+$coreBody = [regex]::Replace([string]$coreBody, $toolsBlock, '')
 
 $combined = @"
 // ==============================================================================
@@ -265,6 +271,20 @@ function Compress-CSharpWhitespace {
                 $nl = $seg.LastIndexOf("`n")
                 if ($nl -ge 0) { $col = $seg.Length - $nl - 1 } else { $col += $seg.Length }
                 $i = $e
+                continue
+            }
+        }
+
+        # "private" is the default for members of a class, so it is dropped, except before get/set (private set).
+        if ($c -eq 'p' -and $i + 8 -lt $len -and [string]::CompareOrdinal($Source, $i, 'private', 0, 7) -eq 0 -and
+            ($i -eq 0 -or -not ([char]::IsLetterOrDigit($Source[$i - 1]) -or $Source[$i - 1] -eq '_')) -and [char]::IsWhiteSpace($Source[$i + 7])) {
+            $k = $i + 7
+            while ($k -lt $len -and [char]::IsWhiteSpace($Source[$k])) { $k++ }
+            $e = $k
+            while ($e -lt $len -and [char]::IsLetter($Source[$e])) { $e++ }
+            $next = $Source.Substring($k, $e - $k)
+            if ($next -ne 'set' -and $next -ne 'get' -and $next -ne 'init' -and $next -ne 'protected') {
+                $i += 7
                 continue
             }
         }
