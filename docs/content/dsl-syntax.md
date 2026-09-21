@@ -77,7 +77,8 @@ title_color: #<hexcolor>
 - `refresh: <ticks>`: Draws this screen at most every N game ticks (`600` is every 10 seconds). Use it on screens that change slowly to save instructions. Default: every run.
 - `alert_period: <seconds>`: Length of one red-alert flash cycle (default `1.6`). The flash follows the clock, not the run rate.
 - `bg: #hex`: Screen background color (e.g. `#090b0f`). See [Backgrounds](#backgrounds) for gradients, panel colours and the alert background.
-- `border_color: #hex`: Screen border frame color.
+- `border_color: #hex`: Screen border frame color. `border_gradient(#a, #b, ...)` blends through the stops from left to right along the top and bottom lines (`gradient_mode: steps` uses the first stop on top and the last on the bottom).
+- `gradient_mode: smooth` or `steps`: How gradients pick a colour. Default `smooth`.
 - `border: style`: Modular border character set.
 
 ### Backgrounds
@@ -206,7 +207,7 @@ line: "<LABEL8>" <kind>(<bind>.<field>) <color_spec> [unit("<unit>")] [dir:<up|d
 3. **Property Target**: `<bind_name>.<property_name>`.
 4. **Color Specification**:
    - `flat(#hex)`: Single uniform color (e.g. `flat(#38bdf8)`).
-   - `gradient(#hex1, #hex2, ...)`: Procedural multi-stop color gradient calculated from current value.
+   - `gradient(#hex1, #hex2, ...)`: Multi-stop color gradient. The colour blends smoothly between the two nearest stops as the value changes. Add `gradient_mode: steps` to a screen to pick the nearest stop instead (the older, stepped look). A red stop still flashes on a red alert either way.
 5. **Optional Modifiers**:
    - `unit("MW")`: Overrides or specifies engineering measurement units.
    - `max(bind.field)`: The same, with the full amount read from a block field, for example `bar(fuel.ingot:Uranium) max(reactor.max)`.
