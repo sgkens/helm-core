@@ -280,6 +280,9 @@ line: ""O2""  bar(o2_$screen.percent) flat(cyan)
         Check(cfgMax.Screens[0].Panels[0].Lines[0].Max == 1200.0 && cfgMax.Screens[0].Panels[0].Lines[0].Field == "ammo:NATO_25x184mm", "max(1200) and the item field are parsed");
         Check(cfgMax.Screens[0].Panels[0].Lines[1].Max == 0.0, "a line without max() has no maximum");
 
+        var cfgMir = HelmParser.Parse("@screen a\noutput: \"x\", 0\n@screen b\noutput: \"y\", 0\nmirror: \"a\"\n");
+        Check(cfgMir.Errors.Count == 0 && cfgMir.Screens[1].Mirror == "a" && cfgMir.Screens[0].Mirror == null, "mirror: names the screen to copy");
+
         // --- Banners: raw ASCII art blocks ---
         string bannerDsl = "@banner logo\n\n        ZZ   # \"q\"\n     ZZ ZZ\n\n@end\n@screen a\noutput: \"x\", 0\nbanner: logo\nboot_logo: logo\nbanner_color: red\n";
         var cfgBan = HelmParser.Parse(bannerDsl);
