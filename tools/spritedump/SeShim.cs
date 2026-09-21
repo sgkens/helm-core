@@ -63,10 +63,8 @@ namespace VRage.Game.GUI.TextPanel
         public string FontId;
         public TextAlignment Alignment;
         public float RotationOrScale;
-        public float Rotation { get { return RotationOrScale; } set { RotationOrScale = value; } }
         public static MySprite CreateText(string text, string font, VRageMath.Color color, float scale = 1f, TextAlignment alignment = TextAlignment.CENTER)
             => new MySprite { Type = SpriteType.TEXT, Data = text, FontId = font, Color = color, RotationOrScale = scale, Alignment = alignment };
-        public float Scale { get { return RotationOrScale; } set { RotationOrScale = value; } }
     }
 
     public class MySpriteDrawFrame : IDisposable
