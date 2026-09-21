@@ -100,6 +100,7 @@ namespace Sandbox.ModAPI.Ingame
 
     public interface IMyTextSurface : IDisposable
     {
+        void GetSprites(List<string> sprites);
         Vector2 SurfaceSize { get; }
         Vector2 TextureSize { get; }
         ContentType ContentType { get; set; }

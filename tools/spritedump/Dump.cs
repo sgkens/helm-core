@@ -78,6 +78,7 @@ public static class Dump
         public Color FontColor { get; set; }
         public Color BackgroundColor { get; set; }
         public bool WriteText(string v, bool append = false) { return true; }
+        public void GetSprites(List<string> sprites) { sprites.Add("Grid"); sprites.Add("Circle"); sprites.Add("Danger"); }
         // Placeholder metrics (see DEVTRACKER Epic 26 / TASK-26.5): monospace, 0.6 em wide.
         public Vector2 MeasureStringInPixels(StringBuilder t, string font, float scale)
         { return new Vector2(t.Length * 13f * scale, 22f * scale); }

@@ -1,5 +1,6 @@
 # Background Lab
-# What backgrounds can do: a gradient, deliberate two-tone panels, a see-through screen and an alert background.
+# What backgrounds can do: a gradient (vertical or horizontal), deliberate two-tone panels, a see-through screen, an alert
+# background, a panel that changes colour with a value, a panel that flashes on a threshold and a texture.
 @bind v = dynamic("demo.v", default: 62)
 
 # 1. Vertical gradient behind translucent panel cards (the default card lifts any background).
@@ -51,3 +52,31 @@ alert_bg: #7f1d1d
 border_color: #ef4444
 @panel p at(0, 0, 1, 1) title: "ALERT"
 line: "HULL    " bar(v.percent) gradient(#ef4444, #eab308, #22c55e)
+
+# 5. A panel that follows a value: red under 25%, amber under 60%, otherwise green. A second panel flashes below 15%.
+@screen Status
+output: "Background LCD 5", 0
+profile: standard
+layout: grid(2, 1)
+bg: #020617
+border_color: #94a3b8
+@panel a at(0, 0, 1, 1) title: "HULL"
+bg: color(v.percent < 25 : #7f1d1d, v.percent < 60 : #78350f, default: #14532d)
+line: "HULL    " bar(v.percent) gradient(#ef4444, #eab308, #22c55e)
+@panel b at(1, 0, 1, 1) title: "SHIELD"
+bg: #0f172a
+flash: v.percent < 15
+line: "SHIELD  " bar(v.percent) flat(#38bdf8)
+
+# 6. A horizontal gradient with a built-in texture over it. Run the block with the argument "scan" to list the texture names.
+@screen Texture
+output: "Background LCD 6", 0
+profile: standard
+layout: grid(1, 1)
+bg_gradient(#020617, #1e3a8a, #020617)
+bg_gradient_dir: horizontal
+bg_texture: Grid
+bg_texture_color: #38bdf8
+border_color: #38bdf8
+@panel p at(0, 0, 1, 1) title: "GRID"
+line: "POWER   " bar(v.percent) flat(#7dd3fc)

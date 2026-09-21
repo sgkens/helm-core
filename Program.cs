@@ -21,6 +21,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Sandbox.ModAPI.Ingame;
 using VRage.Game.GUI.TextPanel;
@@ -97,6 +98,17 @@ namespace IngameScript
             public bool AlertShown;
             public Vector2 LastSurfaceSize;
             public bool Initialized = false;
+            public List<BgEntry> Bgs = new List<BgEntry>(); // backgrounds that change with a value or flash
+        }
+
+        // A background sprite whose colour follows a value (bg: color(...)) or flashes on a value (flash:).
+        private class BgEntry
+        {
+            public int Index;
+            public Color Base, Cur;
+            public List<ColorRule> Rules, Flash;
+            public string Bind, Field, FlashBind, FlashField;
+            public bool IsScreen, Force;
         }
 
         private class LineSlot
@@ -949,6 +961,15 @@ namespace IngameScript
                     Echo($"[VAR] {kvp.Key} = {kvp.Value}");
             }
 
+            IMyTextSurface anySurface = null;
+            foreach (var os in _resolvedOutputs.Values) { anySurface = os; break; }
+            if (anySurface != null)
+            {
+                var spriteNames = new List<string>();
+                anySurface.GetSprites(spriteNames);
+                Echo($"--- SPRITES ({spriteNames.Count}): names usable in bg_texture ---");
+                Echo(string.Join(", ", spriteNames.Take(60).ToArray()));
+            }
             Echo("--- SURFACE OUTPUT AUDIT ---");
             foreach (var screen in _config.Screens)
             {
@@ -1438,6 +1459,24 @@ namespace IngameScript
         // Approach B: Retained Virtual Sprite Buffer (Geometric quads + in-place mutation)
         // =========================================================================
 
+        // A gradient as 16 bands inside a rectangle. Returns the band colours in order.
+        private static Color[] AddBands(ScreenBuffer buf, string[] stops, string dir, float x, float y, float w, float h)
+        {
+            int bands = 16;
+            bool horizontal = dir == "horizontal";
+            var cols = new Color[bands];
+            for (int i = 0; i < bands; i++)
+            {
+                HelmColor gc = Layout.GradientLerp(stops, 100.0 * i / (bands - 1));
+                cols[i] = new Color(gc.R, gc.G, gc.B);
+                float bw = w / bands, bh = h / bands;
+                AddQuad(buf,
+                    horizontal ? new Vector2(x + bw * (i + 0.5f), y + h / 2f) : new Vector2(x + w / 2f, y + bh * (i + 0.5f)),
+                    horizontal ? new Vector2(bw + 1f, h) : new Vector2(w, bh + 1f), cols[i]);
+            }
+            return cols;
+        }
+
         private static void AddQuad(ScreenBuffer buf, Vector2 pos, Vector2 size, Color col, float rot = 0f, string data = "SquareSimple")
         {
             buf.Sprites.Add(new MySprite { Type = SpriteType.TEXTURE, Data = data, Position = pos, Size = size, Color = col, RotationOrScale = rot });
@@ -1477,26 +1516,24 @@ namespace IngameScript
             buf.BgIndex = -1;
             buf.AlertShown = false;
             buf.AlertCol = ResolveColor(screen.AlertBg ?? "#5b0f0f");
+            buf.Bgs.Clear();
             if (screen.BgGradient != null && screen.BgGradient.Length > 1)
             {
-                // Vertical gradient as 16 bands of the surface.
-                int bands = 16;
-                float bandH = (surfaceSize.Y - 4f) / bands;
                 buf.BgIndex = buf.Sprites.Count;
-                buf.BgColors = new Color[bands];
-                for (int i = 0; i < bands; i++)
-                {
-                    HelmColor gc = Layout.GradientLerp(screen.BgGradient, 100.0 * i / (bands - 1));
-                    buf.BgColors[i] = new Color(gc.R, gc.G, gc.B);
-                    AddQuad(buf, new Vector2(viewportOffset.X + surfaceSize.X / 2f, viewportOffset.Y + 2f + bandH * (i + 0.5f)), new Vector2(surfaceSize.X - 4f, bandH + 1f), buf.BgColors[i]);
-                }
+                buf.BgColors = AddBands(buf, screen.BgGradient, screen.BgDir, viewportOffset.X + 2f, viewportOffset.Y + 2f, surfaceSize.X - 4f, surfaceSize.Y - 4f);
             }
-            else if (drawBg)
+            else if (drawBg || screen.BgRules != null || screen.FlashRules != null)
             {
+                if (screen.BgRules != null) bgCol = ResolveColor(screen.BgRules.First(r => r.IsDefault).Color);
                 buf.BgIndex = buf.Sprites.Count;
                 buf.BgColors = new[] { bgCol };
                 AddQuad(buf, viewportOffset + (surfaceSize / 2f), surfaceSize - new Vector2(4f, 4f), bgCol);
+                if (screen.BgRules != null || screen.FlashRules != null)
+                    buf.Bgs.Add(new BgEntry { Index = buf.BgIndex, Base = bgCol, Cur = bgCol, Rules = screen.BgRules, Bind = screen.BgBind, Field = screen.BgField, Flash = screen.FlashRules, FlashBind = screen.FlashBind, FlashField = screen.FlashField, IsScreen = true });
             }
+
+            if (!string.IsNullOrEmpty(screen.BgTexture))
+                AddQuad(buf, viewportOffset + (surfaceSize / 2f), surfaceSize - new Vector2(4f, 4f), ResolveColor(screen.BgTextureColor ?? "255,255,255,24"), 0f, screen.BgTexture);
 
             if (!screen.Border.Equals("none", StringComparison.OrdinalIgnoreCase))
             {
@@ -1532,19 +1569,25 @@ namespace IngameScript
                 float pWidth = pRect.Width;
                 float pHeight = pRect.Height;
 
-                if (!string.IsNullOrEmpty(panel.Background))
+                bool ruled = panel.BgRules != null || panel.FlashRules != null;
+                if (panel.BgGradient != null && panel.BgGradient.Length > 1)
                 {
-                    var pBg = HelmColor.Parse(panel.Background);
-                    if (!pBg.IsTransparent)
-                        AddQuad(buf, new Vector2(pLeft + pWidth / 2f, pTop + pHeight / 2f), new Vector2(pWidth, pHeight), new Color(pBg.R, pBg.G, pBg.B, pBg.A));
+                    AddBands(buf, panel.BgGradient, panel.BgDir != "vertical" ? panel.BgDir : screen.BgDir, pLeft, pTop, pWidth, pHeight);
                 }
-                else if (screen.GridCols > 1 || screen.GridRows > 1)
+                else
                 {
-                    // The default card is a faint white overlay, so it lifts any background (solid, gradient or
-                    // transparent) instead of painting a second colour over it. panel_bg: sets a colour or "none".
-                    Color card = string.IsNullOrEmpty(screen.PanelBg) ? new Color(255, 255, 255, 6) : ResolveColor(screen.PanelBg);
-                    if (card.A > 0)
-                        AddQuad(buf, new Vector2(pLeft + pWidth / 2f, pTop + pHeight / 2f), new Vector2(pWidth, pHeight), card);
+                    // A panel's own colour, its value-driven colour, or (on a multi-panel screen) the default card: a faint
+                    // white overlay that lifts any background instead of painting a second colour. panel_bg: sets it or "none".
+                    Color pc;
+                    if (panel.BgRules != null) pc = ResolveColor(panel.BgRules.First(r => r.IsDefault).Color);
+                    else if (!string.IsNullOrEmpty(panel.Background)) pc = ResolveColor(panel.Background);
+                    else if (screen.GridCols > 1 || screen.GridRows > 1) pc = string.IsNullOrEmpty(screen.PanelBg) ? new Color(255, 255, 255, 6) : ResolveColor(screen.PanelBg);
+                    else pc = Color.Transparent;
+                    if (pc.A > 0 || ruled)
+                    {
+                        if (ruled) buf.Bgs.Add(new BgEntry { Index = buf.Sprites.Count, Base = pc, Cur = pc, Rules = panel.BgRules, Bind = panel.BgBind, Field = panel.BgField, Flash = panel.FlashRules, FlashBind = panel.FlashBind, FlashField = panel.FlashField });
+                        AddQuad(buf, new Vector2(pLeft + pWidth / 2f, pTop + pHeight / 2f), new Vector2(pWidth, pHeight), pc);
+                    }
                 }
 
                 string font = panel.Font ?? screen.Font ?? "Monospace";
@@ -1803,6 +1846,29 @@ namespace IngameScript
                     buf.Sprites[buf.BgIndex + i] = bg;
                 }
                 dirty = true;
+                foreach (var be in buf.Bgs) be.Force = true;
+            }
+
+            // Backgrounds that follow a value (bg: color(...)) or flash on one (flash:).
+            foreach (var be in buf.Bgs)
+            {
+                if (be.IsScreen && buf.AlertShown) continue;
+                Color bc = be.Base;
+                try
+                {
+                    if (be.Rules != null) bc = ResolveColor(Layout.ResolveConditionalColor(be.Rules, ResolveFieldValue(be.Bind, be.Field)));
+                    if (be.Flash != null && alertPhase && Layout.ResolveConditionalColor(be.Flash, ResolveFieldValue(be.FlashBind, be.FlashField)) != null) bc = buf.AlertCol;
+                }
+                catch { }
+                if (bc != be.Cur || be.Force)
+                {
+                    be.Cur = bc;
+                    be.Force = false;
+                    var bs = buf.Sprites[be.Index];
+                    bs.Color = bc;
+                    buf.Sprites[be.Index] = bs;
+                    dirty = true;
+                }
             }
 
             for (int i = 0; i < buf.Slots.Count; i++)

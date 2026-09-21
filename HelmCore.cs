@@ -154,7 +154,18 @@ namespace HelmCore
         }
     }
 
-    public class PanelDef
+    // Background settings shared by a screen and a panel.
+    public class BgBase
+    {
+        public string[] BgGradient;               // bg_gradient(...) stops
+        public string BgDir = "vertical";         // bg_gradient_dir: vertical or horizontal
+        public List<ColorRule> BgRules;           // bg: color(bind.field < 20 : #450a0a, default: #0e1218)
+        public string BgBind, BgField;
+        public List<ColorRule> FlashRules;        // flash: bind.field > 90  (flashes to alert_bg)
+        public string FlashBind, FlashField;
+    }
+
+    public class PanelDef : BgBase
     {
         public string Name = "default";
         public int Col = 0;
@@ -174,7 +185,7 @@ namespace HelmCore
         public List<LineDef> Lines = new List<LineDef>();
     }
 
-    public class ScreenDef
+    public class ScreenDef : BgBase
     {
         public string Name;
         public string Profile = "standard"; // "standard", "compact", "wide", "corner", "auto"
@@ -189,7 +200,8 @@ namespace HelmCore
         public int BootStaggerTicks = 10;
         public int BootBatch = 1; // screens that power on together
         public string PanelBg;    // colour of the default card behind panels of a multi-panel screen; "none" for no card (default: a faint white overlay)
-        public string[] BgGradient; // vertical background gradient stops, top to bottom (overrides bg:)
+        public string BgTexture;  // bg_texture: name of a built-in sprite drawn over the background
+        public string BgTextureColor; // bg_texture_color: its tint (default white at low opacity)
         public string AlertBg;    // background colour flashed while the red alert is on; "none" to disable
         public string Banner;     // name of a @banner shown full screen instead of panels
         public string BootLogo;   // name of a @banner drawn instead of the default boot emblem
@@ -515,7 +527,17 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     {
                         RequireScreen(current, "bg:");
                         string bg = line.Substring(line.IndexOf(':') + 1).Trim();
-                        if (currentPanel != null) currentPanel.Background = bg;
+                        BgBase bgTarget = currentPanel != null ? (BgBase)currentPanel : current;
+                        if (bg.StartsWith("color(") && bg.EndsWith(")"))
+                        {
+                            string bgRef;
+                            bgTarget.BgRules = ParseColorRules(bg.Substring(6, bg.Length - 7), out bgRef);
+                            string bgBind, bgField;
+                            SplitRef(bgRef, out bgBind, out bgField);
+                            bgTarget.BgBind = bgBind;
+                            bgTarget.BgField = bgField;
+                        }
+                        else if (currentPanel != null) currentPanel.Background = bg;
                         else current.Background = bg;
                     }
                     else if (line.StartsWith("layout:"))
@@ -597,7 +619,34 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     else if (line.StartsWith("bg_gradient:") || line.StartsWith("bg_gradient("))
                     {
                         RequireScreen(current, "bg_gradient");
-                        current.BgGradient = ParseStops(line);
+                        (currentPanel != null ? (BgBase)currentPanel : current).BgGradient = ParseStops(line);
+                    }
+                    else if (line.StartsWith("bg_gradient_dir:"))
+                    {
+                        RequireScreen(current, "bg_gradient_dir:");
+                        (currentPanel != null ? (BgBase)currentPanel : current).BgDir = line.Substring("bg_gradient_dir:".Length).Trim().ToLowerInvariant();
+                    }
+                    else if (line.StartsWith("flash:"))
+                    {
+                        RequireScreen(current, "flash:");
+                        BgBase fTarget = currentPanel != null ? (BgBase)currentPanel : current;
+                        string fExpr = line.Substring("flash:".Length).Trim();
+                        string fCmp = StripLeadingFieldRef(fExpr);
+                        string fBind, fField;
+                        SplitRef(fExpr.Substring(0, fExpr.Length - fCmp.Length), out fBind, out fField);
+                        fTarget.FlashBind = fBind;
+                        fTarget.FlashField = fField;
+                        fTarget.FlashRules = new List<ColorRule> { new ColorRule { Expr = fCmp, Color = "on" } };
+                    }
+                    else if (line.StartsWith("bg_texture:"))
+                    {
+                        RequireScreen(current, "bg_texture:");
+                        current.BgTexture = Unquote(line.Substring("bg_texture:".Length).Trim());
+                    }
+                    else if (line.StartsWith("bg_texture_color:"))
+                    {
+                        RequireScreen(current, "bg_texture_color:");
+                        current.BgTextureColor = line.Substring("bg_texture_color:".Length).Trim();
                     }
                     else if (line.StartsWith("panel_bg:"))
                     {
@@ -1189,25 +1238,8 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                 }
                 else if (mFunc == "color")
                 {
-                    def.ColorRules = new List<ColorRule>();
-                    foreach (var part in SplitArgs(mArgs))
-                    {
-                        int colon = part.LastIndexOf(':');
-                        if (colon < 0) throw new FormatException("color() entries need 'expr : color'");
-                        string left = part.Substring(0, colon).Trim();
-                        string color = part.Substring(colon + 1).Trim();
-                        if (left.Equals("default", StringComparison.OrdinalIgnoreCase))
-                        {
-                            def.ColorRules.Add(new ColorRule { IsDefault = true, Color = color });
-                        }
-                        else
-                        {
-                            string strippedExpr = StripLeadingFieldRef(left);
-                            def.ColorRules.Add(new ColorRule { Expr = strippedExpr, Color = color });
-                        }
-                    }
-                    if (!def.ColorRules.Any(r => r.IsDefault))
-                        throw new FormatException("color() requires a 'default:' fallback entry — PDR-consistent decision: no silent fallback color assumed");
+                    string ignored;
+                    def.ColorRules = ParseColorRules(mArgs, out ignored);
                 }
                 else if (mFunc == "dir" || mFunc == "direction")
                 {
@@ -1265,6 +1297,44 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
             // nested parens in v1, so a simple split is sufficient and honest
             // about not supporting more than that yet)
             return argsStr.Split(',').Select(s => s.Trim()).Where(s => s.Length > 0).ToList();
+        }
+
+        // "expr : color, expr : color, default : color". fieldRef gets the "bind.field" written in front of the first
+        // comparison (the caller of a text() line already knows its own bind and field, a panel background does not).
+        private static List<ColorRule> ParseColorRules(string args, out string fieldRef)
+        {
+            var rules = new List<ColorRule>();
+            fieldRef = null;
+            foreach (var part in SplitArgs(args))
+            {
+                int colon = part.LastIndexOf(':');
+                if (colon < 0) throw new FormatException("color() entries need 'expr : color'");
+                string left = part.Substring(0, colon).Trim();
+                string color = part.Substring(colon + 1).Trim();
+                if (left.Equals("default", StringComparison.OrdinalIgnoreCase))
+                {
+                    rules.Add(new ColorRule { IsDefault = true, Color = color });
+                }
+                else
+                {
+                    string strippedExpr = StripLeadingFieldRef(left);
+                    if (fieldRef == null) fieldRef = left.Substring(0, left.Length - strippedExpr.Length).Trim();
+                    rules.Add(new ColorRule { Expr = strippedExpr, Color = color });
+                }
+            }
+            if (!rules.Any(r => r.IsDefault))
+                throw new FormatException("color() requires a 'default:' fallback entry — PDR-consistent decision: no silent fallback color assumed");
+            return rules;
+        }
+
+        // "bind.field" -> bind and field.
+        private static void SplitRef(string r, out string bind, out string field)
+        {
+            var p = (r ?? "").Split('.');
+            if (p.Length != 2 || p[0].Trim().Length == 0 || p[1].Trim().Length == 0)
+                throw new FormatException("expected bindname.field in front of the comparison, e.g. batt.percent < 20");
+            bind = p[0].Trim();
+            field = p[1].Trim();
         }
 
         private static string StripLeadingFieldRef(string expr)

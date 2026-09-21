@@ -216,6 +216,17 @@ line: ""O2""  bar(o2_$screen.percent) flat(cyan)
         Check(HelmParser.Parse("@screen a").Screens[0].BootBatch == 1, "boot_batch defaults to 1");
         Check(HelmParser.Parse("@screen a\nboot_batch: 0").Screens[0].BootBatch == 1, "boot_batch below 1 is clamped to 1");
 
+        // --- Value-driven backgrounds, flash, horizontal gradients and textures ---
+        var cfgVb = HelmParser.Parse("@screen a\noutput: \"x\", 0\nbg: color(b.percent < 20 : #450a0a, default: #0e1218)\nflash: b.percent < 5\nbg_texture: Grid\nbg_texture_color: #38bdf8\nbg_gradient_dir: horizontal\n@panel p at(0, 0, 1, 1) title: \"T\"\nbg: color(c.output > 90 : red, c.output > 50 : yellow, default: green)\nbg_gradient(#000, #fff)\nbg_gradient_dir: vertical\nflash: c.percent > 90\n");
+        Check(cfgVb.Errors.Count == 0, "value backgrounds parse without errors: " + string.Join(" | ", cfgVb.Errors));
+        var scVb = cfgVb.Screens[0]; var pnVb = scVb.Panels[0];
+        Check(scVb.BgRules.Count == 2 && scVb.BgBind == "b" && scVb.BgField == "percent" && scVb.BgRules[0].Expr == "< 20" && scVb.BgRules[1].IsDefault, "screen bg: color(...) keeps its rules and the bind.field written before the comparison");
+        Check(scVb.FlashBind == "b" && scVb.FlashField == "percent" && scVb.FlashRules[0].Expr == "< 5", "screen flash: b.percent < 5 parsed");
+        Check(scVb.BgTexture == "Grid" && scVb.BgTextureColor == "#38bdf8" && scVb.BgDir == "horizontal", "bg_texture, bg_texture_color and bg_gradient_dir parsed on the screen");
+        Check(pnVb.BgRules.Count == 3 && pnVb.BgBind == "c" && pnVb.BgField == "output" && pnVb.BgGradient.Length == 2 && pnVb.BgDir == "vertical", "after @panel the same directives apply to the panel, not the screen");
+        Check(pnVb.FlashBind == "c" && scVb.Background == null && pnVb.Background == null, "panel flash parsed; bg: color(...) does not set a solid colour");
+        Check(HelmParser.Parse("@screen a\noutput: \"x\", 0\nflash: percent < 5\n").Errors.Count == 1, "flash: without a bind.field is reported as an error");
+
         // --- scope: all and max(bind.field) ---
         var cfgScope = HelmParser.Parse("@bind a = group(\"G\", agg: sum, scope: all)\n@bind b = group(\"G\", agg: sum)\n@bind c = block(\"B\", scope: all)\n@screen s\noutput: \"x\", 0\n@panel p at(0, 0, 1, 1) title: \"T\"\nline: \"A\" bar(a.ammo:X) max(b.ammo:X) flat(cyan)\nline: \"B\" bar(a.percent) max(1.5) flat(cyan)\n");
         Check(cfgScope.Errors.Count == 0, "scope and max(bind.field) parse without errors: " + string.Join(" | ", cfgScope.Errors));

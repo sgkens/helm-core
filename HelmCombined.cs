@@ -69,6 +69,17 @@
             public bool AlertShown;
             public Vector2 LastSurfaceSize;
             public bool Initialized = false;
+            public List<BgEntry> Bgs = new List<BgEntry>(); // backgrounds that change with a value or flash
+        }
+
+        // A background sprite whose colour follows a value (bg: color(...)) or flashes on a value (flash:).
+        private class BgEntry
+        {
+            public int Index;
+            public Color Base, Cur;
+            public List<ColorRule> Rules, Flash;
+            public string Bind, Field, FlashBind, FlashField;
+            public bool IsScreen, Force;
         }
 
         private class LineSlot
@@ -921,6 +932,15 @@
                     Echo($"[VAR] {kvp.Key} = {kvp.Value}");
             }
 
+            IMyTextSurface anySurface = null;
+            foreach (var os in _resolvedOutputs.Values) { anySurface = os; break; }
+            if (anySurface != null)
+            {
+                var spriteNames = new List<string>();
+                anySurface.GetSprites(spriteNames);
+                Echo($"--- SPRITES ({spriteNames.Count}): names usable in bg_texture ---");
+                Echo(string.Join(", ", spriteNames.Take(60).ToArray()));
+            }
             Echo("--- SURFACE OUTPUT AUDIT ---");
             foreach (var screen in _config.Screens)
             {
@@ -1410,6 +1430,24 @@
         // Approach B: Retained Virtual Sprite Buffer (Geometric quads + in-place mutation)
         // =========================================================================
 
+        // A gradient as 16 bands inside a rectangle. Returns the band colours in order.
+        private static Color[] AddBands(ScreenBuffer buf, string[] stops, string dir, float x, float y, float w, float h)
+        {
+            int bands = 16;
+            bool horizontal = dir == "horizontal";
+            var cols = new Color[bands];
+            for (int i = 0; i < bands; i++)
+            {
+                HelmColor gc = Layout.GradientLerp(stops, 100.0 * i / (bands - 1));
+                cols[i] = new Color(gc.R, gc.G, gc.B);
+                float bw = w / bands, bh = h / bands;
+                AddQuad(buf,
+                    horizontal ? new Vector2(x + bw * (i + 0.5f), y + h / 2f) : new Vector2(x + w / 2f, y + bh * (i + 0.5f)),
+                    horizontal ? new Vector2(bw + 1f, h) : new Vector2(w, bh + 1f), cols[i]);
+            }
+            return cols;
+        }
+
         private static void AddQuad(ScreenBuffer buf, Vector2 pos, Vector2 size, Color col, float rot = 0f, string data = "SquareSimple")
         {
             buf.Sprites.Add(new MySprite { Type = SpriteType.TEXTURE, Data = data, Position = pos, Size = size, Color = col, RotationOrScale = rot });
@@ -1449,26 +1487,24 @@
             buf.BgIndex = -1;
             buf.AlertShown = false;
             buf.AlertCol = ResolveColor(screen.AlertBg ?? "#5b0f0f");
+            buf.Bgs.Clear();
             if (screen.BgGradient != null && screen.BgGradient.Length > 1)
             {
-                // Vertical gradient as 16 bands of the surface.
-                int bands = 16;
-                float bandH = (surfaceSize.Y - 4f) / bands;
                 buf.BgIndex = buf.Sprites.Count;
-                buf.BgColors = new Color[bands];
-                for (int i = 0; i < bands; i++)
-                {
-                    HelmColor gc = Layout.GradientLerp(screen.BgGradient, 100.0 * i / (bands - 1));
-                    buf.BgColors[i] = new Color(gc.R, gc.G, gc.B);
-                    AddQuad(buf, new Vector2(viewportOffset.X + surfaceSize.X / 2f, viewportOffset.Y + 2f + bandH * (i + 0.5f)), new Vector2(surfaceSize.X - 4f, bandH + 1f), buf.BgColors[i]);
-                }
+                buf.BgColors = AddBands(buf, screen.BgGradient, screen.BgDir, viewportOffset.X + 2f, viewportOffset.Y + 2f, surfaceSize.X - 4f, surfaceSize.Y - 4f);
             }
-            else if (drawBg)
+            else if (drawBg || screen.BgRules != null || screen.FlashRules != null)
             {
+                if (screen.BgRules != null) bgCol = ResolveColor(screen.BgRules.First(r => r.IsDefault).Color);
                 buf.BgIndex = buf.Sprites.Count;
                 buf.BgColors = new[] { bgCol };
                 AddQuad(buf, viewportOffset + (surfaceSize / 2f), surfaceSize - new Vector2(4f, 4f), bgCol);
+                if (screen.BgRules != null || screen.FlashRules != null)
+                    buf.Bgs.Add(new BgEntry { Index = buf.BgIndex, Base = bgCol, Cur = bgCol, Rules = screen.BgRules, Bind = screen.BgBind, Field = screen.BgField, Flash = screen.FlashRules, FlashBind = screen.FlashBind, FlashField = screen.FlashField, IsScreen = true });
             }
+
+            if (!string.IsNullOrEmpty(screen.BgTexture))
+                AddQuad(buf, viewportOffset + (surfaceSize / 2f), surfaceSize - new Vector2(4f, 4f), ResolveColor(screen.BgTextureColor ?? "255,255,255,24"), 0f, screen.BgTexture);
 
             if (!screen.Border.Equals("none", StringComparison.OrdinalIgnoreCase))
             {
@@ -1504,19 +1540,25 @@
                 float pWidth = pRect.Width;
                 float pHeight = pRect.Height;
 
-                if (!string.IsNullOrEmpty(panel.Background))
+                bool ruled = panel.BgRules != null || panel.FlashRules != null;
+                if (panel.BgGradient != null && panel.BgGradient.Length > 1)
                 {
-                    var pBg = HelmColor.Parse(panel.Background);
-                    if (!pBg.IsTransparent)
-                        AddQuad(buf, new Vector2(pLeft + pWidth / 2f, pTop + pHeight / 2f), new Vector2(pWidth, pHeight), new Color(pBg.R, pBg.G, pBg.B, pBg.A));
+                    AddBands(buf, panel.BgGradient, panel.BgDir != "vertical" ? panel.BgDir : screen.BgDir, pLeft, pTop, pWidth, pHeight);
                 }
-                else if (screen.GridCols > 1 || screen.GridRows > 1)
+                else
                 {
-                    // The default card is a faint white overlay, so it lifts any background (solid, gradient or
-                    // transparent) instead of painting a second colour over it. panel_bg: sets a colour or "none".
-                    Color card = string.IsNullOrEmpty(screen.PanelBg) ? new Color(255, 255, 255, 6) : ResolveColor(screen.PanelBg);
-                    if (card.A > 0)
-                        AddQuad(buf, new Vector2(pLeft + pWidth / 2f, pTop + pHeight / 2f), new Vector2(pWidth, pHeight), card);
+                    // A panel's own colour, its value-driven colour, or (on a multi-panel screen) the default card: a faint
+                    // white overlay that lifts any background instead of painting a second colour. panel_bg: sets it or "none".
+                    Color pc;
+                    if (panel.BgRules != null) pc = ResolveColor(panel.BgRules.First(r => r.IsDefault).Color);
+                    else if (!string.IsNullOrEmpty(panel.Background)) pc = ResolveColor(panel.Background);
+                    else if (screen.GridCols > 1 || screen.GridRows > 1) pc = string.IsNullOrEmpty(screen.PanelBg) ? new Color(255, 255, 255, 6) : ResolveColor(screen.PanelBg);
+                    else pc = Color.Transparent;
+                    if (pc.A > 0 || ruled)
+                    {
+                        if (ruled) buf.Bgs.Add(new BgEntry { Index = buf.Sprites.Count, Base = pc, Cur = pc, Rules = panel.BgRules, Bind = panel.BgBind, Field = panel.BgField, Flash = panel.FlashRules, FlashBind = panel.FlashBind, FlashField = panel.FlashField });
+                        AddQuad(buf, new Vector2(pLeft + pWidth / 2f, pTop + pHeight / 2f), new Vector2(pWidth, pHeight), pc);
+                    }
                 }
 
                 string font = panel.Font ?? screen.Font ?? "Monospace";
@@ -1775,6 +1817,29 @@
                     buf.Sprites[buf.BgIndex + i] = bg;
                 }
                 dirty = true;
+                foreach (var be in buf.Bgs) be.Force = true;
+            }
+
+            // Backgrounds that follow a value (bg: color(...)) or flash on one (flash:).
+            foreach (var be in buf.Bgs)
+            {
+                if (be.IsScreen && buf.AlertShown) continue;
+                Color bc = be.Base;
+                try
+                {
+                    if (be.Rules != null) bc = ResolveColor(Layout.ResolveConditionalColor(be.Rules, ResolveFieldValue(be.Bind, be.Field)));
+                    if (be.Flash != null && alertPhase && Layout.ResolveConditionalColor(be.Flash, ResolveFieldValue(be.FlashBind, be.FlashField)) != null) bc = buf.AlertCol;
+                }
+                catch { }
+                if (bc != be.Cur || be.Force)
+                {
+                    be.Cur = bc;
+                    be.Force = false;
+                    var bs = buf.Sprites[be.Index];
+                    bs.Color = bc;
+                    buf.Sprites[be.Index] = bs;
+                    dirty = true;
+                }
             }
 
             for (int i = 0; i < buf.Slots.Count; i++)
@@ -2383,7 +2448,18 @@
         }
     }
 
-    public class PanelDef
+    // Background settings shared by a screen and a panel.
+    public class BgBase
+    {
+        public string[] BgGradient;               // bg_gradient(...) stops
+        public string BgDir = "vertical";         // bg_gradient_dir: vertical or horizontal
+        public List<ColorRule> BgRules;           // bg: color(bind.field < 20 : #450a0a, default: #0e1218)
+        public string BgBind, BgField;
+        public List<ColorRule> FlashRules;        // flash: bind.field > 90  (flashes to alert_bg)
+        public string FlashBind, FlashField;
+    }
+
+    public class PanelDef : BgBase
     {
         public string Name = "default";
         public int Col = 0;
@@ -2403,7 +2479,7 @@
         public List<LineDef> Lines = new List<LineDef>();
     }
 
-    public class ScreenDef
+    public class ScreenDef : BgBase
     {
         public string Name;
         public string Profile = "standard"; // "standard", "compact", "wide", "corner", "auto"
@@ -2418,7 +2494,8 @@
         public int BootStaggerTicks = 10;
         public int BootBatch = 1; // screens that power on together
         public string PanelBg;    // colour of the default card behind panels of a multi-panel screen; "none" for no card (default: a faint white overlay)
-        public string[] BgGradient; // vertical background gradient stops, top to bottom (overrides bg:)
+        public string BgTexture;  // bg_texture: name of a built-in sprite drawn over the background
+        public string BgTextureColor; // bg_texture_color: its tint (default white at low opacity)
         public string AlertBg;    // background colour flashed while the red alert is on; "none" to disable
         public string Banner;     // name of a @banner shown full screen instead of panels
         public string BootLogo;   // name of a @banner drawn instead of the default boot emblem
@@ -2711,7 +2788,17 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     {
                         RequireScreen(current, "bg:");
                         string bg = line.Substring(line.IndexOf(':') + 1).Trim();
-                        if (currentPanel != null) currentPanel.Background = bg;
+                        BgBase bgTarget = currentPanel != null ? (BgBase)currentPanel : current;
+                        if (bg.StartsWith("color(") && bg.EndsWith(")"))
+                        {
+                            string bgRef;
+                            bgTarget.BgRules = ParseColorRules(bg.Substring(6, bg.Length - 7), out bgRef);
+                            string bgBind, bgField;
+                            SplitRef(bgRef, out bgBind, out bgField);
+                            bgTarget.BgBind = bgBind;
+                            bgTarget.BgField = bgField;
+                        }
+                        else if (currentPanel != null) currentPanel.Background = bg;
                         else current.Background = bg;
                     }
                     else if (line.StartsWith("layout:"))
@@ -2793,7 +2880,34 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     else if (line.StartsWith("bg_gradient:") || line.StartsWith("bg_gradient("))
                     {
                         RequireScreen(current, "bg_gradient");
-                        current.BgGradient = ParseStops(line);
+                        (currentPanel != null ? (BgBase)currentPanel : current).BgGradient = ParseStops(line);
+                    }
+                    else if (line.StartsWith("bg_gradient_dir:"))
+                    {
+                        RequireScreen(current, "bg_gradient_dir:");
+                        (currentPanel != null ? (BgBase)currentPanel : current).BgDir = line.Substring("bg_gradient_dir:".Length).Trim().ToLowerInvariant();
+                    }
+                    else if (line.StartsWith("flash:"))
+                    {
+                        RequireScreen(current, "flash:");
+                        BgBase fTarget = currentPanel != null ? (BgBase)currentPanel : current;
+                        string fExpr = line.Substring("flash:".Length).Trim();
+                        string fCmp = StripLeadingFieldRef(fExpr);
+                        string fBind, fField;
+                        SplitRef(fExpr.Substring(0, fExpr.Length - fCmp.Length), out fBind, out fField);
+                        fTarget.FlashBind = fBind;
+                        fTarget.FlashField = fField;
+                        fTarget.FlashRules = new List<ColorRule> { new ColorRule { Expr = fCmp, Color = "on" } };
+                    }
+                    else if (line.StartsWith("bg_texture:"))
+                    {
+                        RequireScreen(current, "bg_texture:");
+                        current.BgTexture = Unquote(line.Substring("bg_texture:".Length).Trim());
+                    }
+                    else if (line.StartsWith("bg_texture_color:"))
+                    {
+                        RequireScreen(current, "bg_texture_color:");
+                        current.BgTextureColor = line.Substring("bg_texture_color:".Length).Trim();
                     }
                     else if (line.StartsWith("panel_bg:"))
                     {
@@ -3385,25 +3499,8 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                 }
                 else if (mFunc == "color")
                 {
-                    def.ColorRules = new List<ColorRule>();
-                    foreach (var part in SplitArgs(mArgs))
-                    {
-                        int colon = part.LastIndexOf(':');
-                        if (colon < 0) throw new FormatException("color() entries need 'expr : color'");
-                        string left = part.Substring(0, colon).Trim();
-                        string color = part.Substring(colon + 1).Trim();
-                        if (left.Equals("default", StringComparison.OrdinalIgnoreCase))
-                        {
-                            def.ColorRules.Add(new ColorRule { IsDefault = true, Color = color });
-                        }
-                        else
-                        {
-                            string strippedExpr = StripLeadingFieldRef(left);
-                            def.ColorRules.Add(new ColorRule { Expr = strippedExpr, Color = color });
-                        }
-                    }
-                    if (!def.ColorRules.Any(r => r.IsDefault))
-                        throw new FormatException("color() requires a 'default:' fallback entry — PDR-consistent decision: no silent fallback color assumed");
+                    string ignored;
+                    def.ColorRules = ParseColorRules(mArgs, out ignored);
                 }
                 else if (mFunc == "dir" || mFunc == "direction")
                 {
@@ -3461,6 +3558,44 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
             // nested parens in v1, so a simple split is sufficient and honest
             // about not supporting more than that yet)
             return argsStr.Split(',').Select(s => s.Trim()).Where(s => s.Length > 0).ToList();
+        }
+
+        // "expr : color, expr : color, default : color". fieldRef gets the "bind.field" written in front of the first
+        // comparison (the caller of a text() line already knows its own bind and field, a panel background does not).
+        private static List<ColorRule> ParseColorRules(string args, out string fieldRef)
+        {
+            var rules = new List<ColorRule>();
+            fieldRef = null;
+            foreach (var part in SplitArgs(args))
+            {
+                int colon = part.LastIndexOf(':');
+                if (colon < 0) throw new FormatException("color() entries need 'expr : color'");
+                string left = part.Substring(0, colon).Trim();
+                string color = part.Substring(colon + 1).Trim();
+                if (left.Equals("default", StringComparison.OrdinalIgnoreCase))
+                {
+                    rules.Add(new ColorRule { IsDefault = true, Color = color });
+                }
+                else
+                {
+                    string strippedExpr = StripLeadingFieldRef(left);
+                    if (fieldRef == null) fieldRef = left.Substring(0, left.Length - strippedExpr.Length).Trim();
+                    rules.Add(new ColorRule { Expr = strippedExpr, Color = color });
+                }
+            }
+            if (!rules.Any(r => r.IsDefault))
+                throw new FormatException("color() requires a 'default:' fallback entry — PDR-consistent decision: no silent fallback color assumed");
+            return rules;
+        }
+
+        // "bind.field" -> bind and field.
+        private static void SplitRef(string r, out string bind, out string field)
+        {
+            var p = (r ?? "").Split('.');
+            if (p.Length != 2 || p[0].Trim().Length == 0 || p[1].Trim().Length == 0)
+                throw new FormatException("expected bindname.field in front of the comparison, e.g. batt.percent < 20");
+            bind = p[0].Trim();
+            field = p[1].Trim();
         }
 
         private static string StripLeadingFieldRef(string expr)
