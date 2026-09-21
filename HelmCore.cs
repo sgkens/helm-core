@@ -205,6 +205,7 @@ namespace HelmCore
         public string BgTexture;  // bg_texture: name of a built-in sprite drawn over the background
         public string BgTextureColor; // bg_texture_color: its tint (default white at low opacity)
         public string AlertBg;    // background colour flashed while the red alert is on; "none" to disable
+        public string Mirror;     // name of another screen whose drawing is copied here, scaled
         public string Banner;     // name of a @banner shown full screen instead of panels
         public string BootLogo;   // name of a @banner drawn instead of the default boot emblem
         public float BootDuration = 2.5f; // Seconds
@@ -609,6 +610,11 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     {
                         RequireScreen(current, "boot_log:");
                         current.BootLogs.Add(Unquote(line.Substring("boot_log:".Length).Trim()));
+                    }
+                    else if (line.StartsWith("mirror:"))
+                    {
+                        RequireScreen(current, "mirror:");
+                        current.Mirror = Unquote(line.Substring("mirror:".Length).Trim());
                     }
                     else if (line.StartsWith("banner:"))
                     {

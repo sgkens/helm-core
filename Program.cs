@@ -96,7 +96,8 @@ namespace IngameScript
             public Color[] BgColors;        // their normal colours
             public Color AlertCol;          // colour they flash to while the red alert is on
             public bool AlertShown;
-            public Vector2 LastSurfaceSize;
+            public Vector2 LastSurfaceSize, Off; // Off: where the drawable area starts inside the texture
+            public int Ver;                      // counts redraws, so a mirror knows when to copy again
             public bool Initialized = false;
             public List<BgEntry> Bgs = new List<BgEntry>(); // backgrounds that change with a value or flash
         }
@@ -786,6 +787,32 @@ namespace IngameScript
                 HelmColor c = Layout.GradientLerp(stops, art.Count > 1 ? 100.0 * i / (art.Count - 1) : 0.0);
                 AddBootText(sp, art[i], new Color(c.R, c.G, c.B), x, y + i * lh, scale);
             }
+        }
+
+        // mirror: "Screen name": copies another screen's drawing, scaled to fit, whenever that screen has redrawn.
+        private bool RenderMirror(ScreenDef screen, IMyTextSurface surface)
+        {
+            ScreenBuffer src, mb;
+            ScreenDef sd = _config.Screens.Find(x => x != screen && x.Name.Equals(screen.Mirror, StringComparison.OrdinalIgnoreCase));
+            if (sd == null || !_screenBuffers.TryGetValue(sd, out src) || !src.Initialized) return false;
+            if (!_screenBuffers.TryGetValue(screen, out mb)) _screenBuffers[screen] = mb = new ScreenBuffer();
+            Vector2 size = surface.SurfaceSize;
+            if (mb.Initialized && mb.Ver == src.Ver && mb.LastSurfaceSize == size) return false;
+            mb.Initialized = true; mb.Ver = src.Ver; mb.LastSurfaceSize = size;
+            mb.Sprites.Clear();
+            Vector2 sz = src.LastSurfaceSize, off = (surface.TextureSize - size) / 2f;
+            float k = Math.Min(size.X / sz.X, size.Y / sz.Y);
+            Vector2 at = off + (size - sz * k) / 2f;
+            foreach (var sp in src.Sprites)
+            {
+                var m = sp;
+                if (m.Position.HasValue) m.Position = (m.Position.Value - src.Off) * k + at;
+                if (m.Size.HasValue) m.Size = m.Size.Value * k;
+                if (m.Type == SpriteType.TEXT) m.RotationOrScale *= k;
+                mb.Sprites.Add(m);
+            }
+            using (var frame = surface.DrawFrame()) frame.AddRange(mb.Sprites);
+            return true;
         }
 
         // A full-screen banner: the art is scaled to fill the surface and drawn once.
@@ -1618,6 +1645,7 @@ namespace IngameScript
                 return false;
 
             if (screen.Banner != null) return RenderBanner(screen, surface);
+            if (screen.Mirror != null) return RenderMirror(screen, surface);
             if (screen.Border.Equals("ascii", StringComparison.OrdinalIgnoreCase))
             {
                 return RenderScreenAscii(screen, surface);
@@ -1671,6 +1699,7 @@ namespace IngameScript
             Vector2 surfaceSize = surface.SurfaceSize;
             Vector2 textureSize = surface.TextureSize;
             Vector2 viewportOffset = (textureSize - surfaceSize) / 2f;
+            buf.Off = viewportOffset;
 
             float paddingX = Math.Max(4f, surfaceSize.X * 0.02f);
             float paddingY = Math.Max(4f, surfaceSize.Y * 0.02f);
@@ -2496,6 +2525,7 @@ namespace IngameScript
 
             if (dirty)
             {
+                buf.Ver++;
                 using (var frame = surface.DrawFrame())
                 {
                     frame.AddRange(buf.Sprites);
