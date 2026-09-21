@@ -39,7 +39,7 @@ namespace HelmCore
         public bool AllShips;   // scope: all - also use blocks on ships docked on a connector
     }
 
-    public enum LineKind { Text, Bar, LedBar, Spark, Hazard, Chevron, Dots, Balance, Toggle, Checkbox, Status, Ammo, Flow, Tank }
+    public enum LineKind { Text, Bar, LedBar, Spark, Hazard, Chevron, Dots, Balance, Toggle, Checkbox, Status, Ammo, Flow, Tank, Dial }
 
     public class ColorRule
     {
@@ -1210,6 +1210,7 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
             else if (func == "flow" || func == "rate" || func == "spinner") def.Kind = LineKind.Flow;
             else if (func == "text") def.Kind = LineKind.Text;
             else if (func == "tank" || func == "tube" || func == "bucket") def.Kind = LineKind.Tank;
+            else if (func == "dial" || func == "gauge" || func == "arc") def.Kind = LineKind.Dial;
             else throw new FormatException($"unknown display function '{func}'");
 
             // 3) chained modifiers: gradient(...) / flat(...) / color(...) / pattern(...) / dir / unit / format

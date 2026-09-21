@@ -153,7 +153,9 @@ namespace IngameScript
         private Dictionary<string, int> _topN = new Dictionary<string, int>();      // bind -> highest topN rank used by a line
         private List<string> _topKeys = new List<string>();
         private Dictionary<string, int> _txtN = new Dictionary<string, int>();      // bind -> highest lineN used by a line
-        private double _txtAt;
+        private double _txtAt, _rateAt;
+        private HashSet<string> _rateKeys = new HashSet<string>();               // binds with a rate, eta or trend line
+        private Dictionary<string, double[]> _rate = new Dictionary<string, double[]>(); // bind -> last percent, its time, smoothed change per second
         private Dictionary<string, double> _topAcc = new Dictionary<string, double>();
         private List<MyInventoryItem> _itemBuf = new List<MyInventoryItem>();
         private int _topBind = -1, _topBlock;   // position of the contents scan (-1 = waiting for the next pass)
@@ -317,6 +319,7 @@ namespace IngameScript
 
             ScanTop();
             ScanText();
+            ScanRate();
             UpdateConsole();
             EchoNotes();
 
@@ -532,7 +535,7 @@ namespace IngameScript
 
         private static bool IsTop(string f)
         {
-            return f.Length > 3 && (f.StartsWith("top") && char.IsDigit(f[3]) || f.Length > 4 && f.StartsWith("line") && char.IsDigit(f[4]));
+            return f == "rate" || f == "eta" || f == "trend" || f.Length > 3 && (f.StartsWith("top") && char.IsDigit(f[3]) || f.Length > 4 && f.StartsWith("line") && char.IsDigit(f[4]));
         }
 
         private void FindTopLines()
@@ -540,8 +543,10 @@ namespace IngameScript
             _topN.Clear();
             _topKeys.Clear();
             _txtN.Clear();
+            _rateKeys.Clear();
+            _rate.Clear();
             _topBind = -1;
-            _topAt = _txtAt = 0;
+            _topAt = _txtAt = _rateAt = 0;
             foreach (var sc in _config.Screens)
             {
                 var lists = new List<List<LineDef>>();
@@ -551,6 +556,7 @@ namespace IngameScript
                     foreach (var ln in ls)
                     {
                         if (!IsTop(ln.Field)) continue;
+                        if (ln.Field == "rate" || ln.Field == "eta" || ln.Field == "trend") { _rateKeys.Add(ln.BindName); continue; }
                         bool top = ln.Field[0] == 't';
                         var dic = top ? _topN : _txtN;
                         int n = int.Parse(ln.Field.Substring(top ? 3 : 4));
@@ -573,6 +579,26 @@ namespace IngameScript
                 var sf = _resolvedBinds.TryGetValue(kv.Key, out blocks) && blocks.Count > 0 ? blocks[0] as IMyTextSurface : null;
                 string[] ls = sf == null ? new string[0] : sf.GetText().Split('\n');
                 for (int r = 1; r <= kv.Value; r++) _dynText[kv.Key + ".line" + r] = r <= ls.Length ? ls[r - 1].TrimEnd('\r') : "";
+            }
+        }
+
+        // text(bind.rate) is the change of the bind's percent per minute, eta the time until it is empty or full at that rate,
+        // trend an arrow (^ v =). Sampled every 5 s and smoothed; the first sample only starts the history.
+        private void ScanRate()
+        {
+            if (_rateKeys.Count == 0 || _time < _rateAt) return;
+            _rateAt = _time + 5.0;
+            foreach (var bn in _rateKeys)
+            {
+                double v = ResolveFieldValue(bn, "percent"), r = 0.0;
+                double[] h;
+                if (_rate.TryGetValue(bn, out h)) r = h[2] * 0.6 + (v - h[0]) / Math.Max(0.1, _time - h[1]) * 0.4;
+                _rate[bn] = new[] { v, _time, r };
+                double pm = r * 60.0;
+                int t = (int)Math.Min(359999.0, (r < 0 ? v / -r : r > 0 ? (100.0 - v) / r : 0.0) + 0.5);
+                _dynText[bn + ".rate"] = (pm >= 0 ? "+" : "") + pm.ToString("0.0") + "%/min";
+                _dynText[bn + ".trend"] = pm > 0.05 ? "^" : pm < -0.05 ? "v" : "=";
+                _dynText[bn + ".eta"] = Math.Abs(pm) < 0.05 ? "--" : (r < 0 ? "empty " : "full ") + (t >= 3600 ? t / 3600 + "h " + t % 3600 / 60 + "m" : t >= 60 ? t / 60 + "m " + t % 60 + "s" : t + "s");
             }
         }
 
@@ -1991,6 +2017,23 @@ namespace IngameScript
                             if (line.Outline != null)
                                 AddFrame(buf, "single", null, line.Outline, true, barLeft, centerY - barHeight / 2f, barLeft + barWidth, centerY + barHeight / 2f);
                         }
+                        else if (line.Kind == LineKind.Dial)
+                        {
+                            // A half circle of segments that light up with the value, a needle and a hub.
+                            float rad = Math.Max(8f, Math.Min(barWidth / 2f, rowHeight * 0.85f));
+                            float dcx = barLeft + barWidth / 2f, dcy = rowY + rowHeight - 4f;
+                            int dn = line.Segs > 0 ? line.Segs : 16;
+                            slot.BarLeft = dcx; slot.BarCenterY = dcy; slot.BarMaxWidth = rad;
+                            for (int d = 0; d < dn; d++)
+                            {
+                                float ta = (d + 0.5f) / dn * 3.14159f;
+                                slot.ExtraSpriteIndices.Add(buf.Sprites.Count);
+                                AddQuad(buf, new Vector2(dcx - (float)Math.Cos(ta) * rad * 0.8f, dcy - (float)Math.Sin(ta) * rad * 0.8f), new Vector2(rad * 3.14159f / dn * 0.85f, Math.Max(3f, rad * 0.16f)), Trk(line, new Color(24, 28, 36)), ta - 1.5708f);
+                            }
+                            slot.ExtraSpriteIndices.Add(buf.Sprites.Count);
+                            AddQuad(buf, new Vector2(dcx, dcy), new Vector2(3f, rad * 0.9f), Color.White);
+                            AddQuad(buf, new Vector2(dcx, dcy), new Vector2(8f, 8f), Color.White, 0f, "Circle");
+                        }
                         else if (line.Kind == LineKind.LedBar)
                         {
                             int segCount = line.Segs > 0 ? line.Segs : 10;
@@ -2384,7 +2427,7 @@ namespace IngameScript
                     continue;
                 }
 
-                if (line.Kind == LineKind.Bar)
+                if (line.Kind == LineKind.Bar || line.Kind == LineKind.Dial)
                 {
                     double fillVal = (line.HasMax || line.Field == "percent" || line.Field == "pct") ? value : ResolvePercentForBind(line.BindName);
                     if (slot.DisplayValue < 0f) slot.DisplayValue = (float)fillVal;
@@ -2406,11 +2449,29 @@ namespace IngameScript
                         float pct = (float)Math.Max(0.0, Math.Min(1.0, slot.DisplayValue / 100.0));
                         float fillW = slot.BarMaxWidth * pct;
 
-                        var fillSprite = buf.Sprites[slot.FillSpriteIndex];
-                        fillSprite.Size = new Vector2(fillW, slot.BarHeight);
-                        fillSprite.Position = new Vector2(line.Direction == "left" ? slot.BarLeft + slot.BarMaxWidth - (fillW / 2f) : slot.BarLeft + (fillW / 2f), slot.BarCenterY);
-                        fillSprite.Color = barCol;
-                        buf.Sprites[slot.FillSpriteIndex] = fillSprite;
+                        if (line.Kind == LineKind.Dial)
+                        {
+                            int dn = slot.ExtraSpriteIndices.Count - 1;
+                            for (int d = 0; d < dn; d++)
+                            {
+                                var sg = buf.Sprites[slot.ExtraSpriteIndices[d]];
+                                sg.Color = slot.DisplayValue >= (d + 0.5) / dn * 100.0 ? (line.ColorRules == null && line.Gradient && line.GradientColors.Length > 1 ? GradColor(line.GradientColors, (d + 0.5) / dn * 100.0) : barCol) : Trk(line, new Color(24, 28, 36));
+                                buf.Sprites[slot.ExtraSpriteIndices[d]] = sg;
+                            }
+                            float ang = pct * 3.14159f;
+                            var nd = buf.Sprites[slot.ExtraSpriteIndices[dn]];
+                            nd.Position = new Vector2(slot.BarLeft - (float)Math.Cos(ang) * slot.BarMaxWidth * 0.45f, slot.BarCenterY - (float)Math.Sin(ang) * slot.BarMaxWidth * 0.45f);
+                            nd.RotationOrScale = ang - 1.5708f;
+                            buf.Sprites[slot.ExtraSpriteIndices[dn]] = nd;
+                        }
+                        else
+                        {
+                            var fillSprite = buf.Sprites[slot.FillSpriteIndex];
+                            fillSprite.Size = new Vector2(fillW, slot.BarHeight);
+                            fillSprite.Position = new Vector2(line.Direction == "left" ? slot.BarLeft + slot.BarMaxWidth - (fillW / 2f) : slot.BarLeft + (fillW / 2f), slot.BarCenterY);
+                            fillSprite.Color = barCol;
+                            buf.Sprites[slot.FillSpriteIndex] = fillSprite;
+                        }
 
                         SetVal(buf, slot, FormatDisplayValue(raw, line), barCol);
                     }
