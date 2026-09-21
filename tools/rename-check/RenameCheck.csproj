@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Runs the script through its public entry points (constructor and Main) on every preset and writes every drawn
+       sprite and every echoed line. Run this project twice, once with the MSBuild property Variant set to source and
+       once set to renamed, giving the layouts folder and an output folder as arguments, and compare the two outputs.
+       Variant source compiles Program.cs and HelmCore.cs; Variant renamed compiles the shipped, renamed script
+       (Wrapped.g.cs written by Build-Release.ps1). Any difference means the renaming changed behaviour. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <RollForward>Major</RollForward>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <NoWarn>CS0169;CS0414;CS0649;CS0219;CS8981;CS0168;CS0108</NoWarn>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <BaseIntermediateOutputPath>obj/$(Variant)/</BaseIntermediateOutputPath>
+    <BaseOutputPath>bin/$(Variant)/</BaseOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Parity.cs" />
+    <ProjectReference Include="../spritedump/SeShim/SeShim.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Variant)' == 'renamed'">
+    <Compile Include="../spritedump/CombinedCheck/Wrapped.g.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Variant)' != 'renamed'">
+    <Compile Include="../../Program.cs" />
+    <Compile Include="../../HelmCore.cs" />
+  </ItemGroup>
+</Project>

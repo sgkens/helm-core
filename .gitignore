@@ -40,3 +40,7 @@ DEVTRACKER-PENDING.md
 tools/spritedump/CombinedCheck/Wrapped.g.cs
 tools/pb-check/Wrapped.g.cs
 .smoke-boot/
+HelmCombined.map.txt
+tools/minify-rename/obj/
+tools/rename-check/bin/
+tools/rename-check/obj/

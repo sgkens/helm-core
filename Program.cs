@@ -14,6 +14,10 @@
 // tools/pb-check compiles the script against the game's own assemblies and the MDK prohibited-API
 // analyzer (set SE_BIN64 to the game's Bin64 folder; Build-Release.ps1 then runs it). Run it before
 // pasting into the game: the stand-in API used in CI cannot tell whether a block member really exists.
+//
+// The shipped HelmCombined.min.cs also has its names shortened by tools/minify-rename. Game error messages and stack
+// traces show the short names; HelmCombined.map.txt (written by Build-Release.ps1) maps them back. Build-Release.ps1
+// -NoRename builds without it. tools/rename-check proves the two behave the same.
 
 using System;
 using System.Collections.Generic;

@@ -18,7 +18,7 @@
     Skip minification. Produces only HelmCombined.cs (the human-readable combined source).
 
 .PARAMETER BudgetSoftLimit
-    Character count at which a budget warning is emitted (default 99500).
+    Character count at which a budget warning is emitted (default 90000).
 
 .PARAMETER BudgetHardLimit
     Character count at which the build is aborted as over-budget (default 100000).
@@ -44,7 +44,8 @@
 param(
     [switch]$NoTest,
     [switch]$NoMinify,
-    [int]$BudgetSoftLimit = 99500,
+    [switch]$NoRename,
+    [int]$BudgetSoftLimit = 90000,
     [int]$BudgetHardLimit = 100000
 )
 
@@ -333,6 +334,28 @@ if (-not $NoMinify) {
     Write-Host "  [$step/$stepTotal] Minify" -ForegroundColor Yellow
 
     $minified = Compress-CSharpWhitespace (Get-Content $combinedPath -Raw)
+
+    # Shorten the names HELM declares (tools/minify-rename, Roslyn). The whitespace-only result is kept as
+    # tools/minify-rename/obj/HelmCombined.prerename.cs so tools/minify-check can still prove it is the same program as
+    # HelmCombined.cs. Names that belong to the game API, and Program, Main and Save, are never renamed.
+    $renameDir = [System.IO.Path]::Combine($ScriptDir, 'tools', 'minify-rename')
+    $prePath   = [System.IO.Path]::Combine($renameDir, 'obj', 'HelmCombined.prerename.cs')
+    [System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($prePath)) | Out-Null
+    [System.IO.File]::WriteAllText($prePath, $minified, (New-Object System.Text.UTF8Encoding($false)))
+    if (-not $NoRename) {
+        if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) { throw "dotnet is required to shorten names. Install the .NET SDK, or run with -NoRename." }
+        Write-Host "      Shorten names (tools/minify-rename)" -ForegroundColor Yellow
+        $shimProj = [System.IO.Path]::Combine($ScriptDir, 'tools', 'spritedump', 'SeShim', 'SeShim.csproj')
+        & dotnet build $shimProj -c Release --nologo -v q 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "Building the stand-in API failed." }
+        $shimDll  = [System.IO.Path]::Combine($ScriptDir, 'tools', 'spritedump', 'SeShim', 'bin', 'Release', 'net8.0', 'SeShim.dll')
+        $outPath  = [System.IO.Path]::Combine($renameDir, 'obj', 'HelmCombined.renamed.cs')
+        $mapPath  = [System.IO.Path]::Combine($ScriptDir, 'HelmCombined.map.txt')
+        $renameOut = & dotnet run --project $renameDir -c Release -- $prePath $shimDll $outPath --map $mapPath 2>&1
+        if ($LASTEXITCODE -ne 0) { throw "minify-rename failed:`n$($renameOut -join "`n")" }
+        Write-Host "      $(($renameOut | Where-Object { $_ -like 'minify-rename:*' } | Select-Object -Last 1))" -ForegroundColor Green
+        $minified = [System.IO.File]::ReadAllText($outPath).TrimStart([char]0xFEFF)
+    }
     $minPath      = Join-Path $ScriptDir "HelmCombined.min.cs"
     [System.IO.File]::WriteAllText($minPath, $minified, [System.Text.Encoding]::UTF8)
     $minCharCount = $minified.Length
