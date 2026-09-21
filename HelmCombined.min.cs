@@ -226,25 +226,25 @@ ScreenBuffer buf;if(!_screenBuffers.TryGetValue(screen,out buf)){buf=new ScreenB
 BuildGraphicBuffer(screen,surface,buf);}bool dirty=false;bool alertPhase=(_tickCounter%16)<8;for(int i=0;i<buf.Slots.Count;i++){var slot=buf.Slots[i];var line=slot.Line;
 double value;bool hasErr=false;try{value=ResolveFieldValue(line.BindName,line.Field);}catch{hasErr=true;value=0.0;}if(hasErr){if(slot.LastValue!= -99999.0||(slot.ValSpriteIndex>=0&&buf.Sprites[slot.ValSpriteIndex].Data!="ERR")){
 dirty=true;slot.LastValue= -99999.0;if(slot.ValSpriteIndex>=0){var s=buf.Sprites[slot.ValSpriteIndex];s.Data="ERR";s.Color=Color.Red;buf.Sprites[slot.ValSpriteIndex]=s;
-}}continue;}string colorName=line.Gradient ? Layout.GradientColorAt(line.GradientColors,value): line.FlatColor;Color barCol=ResolveColor(colorName);bool isRedAlert=(barCol==Color.Red);
-if(isRedAlert&&alertPhase){barCol=new Color(255,75,75);dirty=true;}bool valueChanged=Math.Abs(value-slot.LastValue)>0.1;if(valueChanged)slot.LastValue=value;if(line.Kind==LineKind.Bar){
-double fillVal=(line.Field=="percent"||line.Field=="pct")? value : ResolvePercentForBind(line.BindName);if(slot.DisplayValue<0f)slot.DisplayValue=(float)fillVal;
-float target=(float)fillVal;if(Math.Abs(slot.DisplayValue-target)>0.05f){slot.DisplayValue+=(target-slot.DisplayValue)*0.35f;dirty=true;}else if(slot.DisplayValue!=target){
-slot.DisplayValue=target;dirty=true;}if(valueChanged)dirty=true;if(dirty){float pct=(float)Math.Max(0.0,Math.Min(1.0,slot.DisplayValue/100.0));float fillW=slot.BarMaxWidth*pct;
-var fillSprite=buf.Sprites[slot.FillSpriteIndex];fillSprite.Size=new Vector2(fillW,slot.BarHeight);fillSprite.Position=new Vector2(slot.BarLeft+(fillW/2f),slot.BarCenterY);
-fillSprite.Color=barCol;buf.Sprites[slot.FillSpriteIndex]=fillSprite;SetVal(buf,slot,FormatDisplayValue(value,line),barCol);}}else if(line.Kind==LineKind.LedBar||line.Kind==LineKind.Hazard||line.Kind==LineKind.Chevron||line.Kind==LineKind.Dots){
-if(valueChanged||isRedAlert){dirty=true;double fillVal=(line.Field=="percent"||line.Field=="pct")? value : ResolvePercentForBind(line.BindName);int segCount=slot.ExtraSpriteIndices.Count;
+}}continue;}double raw=value;if(line.Max>0)value=Math.Min(100.0,raw/line.Max*100.0);string colorName=line.Gradient ? Layout.GradientColorAt(line.GradientColors,value): line.FlatColor;
+Color barCol=ResolveColor(colorName);bool isRedAlert=(barCol==Color.Red);if(isRedAlert&&alertPhase){barCol=new Color(255,75,75);dirty=true;}bool valueChanged=Math.Abs(raw-slot.LastValue)>0.1;
+if(valueChanged)slot.LastValue=raw;if(line.Kind==LineKind.Bar){double fillVal=(line.Max>0||line.Field=="percent"||line.Field=="pct")? value : ResolvePercentForBind(line.BindName);
+if(slot.DisplayValue<0f)slot.DisplayValue=(float)fillVal;float target=(float)fillVal;if(Math.Abs(slot.DisplayValue-target)>0.05f){slot.DisplayValue+=(target-slot.DisplayValue)*0.35f;
+dirty=true;}else if(slot.DisplayValue!=target){slot.DisplayValue=target;dirty=true;}if(valueChanged)dirty=true;if(dirty){float pct=(float)Math.Max(0.0,Math.Min(1.0,slot.DisplayValue/100.0));
+float fillW=slot.BarMaxWidth*pct;var fillSprite=buf.Sprites[slot.FillSpriteIndex];fillSprite.Size=new Vector2(fillW,slot.BarHeight);fillSprite.Position=new Vector2(slot.BarLeft+(fillW/2f),slot.BarCenterY);
+fillSprite.Color=barCol;buf.Sprites[slot.FillSpriteIndex]=fillSprite;SetVal(buf,slot,FormatDisplayValue(raw,line),barCol);}}else if(line.Kind==LineKind.LedBar||line.Kind==LineKind.Hazard||line.Kind==LineKind.Chevron||line.Kind==LineKind.Dots){
+if(valueChanged||isRedAlert){dirty=true;double fillVal=(line.Max>0||line.Field=="percent"||line.Field=="pct")? value : ResolvePercentForBind(line.BindName);int segCount=slot.ExtraSpriteIndices.Count;
 for(int s=0;s<segCount;s++){bool lit=fillVal>=((s+0.4)/(double)segCount*100.0);Color segCol=lit ? barCol : new Color(24,28,36);var segSprite=buf.Sprites[slot.ExtraSpriteIndices[s]];
-segSprite.Color=segCol;buf.Sprites[slot.ExtraSpriteIndices[s]]=segSprite;}SetVal(buf,slot,FormatDisplayValue(value,line),barCol);}}else if(line.Kind==LineKind.Spark){
+segSprite.Color=segCol;buf.Sprites[slot.ExtraSpriteIndices[s]]=segSprite;}SetVal(buf,slot,FormatDisplayValue(raw,line),barCol);}}else if(line.Kind==LineKind.Spark){
 if(valueChanged||isRedAlert){dirty=true;for(int h=0;h<7;h++)slot.SparkHistory[h]=slot.SparkHistory[h+1];slot.SparkHistory[7]=(float)value;int pointCount=slot.ExtraSpriteIndices.Count;
 for(int p=0;p<pointCount;p++){float hVal=slot.SparkHistory[p];float hPct=Math.Max(0.06f,Math.Min(1f,hVal/100f));float colH=slot.BarHeight*hPct;float colCenterY=slot.BarCenterY+(slot.BarHeight/2f)-(colH/2f);
 var colSprite=buf.Sprites[slot.ExtraSpriteIndices[p]];colSprite.Size=new Vector2(colSprite.Size.Value.X,colH);colSprite.Position=new Vector2(colSprite.Position.Value.X,colCenterY);
-colSprite.Color=barCol;buf.Sprites[slot.ExtraSpriteIndices[p]]=colSprite;}SetVal(buf,slot,FormatDisplayValue(value,line),barCol);}}else if(line.Kind==LineKind.Balance){
+colSprite.Color=barCol;buf.Sprites[slot.ExtraSpriteIndices[p]]=colSprite;}SetVal(buf,slot,FormatDisplayValue(raw,line),barCol);}}else if(line.Kind==LineKind.Balance){
 if(slot.DisplayValue<0f)slot.DisplayValue=(float)value;float target=(float)value;if(Math.Abs(slot.DisplayValue-target)>0.05f){slot.DisplayValue+=(target-slot.DisplayValue)*0.35f;
 dirty=true;}else if(slot.DisplayValue!=target){slot.DisplayValue=target;dirty=true;}if(dirty||valueChanged){float halfW=slot.BarMaxWidth*0.5f;float centerPos=slot.BarLeft+halfW;
 float dev=(float)Math.Max(-1.0,Math.Min(1.0,(slot.DisplayValue-50.0)/50.0));float fillW=Math.Abs(dev)*halfW;float fillX=(dev>=0)?(centerPos+fillW*0.5f):(centerPos-fillW*0.5f);
 var fillSprite=buf.Sprites[slot.FillSpriteIndex];fillSprite.Size=new Vector2(fillW,slot.BarHeight);fillSprite.Position=new Vector2(fillX,slot.BarCenterY);fillSprite.Color=barCol;
-buf.Sprites[slot.FillSpriteIndex]=fillSprite;SetVal(buf,slot,FormatDisplayValue(value,line),barCol);}}else if(line.Kind==LineKind.Toggle){if(valueChanged||isRedAlert){
+buf.Sprites[slot.FillSpriteIndex]=fillSprite;SetVal(buf,slot,FormatDisplayValue(raw,line),barCol);}}else if(line.Kind==LineKind.Toggle){if(valueChanged||isRedAlert){
 dirty=true;bool isOn=value>=50.0;float knobSize=Math.Max(4f,slot.BarHeight);float knobX=isOn ?(slot.BarLeft+slot.BarMaxWidth-knobSize*0.5f):(slot.BarLeft+knobSize*0.5f);
 Color knobCol=isOn ?(barCol!=Color.White ? barCol : new Color(34,197,94)): new Color(60,70,85);var fillSprite=buf.Sprites[slot.FillSpriteIndex];fillSprite.Position=new Vector2(knobX,slot.BarCenterY);
 fillSprite.Color=knobCol;buf.Sprites[slot.FillSpriteIndex]=fillSprite;SetVal(buf,slot,isOn ? "ON" : "OFF",knobCol);}}else if(line.Kind==LineKind.Checkbox){if(valueChanged||isRedAlert){
@@ -253,19 +253,19 @@ SetVal(buf,slot,isChecked ? "ACTIVE" : "READY",isChecked ? checkCol : new Color(
 dirty=true;string statusLabel=value>=75.0 ? "ONLINE" :(value>=25.0 ? "STBY" : "OFFLINE");Color statusCol=value>=75.0 ? new Color(34,197,94):(value>=25.0 ? new Color(234,179,8): new Color(239,68,68));
 SetFill(buf,slot,statusCol);SetVal(buf,slot,statusLabel,statusCol);}}else if(line.Kind==LineKind.Ammo){if(valueChanged||isRedAlert){dirty=true;int pipCount=slot.ExtraSpriteIndices.Count;
 for(int p=0;p<pipCount;p++){bool lit=value>=((p+0.5)/(double)pipCount*100.0);Color pipCol=lit ? barCol : new Color(24,28,36);var pipSprite=buf.Sprites[slot.ExtraSpriteIndices[p]];
-pipSprite.Color=pipCol;buf.Sprites[slot.ExtraSpriteIndices[p]]=pipSprite;}SetVal(buf,slot,FormatDisplayValue(value,line),barCol);}}else if(line.Kind==LineKind.Flow){
+pipSprite.Color=pipCol;buf.Sprites[slot.ExtraSpriteIndices[p]]=pipSprite;}SetVal(buf,slot,FormatDisplayValue(raw,line),barCol);}}else if(line.Kind==LineKind.Flow){
 dirty=true;float rot;Color flowCol;string flowText;bool isMachinery=(line.Field=="producing"||line.Field=="active"||line.Field=="running"||line.Field=="state"||(value<=1.0&&line.Field!="percent"));
 if(isMachinery){if(value>0.0){slot.DisplayValue=(slot.DisplayValue+0.3927f)%6.28318f;rot=slot.DisplayValue;flowCol=new Color(34,197,94);flowText="RUN";}else{rot=0f;
 flowCol=new Color(148,163,184);flowText="IDLE";}}else{rot=(value>55.0)? 0f :((value<45.0)? 3.14159f : 1.57079f);flowCol=(value>55.0)? new Color(34,197,94):((value<45.0)? new Color(239,68,68): new Color(148,163,184));
 flowText=(value>55.0)? "CHG" :((value<45.0)? "DSC" : "STBY");}var fillSprite=buf.Sprites[slot.FillSpriteIndex];fillSprite.RotationOrScale=rot;fillSprite.Color=flowCol;
 buf.Sprites[slot.FillSpriteIndex]=fillSprite;SetVal(buf,slot,flowText,flowCol);}else{string dt;BindDef tb;_bindMap.TryGetValue(line.BindName,out tb);_dynText.TryGetValue(tb!=null&&tb.DynamicKey!=null ? tb.DynamicKey : line.BindName,out dt);
 if(valueChanged||isRedAlert||dt!=slot.LastText){slot.LastText=dt;dirty=true;Color txtCol=line.ColorRules!=null ? ResolveColor(Layout.ResolveConditionalColor(line.ColorRules,value)): Color.White;
-if(txtCol==Color.Red&&alertPhase)txtCol=new Color(255,75,75);SetVal(buf,slot,dt ?? FormatDisplayValue(value,line),txtCol);}}if(slot.HasDynamicLabel&&(valueChanged||isRedAlert)){
-dirty=true;var lblSprite=buf.Sprites[slot.LabelSpriteIndex];string pctStr=GetPercentString(value);string rawVal=FormatDisplayValue(value,line);lblSprite.Data=line.Label.Replace("{percent}",pctStr).Replace("{val}",rawVal);
+if(txtCol==Color.Red&&alertPhase)txtCol=new Color(255,75,75);SetVal(buf,slot,dt ?? FormatDisplayValue(raw,line),txtCol);}}if(slot.HasDynamicLabel&&(valueChanged||isRedAlert)){
+dirty=true;var lblSprite=buf.Sprites[slot.LabelSpriteIndex];string pctStr=GetPercentString(value);string rawVal=FormatDisplayValue(raw,line);lblSprite.Data=line.Label.Replace("{percent}",pctStr).Replace("{val}",rawVal);
 buf.Sprites[slot.LabelSpriteIndex]=lblSprite;}}if(dirty){using(var frame=surface.DrawFrame()){frame.AddRange(buf.Sprites);}}return dirty;}bool RenderScreenAscii(ScreenDef screen,IMyTextSurface surface){
 surface.FontSize=screen.FontSize;var contentLines=new List<KeyValuePair<string,string>>();foreach(var line in screen.Lines){double value=0.0;string text;string color=null;
 try{value=ResolveFieldValue(line.BindName,line.Field);}catch(Exception ex){contentLines.Add(new KeyValuePair<string,string>($"{line.Label}: [UNRESOLVED]","red"));
-continue;}string valStr=FormatDisplayValue(value,line);if(line.Kind==LineKind.Bar){double fillVal=(line.Field=="percent"||line.Field=="pct")? value : ResolvePercentForBind(line.BindName);
+continue;}double raw=value;if(line.Max>0)value=Math.Min(100.0,raw/line.Max*100.0);string valStr=FormatDisplayValue(raw,line);if(line.Kind==LineKind.Bar){double fillVal=(line.Max>0||line.Field=="percent"||line.Field=="pct")? value : ResolvePercentForBind(line.BindName);
 text=Layout.RenderBarText(line.Label,fillVal,10,valStr);color=line.Gradient ? Layout.GradientColorAt(line.GradientColors,fillVal): line.FlatColor;}else if(line.Kind==LineKind.Balance){
 text=Layout.RenderBalanceText(line.Label,value,10);color=line.Gradient ? Layout.GradientColorAt(line.GradientColors,value): line.FlatColor;}else if(line.Kind==LineKind.Toggle){
 text=Layout.RenderToggleText(line.Label,value);color=line.FlatColor ??(value>=50.0 ? "green" : "gray");}else if(line.Kind==LineKind.Checkbox){text=Layout.RenderCheckboxText(line.Label,value);
@@ -287,7 +287,7 @@ get{return TargetNames.Count>0 ? TargetNames[0]: "";}set{if(TargetNames.Count==0
 public double DefaultValue=0.0;public string DefaultText;public string DynamicKey;}public enum LineKind{Text,Bar,LedBar,Spark,Hazard,Chevron,Dots,Balance,Toggle,Checkbox,Status,Ammo,Flow}
 public class ColorRule{public string Expr;public string Color;public bool IsDefault;}public class LineDef{public LineKind Kind;public string Label;public string BindName;
 public string Field;public bool Gradient;public string[]GradientColors;public string FlatColor;public List<ColorRule>ColorRules;public string Direction="right";
-public string Unit;public string Format;}public struct HelmColor{public byte R,G,B,A;public bool IsTransparent;public HelmColor(byte r,byte g,byte b,byte a=255){
+public string Unit;public string Format;public double Max;}public struct HelmColor{public byte R,G,B,A;public bool IsTransparent;public HelmColor(byte r,byte g,byte b,byte a=255){
 R=r;G=g;B=b;A=a;IsTransparent=false;}public static readonly HelmColor Transparent=new HelmColor(0,0,0,0){IsTransparent=true};public static readonly HelmColor White=new HelmColor(255,255,255);
 public static readonly HelmColor Black=new HelmColor(0,0,0);public static readonly HelmColor Red=new HelmColor(255,0,0);public static readonly HelmColor Green=new HelmColor(0,255,0);
 public static readonly HelmColor Lime=new HelmColor(50,205,50);public static readonly HelmColor Yellow=new HelmColor(255,255,0);public static readonly HelmColor Orange=new HelmColor(255,140,0);
@@ -513,7 +513,8 @@ else if(pat=="ammo"||pat=="pips")def.Kind=LineKind.Ammo;else if(pat=="flow"||pat
 foreach(var part in SplitArgs(mArgs)){int colon=part.LastIndexOf(':');if(colon<0)throw new FormatException("color() entries need 'expr : color'");string left=part.Substring(0,colon).Trim();
 string color=part.Substring(colon+1).Trim();if(left.Equals("default",StringComparison.OrdinalIgnoreCase)){def.ColorRules.Add(new ColorRule{IsDefault=true,Color=color}
 );}else{string strippedExpr=StripLeadingFieldRef(left);def.ColorRules.Add(new ColorRule{Expr=strippedExpr,Color=color});}}if(!def.ColorRules.Any(r=>r.IsDefault))throw new FormatException("color() requires a 'default:' fallback entry — PDR-consistent decision: no silent fallback color assumed");
-}else if(mFunc=="dir"||mFunc=="direction"){def.Direction=mArgs.Trim().ToLowerInvariant();}else if(mFunc=="unit"){def.Unit=mArgs.Trim().Trim('"');}else if(mFunc=="format"||mFunc=="fmt"){
+}else if(mFunc=="dir"||mFunc=="direction"){def.Direction=mArgs.Trim().ToLowerInvariant();}else if(mFunc=="unit"){def.Unit=mArgs.Trim().Trim('"');}else if(mFunc=="max"){
+def.Max=double.Parse(mArgs.Trim(),System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture);}else if(mFunc=="format"||mFunc=="fmt"){
 def.Format=mArgs.Trim().Trim('"');}else{throw new FormatException($"unknown modifier '{mFunc}'");}}return def;}static string ExtractParenArgs(string s,int openParenIndex){
 int depth=0;for(int i=openParenIndex;i<s.Length;i++){if(s[i]=='(')depth++;else if(s[i]==')'){depth--;if(depth==0)return s.Substring(openParenIndex+1,i-openParenIndex-1);
 }}throw new FormatException("unbalanced parentheses");}static List<string>SplitArgs(string argsStr){return argsStr.Split(',').Select(s=>s.Trim()).Where(s=>s.Length>0).ToList();

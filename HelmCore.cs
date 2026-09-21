@@ -60,6 +60,7 @@ namespace HelmCore
         public string Direction = "right"; // "right", "left", "up", "down"
         public string Unit;           // e.g. "MW", "kL", "km", "t", "%"
         public string Format;         // e.g. "F1", "F0", "N0"
+        public double Max;            // max(N): the value is shown as a percentage of N (0 = off)
     }
 
     // ---------- Color Science / Parsing ----------
@@ -1179,6 +1180,10 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                 else if (mFunc == "unit")
                 {
                     def.Unit = mArgs.Trim().Trim('"');
+                }
+                else if (mFunc == "max")
+                {
+                    def.Max = double.Parse(mArgs.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture);
                 }
                 else if (mFunc == "format" || mFunc == "fmt")
                 {

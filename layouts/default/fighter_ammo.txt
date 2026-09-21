@@ -1,0 +1,19 @@
+# Fighter Ammo Load
+# Ammunition and missiles as bars against a full load, with fuel and an ammunition trend.
+# max(N) is the full load: the bar shows amount / N, the text shows the real amount.
+@bind guns = group("Fighter Guns", agg: sum)
+@bind rack = group("Fighter Missile Racks", agg: sum)
+@bind h2   = group("Fighter Hydrogen Tanks", agg: avg)
+
+@screen Loadout
+output: "Fighter Cockpit", 1
+profile: auto
+layout: grid(1, 1)
+bg: #090b0f
+border_color: #ef4444
+
+@panel load at(0, 0, 1, 1) title: "LOAD"
+line: "GATLING " bar(guns.ammo:NATO_25x184mm) max(1200) gradient(#ef4444, #eab308, #22c55e)
+line: "MISSILE " bar(rack.ammo:Missile200mm) max(16) gradient(#ef4444, #eab308, #22c55e)
+line: "FUEL    " bar(h2.percent) gradient(#ef4444, #eab308, #38bdf8)
+line: "TREND   " spark(guns.ammo:NATO_25x184mm) max(1200) flat(#eab308)

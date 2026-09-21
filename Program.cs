@@ -1766,6 +1766,10 @@ namespace IngameScript
                     continue;
                 }
 
+                // max(N): gauges work on the percentage of N; the text keeps the real amount.
+                double raw = value;
+                if (line.Max > 0) value = Math.Min(100.0, raw / line.Max * 100.0);
+
                 string colorName = line.Gradient
                     ? Layout.GradientColorAt(line.GradientColors, value)
                     : line.FlatColor;
@@ -1778,12 +1782,12 @@ namespace IngameScript
                     dirty = true;
                 }
 
-                bool valueChanged = Math.Abs(value - slot.LastValue) > 0.1;
-                if (valueChanged) slot.LastValue = value;
+                bool valueChanged = Math.Abs(raw - slot.LastValue) > 0.1;
+                if (valueChanged) slot.LastValue = raw;
 
                 if (line.Kind == LineKind.Bar)
                 {
-                    double fillVal = (line.Field == "percent" || line.Field == "pct") ? value : ResolvePercentForBind(line.BindName);
+                    double fillVal = (line.Max > 0 || line.Field == "percent" || line.Field == "pct") ? value : ResolvePercentForBind(line.BindName);
                     if (slot.DisplayValue < 0f) slot.DisplayValue = (float)fillVal;
                     float target = (float)fillVal;
                     if (Math.Abs(slot.DisplayValue - target) > 0.05f)
@@ -1809,7 +1813,7 @@ namespace IngameScript
                         fillSprite.Color = barCol;
                         buf.Sprites[slot.FillSpriteIndex] = fillSprite;
 
-                        SetVal(buf, slot, FormatDisplayValue(value, line), barCol);
+                        SetVal(buf, slot, FormatDisplayValue(raw, line), barCol);
                     }
                 }
                 else if (line.Kind == LineKind.LedBar || line.Kind == LineKind.Hazard || line.Kind == LineKind.Chevron || line.Kind == LineKind.Dots)
@@ -1817,7 +1821,7 @@ namespace IngameScript
                     if (valueChanged || isRedAlert)
                     {
                         dirty = true;
-                        double fillVal = (line.Field == "percent" || line.Field == "pct") ? value : ResolvePercentForBind(line.BindName);
+                        double fillVal = (line.Max > 0 || line.Field == "percent" || line.Field == "pct") ? value : ResolvePercentForBind(line.BindName);
                         int segCount = slot.ExtraSpriteIndices.Count;
                         for (int s = 0; s < segCount; s++)
                         {
@@ -1828,7 +1832,7 @@ namespace IngameScript
                             buf.Sprites[slot.ExtraSpriteIndices[s]] = segSprite;
                         }
 
-                        SetVal(buf, slot, FormatDisplayValue(value, line), barCol);
+                        SetVal(buf, slot, FormatDisplayValue(raw, line), barCol);
                     }
                 }
                 else if (line.Kind == LineKind.Spark)
@@ -1855,7 +1859,7 @@ namespace IngameScript
                             buf.Sprites[slot.ExtraSpriteIndices[p]] = colSprite;
                         }
 
-                        SetVal(buf, slot, FormatDisplayValue(value, line), barCol);
+                        SetVal(buf, slot, FormatDisplayValue(raw, line), barCol);
                     }
                 }
                 else if (line.Kind == LineKind.Balance)
@@ -1887,7 +1891,7 @@ namespace IngameScript
                         fillSprite.Color = barCol;
                         buf.Sprites[slot.FillSpriteIndex] = fillSprite;
 
-                        SetVal(buf, slot, FormatDisplayValue(value, line), barCol);
+                        SetVal(buf, slot, FormatDisplayValue(raw, line), barCol);
                     }
                 }
                 else if (line.Kind == LineKind.Toggle)
@@ -1949,7 +1953,7 @@ namespace IngameScript
                             buf.Sprites[slot.ExtraSpriteIndices[p]] = pipSprite;
                         }
 
-                        SetVal(buf, slot, FormatDisplayValue(value, line), barCol);
+                        SetVal(buf, slot, FormatDisplayValue(raw, line), barCol);
                     }
                 }
                 else if (line.Kind == LineKind.Flow)
@@ -2007,7 +2011,7 @@ namespace IngameScript
                         if (txtCol == Color.Red && alertPhase)
                             txtCol = new Color(255, 75, 75);
 
-                        SetVal(buf, slot, dt ?? FormatDisplayValue(value, line), txtCol);
+                        SetVal(buf, slot, dt ?? FormatDisplayValue(raw, line), txtCol);
                     }
                 }
 
@@ -2016,7 +2020,7 @@ namespace IngameScript
                     dirty = true;
                     var lblSprite = buf.Sprites[slot.LabelSpriteIndex];
                     string pctStr = GetPercentString(value);
-                    string rawVal = FormatDisplayValue(value, line);
+                    string rawVal = FormatDisplayValue(raw, line);
                     lblSprite.Data = line.Label.Replace("{percent}", pctStr).Replace("{val}", rawVal);
                     buf.Sprites[slot.LabelSpriteIndex] = lblSprite;
                 }
@@ -2060,11 +2064,13 @@ namespace IngameScript
                     continue;
                 }
 
-                string valStr = FormatDisplayValue(value, line);
+                double raw = value;
+                if (line.Max > 0) value = Math.Min(100.0, raw / line.Max * 100.0);
+                string valStr = FormatDisplayValue(raw, line);
 
                 if (line.Kind == LineKind.Bar)
                 {
-                    double fillVal = (line.Field == "percent" || line.Field == "pct") ? value : ResolvePercentForBind(line.BindName);
+                    double fillVal = (line.Max > 0 || line.Field == "percent" || line.Field == "pct") ? value : ResolvePercentForBind(line.BindName);
                     text = Layout.RenderBarText(line.Label, fillVal, 10, valStr);
                     color = line.Gradient
                         ? Layout.GradientColorAt(line.GradientColors, fillVal)

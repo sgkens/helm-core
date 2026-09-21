@@ -216,6 +216,12 @@ line: ""O2""  bar(o2_$screen.percent) flat(cyan)
         Check(HelmParser.Parse("@screen a").Screens[0].BootBatch == 1, "boot_batch defaults to 1");
         Check(HelmParser.Parse("@screen a\nboot_batch: 0").Screens[0].BootBatch == 1, "boot_batch below 1 is clamped to 1");
 
+        // --- max(N): item amounts as a percentage ---
+        var cfgMax = HelmParser.Parse("@bind g = group(\"Guns\", agg: sum)\n@screen a\noutput: \"x\", 0\n@panel p at(0, 0, 1, 1) title: \"T\"\nline: \"AMMO\" bar(g.ammo:NATO_25x184mm) max(1200) flat(cyan)\nline: \"PLAIN\" bar(g.percent) flat(cyan)\n");
+        Check(cfgMax.Errors.Count == 0, "max(N) parses without errors: " + string.Join(" | ", cfgMax.Errors));
+        Check(cfgMax.Screens[0].Panels[0].Lines[0].Max == 1200.0 && cfgMax.Screens[0].Panels[0].Lines[0].Field == "ammo:NATO_25x184mm", "max(1200) and the item field are parsed");
+        Check(cfgMax.Screens[0].Panels[0].Lines[1].Max == 0.0, "a line without max() has no maximum");
+
         // --- Banners: raw ASCII art blocks ---
         string bannerDsl = "@banner logo\n\n        ZZ   # \"q\"\n     ZZ ZZ\n\n@end\n@screen a\noutput: \"x\", 0\nbanner: logo\nboot_logo: logo\nbanner_color: red\n";
         var cfgBan = HelmParser.Parse(bannerDsl);
