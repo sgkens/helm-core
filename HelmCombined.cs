@@ -1024,7 +1024,7 @@
 
             var tool = block as IMyShipToolBase;
             if (tool != null)
-                return tool.Enabled ? 100.0 : 0.0;
+                return tool.IsActivated ? 100.0 : (tool.Enabled ? 50.0 : 0.0);
 
             var gen = block as IMyGasGenerator;
             if (gen != null)
@@ -1173,7 +1173,7 @@
             if (door != null)
             {
                 if (f == "max") return 1.0;
-                return (double)door.OpenRatio;
+                return (double)door.OpenRatio * 100.0;
             }
 
             var thrust = block as IMyThrust;
@@ -1186,42 +1186,47 @@
             var susp = block as IMyMotorSuspension;
             if (susp != null)
             {
-                if (f == "brake") return susp.Brake ? 1.0 : 0.0;
-                return susp.Friction * 100.0;
+                if (f == "brake") return susp.Brake ? 100.0 : 0.0;
+                if (f == "height") return susp.Height;
+                if (f == "strength") return susp.Strength;
+                if (f == "power") return susp.Power;
+                if (f == "steer") return susp.SteeringOverride * 100.0;
+                if (f == "propulsion") return susp.PropulsionOverride * 100.0;
+                return susp.Friction;
             }
 
             var connector = block as IMyShipConnector;
             if (connector != null)
             {
-                return connector.Status == MyShipConnectorStatus.Connected ? 1.0 : 0.0;
+                return connector.Status == MyShipConnectorStatus.Connected ? 100.0 : 0.0;
             }
 
             var prod = block as IMyProductionBlock;
             if (prod != null)
             {
-                if (f == "producing" || f == "active" || f == "running" || f == "state") return prod.IsProducing ? 1.0 : 0.0;
+                if (f == "producing" || f == "active" || f == "running" || f == "state") return prod.IsProducing ? 100.0 : 0.0;
                 if (f == "queue") return prod.IsQueueEmpty ? 0.0 : 1.0;
             }
 
             var asm = block as IMyAssembler;
             if (asm != null)
             {
-                if (f == "disassembling") return asm.Mode == MyAssemblerMode.Disassembly ? 1.0 : 0.0;
-                if (f == "repeating" || f == "loop") return asm.Repeating ? 1.0 : 0.0;
+                if (f == "disassembling") return asm.Mode == MyAssemblerMode.Disassembly ? 100.0 : 0.0;
+                if (f == "repeating" || f == "loop") return asm.Repeating ? 100.0 : 0.0;
             }
 
             var gen = block as IMyGasGenerator;
             if (gen != null)
             {
-                if (f == "autorefill") return gen.AutoRefill ? 1.0 : 0.0;
-                if (f == "active") return gen.Enabled ? 1.0 : 0.0;
+                if (f == "autorefill") return gen.AutoRefill ? 100.0 : 0.0;
+                if (f == "active") return gen.Enabled ? 100.0 : 0.0;
             }
 
             var turret = block as IMyLargeTurretBase;
             if (turret != null)
             {
-                if (f == "shooting") return turret.IsShooting ? 1.0 : 0.0;
-                if (f == "target" || f == "hastarget") return turret.HasTarget ? 1.0 : 0.0;
+                if (f == "shooting") return turret.IsShooting ? 100.0 : 0.0;
+                if (f == "target" || f == "hastarget") return turret.HasTarget ? 100.0 : 0.0;
                 if (f == "range") return turret.Range;
             }
 
@@ -1231,13 +1236,22 @@
                 if (f == "built") return proj.TotalBlocks - proj.RemainingBlocks;
                 if (f == "remaining") return proj.RemainingBlocks;
                 if (f == "total") return proj.TotalBlocks;
-                if (f == "projecting") return proj.IsProjecting ? 1.0 : 0.0;
+                if (f == "projecting") return proj.IsProjecting ? 100.0 : 0.0;
+                if (f == "armor") return proj.RemainingArmorBlocks;
+                if (f == "buildable") return proj.BuildableBlocksCount;
+            }
+
+            var tool = block as IMyShipToolBase;
+            if (tool != null)
+            {
+                if (f == "working" || f == "active" || f == "activated") return tool.IsActivated ? 100.0 : 0.0;
+                return tool.Enabled ? 100.0 : 0.0;
             }
 
             var gyro = block as IMyGyro;
             if (gyro != null)
             {
-                if (f == "override") return gyro.GyroOverride ? 1.0 : 0.0;
+                if (f == "override") return gyro.GyroOverride ? 100.0 : 0.0;
                 if (f == "pitch") return gyro.Pitch;
                 if (f == "yaw") return gyro.Yaw;
                 if (f == "roll") return gyro.Roll;
@@ -1253,7 +1267,7 @@
             var gear = block as IMyLandingGear;
             if (gear != null)
             {
-                if (f == "locked") return gear.IsLocked ? 1.0 : 0.0;
+                if (f == "locked") return gear.IsLocked ? 100.0 : 0.0;
             }
 
             var ant = block as IMyRadioAntenna;
@@ -1289,39 +1303,39 @@
                 if (f == "angle" || f == "deg") return rotor.Angle * 180.0 / Math.PI;
                 if (f == "rad") return rotor.Angle;
                 if (f == "velocity" || f == "rpm") return rotor.TargetVelocityRPM;
-                if (f == "locked") return rotor.RotorLock ? 1.0 : 0.0;
+                if (f == "locked") return rotor.RotorLock ? 100.0 : 0.0;
             }
 
             var warhead = block as IMyWarhead;
             if (warhead != null)
             {
-                if (f == "armed") return warhead.IsArmed ? 1.0 : 0.0;
+                if (f == "armed") return warhead.IsArmed ? 100.0 : 0.0;
                 if (f == "countdown") return warhead.DetonationTime;
             }
 
             var sensor = block as IMySensorBlock;
             if (sensor != null)
             {
-                if (f == "detected") return !sensor.LastDetectedEntity.IsEmpty() ? 1.0 : 0.0;
+                if (f == "detected") return !sensor.LastDetectedEntity.IsEmpty() ? 100.0 : 0.0;
             }
 
             var camera = block as IMyCameraBlock;
             if (camera != null)
             {
                 if (f == "range") return camera.AvailableScanRange;
-                if (f == "active") return camera.IsActive ? 1.0 : 0.0;
+                if (f == "active") return camera.IsActive ? 100.0 : 0.0;
             }
 
             var chute = block as IMyParachute;
             if (chute != null)
             {
-                if (f == "open" || f == "openratio") return (double)chute.OpenRatio;
+                if (f == "open" || f == "openratio") return (double)chute.OpenRatio * 100.0;
             }
 
             var tcb = block as IMyTurretControlBlock;
             if (tcb != null)
             {
-                if (f == "target" || f == "hastarget") return tcb.HasTarget ? 1.0 : 0.0;
+                if (f == "target" || f == "hastarget") return tcb.HasTarget ? 100.0 : 0.0;
                 if (f == "azimuth") return tcb.AzimuthRotor != null ? tcb.AzimuthRotor.Angle * 180.0 / Math.PI : 0.0;
                 if (f == "elevation") return tcb.ElevationRotor != null ? tcb.ElevationRotor.Angle * 180.0 / Math.PI : 0.0;
             }
@@ -1329,7 +1343,7 @@
             var func = block as IMyFunctionalBlock;
             if (func != null)
             {
-                return func.Enabled ? 1.0 : 0.0;
+                return func.Enabled ? 100.0 : 0.0;
             }
 
             return 0.0;
@@ -1996,7 +2010,7 @@
                     Color flowCol;
                     string flowText;
 
-                    bool isMachinery = (line.Field == "producing" || line.Field == "active" || line.Field == "running" || line.Field == "state" || (value <= 1.0 && line.Field != "percent"));
+                    bool isMachinery = (line.Field == "producing" || line.Field == "active" || line.Field == "running" || line.Field == "state" || (line.Field != "percent" && (value <= 1.0 || value == 100.0)));
                     if (isMachinery)
                     {
                         if (value > 0.0)
@@ -2140,7 +2154,7 @@
                 }
                 else if (line.Kind == LineKind.Flow)
                 {
-                    bool isMachinery = (line.Field == "producing" || line.Field == "active" || line.Field == "running" || line.Field == "state" || (value <= 1.0 && line.Field != "percent"));
+                    bool isMachinery = (line.Field == "producing" || line.Field == "active" || line.Field == "running" || line.Field == "state" || (line.Field != "percent" && (value <= 1.0 || value == 100.0)));
                     if (isMachinery)
                     {
                         char[] spinChars = new[] { '|', '/', '-', '\\' };

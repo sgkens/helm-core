@@ -70,6 +70,11 @@ namespace Sandbox.ModAPI.Ingame
     {
         dynamic Brake { get; set; }
         dynamic Friction { get; set; }
+        dynamic Height { get; set; }
+        dynamic Strength { get; set; }
+        dynamic Power { get; set; }
+        dynamic SteeringOverride { get; set; }
+        dynamic PropulsionOverride { get; set; }
     }
     public partial interface IMyShipConnector
     {
@@ -86,6 +91,7 @@ namespace Sandbox.ModAPI.Ingame
     }
     public partial interface IMyShipToolBase
     {
+        dynamic IsActivated { get; set; }
         dynamic Enabled { get; set; }
     }
     public partial interface IMyGasGenerator
@@ -105,6 +111,8 @@ namespace Sandbox.ModAPI.Ingame
         dynamic TotalBlocks { get; set; }
         dynamic RemainingBlocks { get; set; }
         dynamic IsProjecting { get; set; }
+        dynamic RemainingArmorBlocks { get; set; }
+        dynamic BuildableBlocksCount { get; set; }
     }
     public partial interface IMyGyro
     {
