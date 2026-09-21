@@ -17,10 +17,8 @@ Before installing HELM Core:
 
 1. Build or locate a **Programmable Block** on your grid.
 2. Open its terminal interface and click **Edit Code**.
-3. Choose one of two releases:
-   - **`HelmCombined.cs`**: Full source code formatted with comments and diagnostics.
-   - **`HelmCombined.min.cs`**: Minified release (< 99k characters, optimized for strict size limits).
-4. Paste the code into the script editor and click **Check Code**.
+3. Select everything in the editor and replace it with the contents of **`HelmCombined.min.cs`** (under 100,000 characters, the Programmable Block limit). `HelmCombined.cs` is the same script with comments for reading; it is too long to paste.
+4. Click **Check Code**.
 5. Click **OK** and ensure the Programmable Block is powered **ON**.
 
 ```

@@ -28,7 +28,7 @@ You do not need Visual Studio or MDK to run HELM. A ready-to-paste script is pro
 ### Option A: Direct Paste (No Tools Needed)
 
 1. Open your ship or station's **Programmable Block** in the Terminal and click **Edit**.
-2. Copy the entire contents of [`HelmCombined.cs`](HelmCombined.cs) and paste it into the code editor.
+2. Select everything in the code editor, then copy the entire contents of [`HelmCombined.min.cs`](HelmCombined.min.cs) and paste it over it. (`HelmCombined.cs` is the same script with comments; it is over the game's 100,000 character limit and cannot be pasted.)
 3. Click **Check Code**, then click **OK**.
 4. Open the Programmable Block's **Custom Data** and paste a configuration (see [Code Examples](#5-production-code-examples) below).
 5. Ensure your target LCDs or Cockpit blocks have matching names. The script will initialize and begin telemetry immediately.
