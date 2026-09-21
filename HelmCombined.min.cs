@@ -13,6 +13,12 @@ private string _lastCustomData = null;
 private Dictionary<string, List<IMyTerminalBlock>> _resolvedBinds
 = new Dictionary<string, List<IMyTerminalBlock>>();
 private Dictionary<string, bool> _fallbackUsed = new Dictionary<string, bool>();
+private Dictionary<string, BindDef> _bindMap = new Dictionary<string, BindDef>();
+private Dictionary<string, Color> _colorCache = new Dictionary<string, Color>();
+private List<IMyTerminalBlock> _allBlocks = new List<IMyTerminalBlock>();
+private bool _allLoaded;
+private string _cfgErr = "";
+private StringBuilder _outErr = new StringBuilder();
 private readonly Dictionary<string, double> _dynamicValues
 = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
 private IMyBroadcastListener _helmBroadcastListener;
@@ -134,24 +140,45 @@ ResolveBindsAndOutputs();
 }
 if (_config == null || _config.Screens.Count == 0)
 {
+EchoNotes();
 Echo("HELM: no valid @screen configured. Check Custom Data.");
 return;
 }
 var screen = _config.Screens[_screenCursor % _config.Screens.Count];
 _screenCursor++;
 RenderScreen(screen);
+EchoNotes();
 Echo($"HELM [{screen.Name}] instr {Runtime.CurrentInstructionCount}/{Runtime.MaxInstructionCount} — {Runtime.LastRunTimeMs:0.###}ms");
+}
+private void EchoNotes()
+{
+if (_cfgErr.Length > 0) Echo(_cfgErr);
+if (_outErr.Length > 0) Echo(_outErr.ToString());
+}
+private List<IMyTerminalBlock> AllBlocks()
+{
+if (!_allLoaded)
+{
+_allBlocks.Clear();
+GridTerminalSystem.GetBlocks(_allBlocks);
+_allLoaded = true;
+}
+return _allBlocks;
 }
 private void ReloadConfig()
 {
 _lastCustomData = Me.CustomData;
 _config = HelmParser.Parse(_lastCustomData);
+_cfgErr = "";
 if (_config.Errors.Count > 0)
 {
 var sb = new StringBuilder("HELM config errors:\n");
 foreach (var e in _config.Errors) sb.AppendLine(" - " + e);
-Echo(sb.ToString());
+_cfgErr = sb.ToString();
 }
+_bindMap.Clear();
+foreach (var b in _config.Binds)
+if (!_bindMap.ContainsKey(b.Name)) _bindMap[b.Name] = b;
 _screenBuffers.Clear();
 _lastSignature.Clear();
 ResolveBindsAndOutputs();
@@ -213,6 +240,8 @@ private void ResolveBindsAndOutputs()
 _resolvedBinds.Clear();
 _resolvedOutputs.Clear();
 _fallbackUsed.Clear();
+_outErr.Clear();
+_allLoaded = false;
 if (_config == null) return;
 foreach (var bind in _config.Binds)
 {
@@ -246,8 +275,7 @@ if (!blocks.Contains(gb)) blocks.Add(gb);
 }
 else
 {
-var allBlocks = new List<IMyTerminalBlock>();
-GridTerminalSystem.GetBlocks(allBlocks);
+var allBlocks = AllBlocks();
 for (int b = 0; b < allBlocks.Count; b++)
 {
 var tb = allBlocks[b];
@@ -277,7 +305,7 @@ if (string.IsNullOrEmpty(screen.OutputBlockName)) continue;
 var outBlock = GridTerminalSystem.GetBlockWithName(screen.OutputBlockName);
 if (outBlock == null)
 {
-Echo($"HELM: output block '{screen.OutputBlockName}' not found");
+_outErr.AppendLine($"HELM: output block '{screen.OutputBlockName}' not found");
 continue;
 }
 IMyTextSurface surface = null;
@@ -292,7 +320,7 @@ surface = directSurface;
 }
 if (surface == null)
 {
-Echo($"HELM: output block '{screen.OutputBlockName}' has no surface index {screen.OutputSurfaceIndex}");
+_outErr.AppendLine($"HELM: output block '{screen.OutputBlockName}' has no surface index {screen.OutputSurfaceIndex}");
 continue;
 }
 surface.ContentType = ContentType.SCRIPT;
@@ -300,65 +328,105 @@ surface.Script = "";
 surface.ScriptBackgroundColor = Color.Black;
 _resolvedOutputs[screen] = surface;
 }
+_allBlocks.Clear();
+}
+private static readonly string[] FallbackWords =
+{
+"batt,power,pwr",
+"reactor,nuke",
+"solar",
+"wind",
+"tank,hydro,hydrogen,o2,oxygen",
+"vent,air,press",
+"cargo,container,store,inv",
+"jump,drive",
+"thrust,engine",
+"susp,wheel,brake",
+"door,gate,airlock",
+"connect",
+"asm,assembler,fab,prod",
+"refin,smelt,furnace",
+"drill,mine,bore",
+"weld",
+"grind",
+"o2h2,gen,generator",
+"turret,gun,cannon,weapon,defense",
+"proj,blueprint",
+"gyro",
+"grav,gravity",
+"gear,magplate,landing",
+"ant,comm,radio",
+"beacon",
+"light,spot",
+"piston",
+"rotor,hinge",
+"warhead",
+"sensor",
+"camera",
+"parachute",
+"tcb,customturret"
+};
+private static bool FallbackIs(int k, IMyTerminalBlock b)
+{
+switch (k)
+{
+case 0: return b is IMyBatteryBlock;
+case 1: return b is IMyReactor;
+case 2: return b is IMySolarPanel;
+case 3: return b is IMyWindTurbine;
+case 4: return b is IMyGasTank;
+case 5: return b is IMyAirVent;
+case 6: return b is IMyCargoContainer;
+case 7: return b is IMyJumpDrive;
+case 8: return b is IMyThrust;
+case 9: return b is IMyMotorSuspension;
+case 10: return b is IMyDoor;
+case 11: return b is IMyShipConnector;
+case 12: return b is IMyAssembler;
+case 13: return b is IMyRefinery;
+case 14: return b is IMyShipDrill;
+case 15: return b is IMyShipWelder;
+case 16: return b is IMyShipGrinder;
+case 17: return b is IMyGasGenerator;
+case 18: return b is IMyLargeTurretBase;
+case 19: return b is IMyProjector;
+case 20: return b is IMyGyro;
+case 21: return b is IMyGravityGeneratorBase;
+case 22: return b is IMyLandingGear;
+case 23: return b is IMyRadioAntenna;
+case 24: return b is IMyBeacon;
+case 25: return b is IMyLightingBlock;
+case 26: return b is IMyPistonBase;
+case 27: return b is IMyMotorStator;
+case 28: return b is IMyWarhead;
+case 29: return b is IMySensorBlock;
+case 30: return b is IMyCameraBlock;
+case 31: return b is IMyParachute;
+case 32: return b is IMyTurretControlBlock;
+}
+return false;
 }
 private void ResolveFallbackBlocks(BindDef bind, List<string> targets, List<IMyTerminalBlock> blocks)
 {
 string hint = (bind.Name + " " + string.Join(" ", targets)).ToLowerInvariant();
-var allBlocks = new List<IMyTerminalBlock>();
-GridTerminalSystem.GetBlocks(allBlocks);
-bool MatchesType(IMyTerminalBlock b)
+var kinds = new List<int>();
+for (int k = 0; k < FallbackWords.Length; k++)
 {
-if ((hint.Contains("batt") || hint.Contains("power") || hint.Contains("pwr")) && b is IMyBatteryBlock) return true;
-if ((hint.Contains("reactor") || hint.Contains("nuke")) && b is IMyReactor) return true;
-if (hint.Contains("solar") && b is IMySolarPanel) return true;
-if (hint.Contains("wind") && b is IMyWindTurbine) return true;
-if ((hint.Contains("tank") || hint.Contains("hydro") || hint.Contains("hydrogen") || hint.Contains("o2") || hint.Contains("oxygen")) && b is IMyGasTank) return true;
-if ((hint.Contains("vent") || hint.Contains("air") || hint.Contains("press")) && b is IMyAirVent) return true;
-if ((hint.Contains("cargo") || hint.Contains("container") || hint.Contains("store") || hint.Contains("inv")) && b is IMyCargoContainer) return true;
-if ((hint.Contains("jump") || hint.Contains("drive")) && b is IMyJumpDrive) return true;
-if ((hint.Contains("thrust") || hint.Contains("engine")) && b is IMyThrust) return true;
-if ((hint.Contains("susp") || hint.Contains("wheel") || hint.Contains("brake")) && b is IMyMotorSuspension) return true;
-if ((hint.Contains("door") || hint.Contains("gate") || hint.Contains("airlock")) && b is IMyDoor) return true;
-if (hint.Contains("connect") && b is IMyShipConnector) return true;
-if ((hint.Contains("asm") || hint.Contains("assembler") || hint.Contains("fab") || hint.Contains("prod")) && b is IMyAssembler) return true;
-if ((hint.Contains("refin") || hint.Contains("smelt") || hint.Contains("furnace")) && b is IMyRefinery) return true;
-if ((hint.Contains("drill") || hint.Contains("mine") || hint.Contains("bore")) && b is IMyShipDrill) return true;
-if (hint.Contains("weld") && b is IMyShipWelder) return true;
-if (hint.Contains("grind") && b is IMyShipGrinder) return true;
-if ((hint.Contains("o2h2") || hint.Contains("gen") || hint.Contains("generator")) && b is IMyGasGenerator) return true;
-if ((hint.Contains("turret") || hint.Contains("gun") || hint.Contains("cannon") || hint.Contains("weapon") || hint.Contains("defense")) && b is IMyLargeTurretBase) return true;
-if ((hint.Contains("proj") || hint.Contains("blueprint")) && b is IMyProjector) return true;
-if (hint.Contains("gyro") && b is IMyGyro) return true;
-if ((hint.Contains("grav") || hint.Contains("gravity")) && b is IMyGravityGeneratorBase) return true;
-if ((hint.Contains("gear") || hint.Contains("magplate") || hint.Contains("landing")) && b is IMyLandingGear) return true;
-if ((hint.Contains("ant") || hint.Contains("comm") || hint.Contains("radio")) && b is IMyRadioAntenna) return true;
-if (hint.Contains("beacon") && b is IMyBeacon) return true;
-if ((hint.Contains("light") || hint.Contains("spot")) && b is IMyLightingBlock) return true;
-if (hint.Contains("piston") && b is IMyPistonBase) return true;
-if ((hint.Contains("rotor") || hint.Contains("hinge")) && b is IMyMotorStator) return true;
-if (hint.Contains("warhead") && b is IMyWarhead) return true;
-if (hint.Contains("sensor") && b is IMySensorBlock) return true;
-if (hint.Contains("camera") && b is IMyCameraBlock) return true;
-if (hint.Contains("parachute") && b is IMyParachute) return true;
-if ((hint.Contains("tcb") || hint.Contains("customturret")) && b is IMyTurretControlBlock) return true;
-return false;
+foreach (var w in FallbackWords[k].Split(','))
+if (hint.Contains(w)) { kinds.Add(k); break; }
 }
-for (int i = 0; i < allBlocks.Count; i++)
+if (kinds.Count == 0) return;
+var all = AllBlocks();
+var other = new List<IMyTerminalBlock>();
+for (int i = 0; i < all.Count; i++)
 {
-var b = allBlocks[i];
-if (b.CubeGrid == Me.CubeGrid && MatchesType(b))
+var b = all[i];
+foreach (int k in kinds)
 {
-if (!blocks.Contains(b)) blocks.Add(b);
+if (FallbackIs(k, b)) { (b.CubeGrid == Me.CubeGrid ? blocks : other).Add(b); break; }
 }
 }
-if (blocks.Count == 0)
-{
-for (int i = 0; i < allBlocks.Count; i++)
-{
-var b = allBlocks[i];
-if (MatchesType(b) && !blocks.Contains(b)) blocks.Add(b);
-}
-}
+if (blocks.Count == 0) blocks.AddRange(other);
 }
 private void RunSelfDiagnostics()
 {
@@ -723,7 +791,8 @@ return 0.0;
 }
 private double ResolveFieldValue(string bindName, string field)
 {
-var bindDef = _config != null ? _config.Binds.Find(b => b.Name == bindName) : null;
+BindDef bindDef;
+_bindMap.TryGetValue(bindName, out bindDef);
 if (bindDef != null && bindDef.Kind == BindKind.Dynamic)
 {
 string k = !string.IsNullOrEmpty(bindDef.DynamicKey) ? bindDef.DynamicKey : bindName;
@@ -741,7 +810,8 @@ return Aggregator.Aggregate(bindDef != null ? bindDef.Aggregation : Agg.Avg, val
 }
 private double ResolvePercentForBind(string bindName)
 {
-var bindDef = _config != null ? _config.Binds.Find(b => b.Name == bindName) : null;
+BindDef bindDef;
+_bindMap.TryGetValue(bindName, out bindDef);
 if (bindDef != null && bindDef.Kind == BindKind.Dynamic)
 {
 string k = !string.IsNullOrEmpty(bindDef.DynamicKey) ? bindDef.DynamicKey : bindName;
@@ -1465,9 +1535,12 @@ y += lineHeight;
 private Color ResolveColor(string name)
 {
 if (string.IsNullOrEmpty(name)) return Color.White;
+Color k;
+if (_colorCache.TryGetValue(name, out k)) return k;
 HelmColor c = HelmColor.Parse(name);
-if (c.IsTransparent) return Color.Transparent;
-return new Color(c.R, c.G, c.B, c.A);
+k = c.IsTransparent ? Color.Transparent : new Color(c.R, c.G, c.B, c.A);
+_colorCache[name] = k;
+return k;
 }
 }
 public enum BindKind { Block, Group, Dynamic }
