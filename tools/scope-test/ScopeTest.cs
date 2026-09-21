@@ -46,17 +46,17 @@ static class ScopeTest {
     // the docked ship's blocks come FIRST, which is how GetBlockWithName finds the wrong one
     var fBat = new FBlock { Ship = dock, CustomName = "Main Battery" }; var mBat = new FBlock { Ship = mine, CustomName = "Main Battery" };
     var fTank = new FBlock { Ship = dock, CustomName = "H2 Tank Alpha" }; var mTank = new FBlock { Ship = sub, CustomName = "H2 Tank Alpha" };
-    var fLcd = new FLcd(dock, "Cockpit"); var mLcd = new FLcd(mine, "Cockpit"); var aLcd = new FLcd(mine, "AmmoLcd"); var gLcd = new FLcd(mine, "GradLcd"); var nLcd = new FLcd(mine, "NoneLcd"); var rLcd = new FLcd(mine, "RefLcd"); var cLcd = new FLcd(mine, "CkLcd"); var conn = new FConn { Ship = mine, CustomName = "Dock Connector", Status = MyShipConnectorStatus.Connected }; var hdoor = new FDoor { Ship = mine, CustomName = "Hangar Door", OpenRatio = 0.5f };
+    var fLcd = new FLcd(dock, "Cockpit"); var mLcd = new FLcd(mine, "Cockpit"); var aLcd = new FLcd(mine, "AmmoLcd"); var gLcd = new FLcd(mine, "GradLcd"); var nLcd = new FLcd(mine, "NoneLcd"); var rLcd = new FLcd(mine, "RefLcd"); var cLcd = new FLcd(mine, "CkLcd"); var vLcd = new FLcd(mine, "ValLcd"); var tLcd = new FLcd(mine, "TexLcd"); var conn = new FConn { Ship = mine, CustomName = "Dock Connector", Status = MyShipConnectorStatus.Connected }; var hdoor = new FDoor { Ship = mine, CustomName = "Hangar Door", OpenRatio = 0.5f };
     mBat.Invs = new[] { new FInv { Iron = 100, Ice = 5 }, new FInv { Iron = 50 } };
     mTank.Invs = new[] { new FInv { Iron = 25 } };
     fBat.Invs = new[] { new FInv { Iron = 9999 } };
     var gts = new FGts();
-    gts.All.AddRange(new IMyTerminalBlock[] { fBat, fTank, fLcd, mBat, mTank, mLcd, aLcd, gLcd, nLcd, rLcd, cLcd, conn, hdoor, me });
+    gts.All.AddRange(new IMyTerminalBlock[] { fBat, fTank, fLcd, mBat, mTank, mLcd, aLcd, gLcd, nLcd, rLcd, cLcd, vLcd, tLcd, conn, hdoor, me });
     var gDock = new FGroup { Name = "Fleet" }; gDock.Blocks.Add(fBat); gDock.Blocks.Add(fTank);
     var gMine = new FGroup { Name = "Fleet" }; gMine.Blocks.Add(mBat); gMine.Blocks.Add(mTank);
     gts.Groups.Add(gDock); gts.Groups.Add(gMine);
     var gOnlyDock = new FGroup { Name = "DockOnly" }; gOnlyDock.Blocks.Add(fBat); gts.Groups.Add(gOnlyDock);
-    me.CustomData = "@bind bat = block(\"Main Battery\")\n@bind tank = block(\"H2 Tank\")\n@bind fleet = group(\"Fleet\", agg: avg)\n@bind wild = group(\"*Tank*\", agg: avg)\n@bind lost = group(\"DockOnly\", agg: avg)\n@bind none = block(\"Nothing Here\")\n@bind fleetsum = group(\"Fleet\", agg: sum)\n@bind conn = block(\"Dock Connector\")\n@bind hdoor = block(\"Hangar Door\")\n@bind dock = group(\"Fleet\", agg: sum, scope: all)\n@bind dockwild = group(\"*Tank*\", agg: sum, scope: all)\n@screen S\noutput: \"Cockpit\", 0\nlayout: grid(1, 1)\n@panel p at(0, 0, 1, 1) title: \"T\"\nline: \"B\" bar(bat.percent) flat(cyan)\n@screen A2\noutput: \"AmmoLcd\", 0\nlayout: grid(1, 1)\n@panel q at(0, 0, 1, 1) title: \"T\"\nline: \"HALF\" bar(bat.ingot:Iron) max(300) flat(cyan)\nline: \"OVER\" bar(bat.ingot:Iron) max(100) flat(cyan)\nline: \"DYN \" bar(bat.ingot:Iron) max(fleetsum.ingot:Iron) flat(cyan)\n@screen G\noutput: \"GradLcd\", 0\nlayout: grid(2, 1)\nbg_gradient(#000000, #ffffff)\n@panel a at(0, 0, 1, 1) title: \"A\"\nline: \"X\" bar(bat.percent) flat(cyan)\n@panel b at(1, 0, 1, 1) title: \"B\"\nline: \"Y\" bar(bat.percent) flat(cyan)\n@screen N\noutput: \"NoneLcd\", 0\nlayout: grid(2, 1)\nbg: #102030\npanel_bg: none\nalert_bg: #ff0000\n@panel a at(0, 0, 1, 1) title: \"A\"\nline: \"X\" bar(bat.percent) flat(cyan)\n@panel b at(1, 0, 1, 1) title: \"B\"\nline: \"Y\" bar(bat.percent) flat(cyan)\n@screen C\noutput: \"CkLcd\", 0\nlayout: grid(1, 1)\n@panel c at(0, 0, 1, 1) title: \"C\"\nline: \"LINK\" checkbox(conn.connected) flat(cyan)\nline: \"DOOR\" bar(hdoor.open) flat(cyan)\n@screen R\noutput: \"RefLcd\", 0\nlayout: grid(1, 1)\nrefresh: 600\n@panel r at(0, 0, 1, 1) title: \"R\"\nline: \"X\" bar(bat.percent) flat(cyan)\n";
+    me.CustomData = "@bind bat = block(\"Main Battery\")\n@bind tank = block(\"H2 Tank\")\n@bind fleet = group(\"Fleet\", agg: avg)\n@bind wild = group(\"*Tank*\", agg: avg)\n@bind lost = group(\"DockOnly\", agg: avg)\n@bind none = block(\"Nothing Here\")\n@bind fleetsum = group(\"Fleet\", agg: sum)\n@bind conn = block(\"Dock Connector\")\n@bind hdoor = block(\"Hangar Door\")\n@bind dock = group(\"Fleet\", agg: sum, scope: all)\n@bind dockwild = group(\"*Tank*\", agg: sum, scope: all)\n@screen S\noutput: \"Cockpit\", 0\nlayout: grid(1, 1)\n@panel p at(0, 0, 1, 1) title: \"T\"\nline: \"B\" bar(bat.percent) flat(cyan)\n@screen A2\noutput: \"AmmoLcd\", 0\nlayout: grid(1, 1)\n@panel q at(0, 0, 1, 1) title: \"T\"\nline: \"HALF\" bar(bat.ingot:Iron) max(300) flat(cyan)\nline: \"OVER\" bar(bat.ingot:Iron) max(100) flat(cyan)\nline: \"DYN \" bar(bat.ingot:Iron) max(fleetsum.ingot:Iron) flat(cyan)\n@screen G\noutput: \"GradLcd\", 0\nlayout: grid(2, 1)\nbg_gradient(#000000, #ffffff)\n@panel a at(0, 0, 1, 1) title: \"A\"\nline: \"X\" bar(bat.percent) flat(cyan)\n@panel b at(1, 0, 1, 1) title: \"B\"\nline: \"Y\" bar(bat.percent) flat(cyan)\n@screen N\noutput: \"NoneLcd\", 0\nlayout: grid(2, 1)\nbg: #102030\npanel_bg: none\nalert_bg: #ff0000\n@panel a at(0, 0, 1, 1) title: \"A\"\nline: \"X\" bar(bat.percent) flat(cyan)\n@panel b at(1, 0, 1, 1) title: \"B\"\nline: \"Y\" bar(bat.percent) flat(cyan)\n@screen C\noutput: \"CkLcd\", 0\nlayout: grid(1, 1)\n@panel c at(0, 0, 1, 1) title: \"C\"\nline: \"LINK\" checkbox(conn.connected) flat(cyan)\nline: \"DOOR\" bar(hdoor.open) flat(cyan)\n@screen V\noutput: \"ValLcd\", 0\nlayout: grid(1, 1)\n@panel v at(0, 0, 1, 1) title: \"V\"\nbg: color(bat.ingot:Iron > 100 : #ff0000, default: #00ff00)\nflash: bat.ingot:Iron > 100\nline: \"X\" bar(bat.percent) flat(cyan)\n@screen T\noutput: \"TexLcd\", 0\nlayout: grid(1, 1)\nbg_gradient(#000000, #ffffff)\nbg_gradient_dir: horizontal\nbg_texture: Grid\n@panel t at(0, 0, 1, 1) title: \"T\"\nline: \"X\" bar(bat.percent) flat(cyan)\n@screen R\noutput: \"RefLcd\", 0\nlayout: grid(1, 1)\nrefresh: 600\n@panel r at(0, 0, 1, 1) title: \"R\"\nline: \"X\" bar(bat.percent) flat(cyan)\n";
     MyGridProgram.BootstrapMe = me; MyGridProgram.BootstrapGts = gts;
     var prog = new Program();
     var binds = (Dictionary<string, List<IMyTerminalBlock>>)Dump.Get(prog, "_resolvedBinds");
@@ -147,6 +147,32 @@ static class ScopeTest {
     prog.Main("alert off", UpdateType.Terminal);
     tick.SetValue(prog, 0.0); flat = spritesOf(cfg0.Screens[3]);
     Check(col(flat[0]) == "16.32.48.255", "background: no flashing once the alert is off: " + col(flat[0]));
+
+    // Value-driven backgrounds: a panel colour follows a value, and a panel flashes to alert_bg on a threshold.
+    var timeF = typeof(Program).GetField("_time", BindingFlags.Instance | BindingFlags.NonPublic);
+    Func<ScreenDef, KeyValuePair<List<VRage.Game.GUI.TextPanel.MySprite>, System.Collections.IList>> bgOf = sc => {
+        for (int pass = 0; pass < 3; pass++) render.Invoke(prog, new object[] { sc });
+        var bb = bufs.GetType().GetProperty("Item").GetValue(bufs, new object[] { sc });
+        return new KeyValuePair<List<VRage.Game.GUI.TextPanel.MySprite>, System.Collections.IList>(
+            (List<VRage.Game.GUI.TextPanel.MySprite>)bb.GetType().GetField("Sprites").GetValue(bb), (System.Collections.IList)bb.GetType().GetField("Bgs").GetValue(bb));
+    };
+    Func<KeyValuePair<List<VRage.Game.GUI.TextPanel.MySprite>, System.Collections.IList>, string> panelBg = kv => {
+        var e = kv.Value[kv.Value.Count - 1]; return col(kv.Key[(int)e.GetType().GetField("Index").GetValue(e)]); };
+    var valScreen = cfg0.Screens[5];
+    timeF.SetValue(prog, 1.0); // flash phase off (period 1.6 s)
+    Check(panelBg(bgOf(valScreen)) == "255.0.0.255", "background: iron 150 > 100 turns the panel red (bg: color rule): " + panelBg(bgOf(valScreen)));
+    timeF.SetValue(prog, 0.0); // flash phase on
+    Check(panelBg(bgOf(valScreen)) == "91.15.15.255", "background: flash: iron > 100 flashes it to alert_bg on the on phase: " + panelBg(bgOf(valScreen)));
+    mBat.Invs = new[] { new FInv { Iron = 5 } };
+    timeF.SetValue(prog, 1.0);
+    Check(panelBg(bgOf(valScreen)) == "0.255.0.255", "background: iron 5 falls to the default rule and turns it green: " + panelBg(bgOf(valScreen)));
+    mBat.Invs = new[] { new FInv { Iron = 100 }, new FInv { Iron = 50 } };
+    timeF.SetValue(prog, 0.0);
+    // Horizontal gradient and a texture.
+    var texScreen = cfg0.Screens[6];
+    var tex = bgOf(texScreen).Key;
+    Check(tex[15].Position.Value.X > tex[0].Position.Value.X + 300 && Math.Abs(tex[15].Position.Value.Y - tex[0].Position.Value.Y) < 1 && tex[0].Color.Value.R < 20 && tex[15].Color.Value.R > 235, "background: bg_gradient_dir: horizontal lays the 16 bands left to right, dark to light");
+    Check(tex.Any(sp => sp.Data == "Grid" && col(sp) == "255.255.255.24"), "background: bg_texture: Grid draws the sprite over the background, white at 24/255");
 
     // Console: the same model is echoed to the info pane and drawn on the Programmable Block's own screen.
     var echo = new System.Text.StringBuilder();
