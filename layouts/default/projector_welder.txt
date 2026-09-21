@@ -1,0 +1,19 @@
+# Projector and Welder
+# Build progress of a projected blueprint and whether the welders are working.
+@bind proj = block("Projector")
+@bind weld = group("Welders", agg: max)
+
+@screen Build
+output: "Build LCD", 0
+profile: standard
+layout: grid(1, 1)
+bg: #0a0c10
+border_color: #f59e0b
+
+@panel p at(0, 0, 1, 1) title: "BUILD"
+line: "BUILT   " bar(proj.percent) gradient(#ef4444, #eab308, #22c55e)
+line: "LEFT    " text(proj.remaining) flat(#e2e8f0)
+line: "ARMOR   " text(proj.armor) flat(#94a3b8)
+line: "TOTAL   " text(proj.total) flat(#94a3b8)
+line: "PROJECT " status(proj.projecting) flat(#22c55e)
+line: "WELDERS " status(weld.working) flat(#f59e0b)

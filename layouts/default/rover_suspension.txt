@@ -1,0 +1,18 @@
+# Rover Suspension
+# Height, strength, power, friction and brake of a rover's wheels. Strength, power and friction are 0 to 100.
+@bind susp = group("Wheels", agg: avg)
+@bind brk  = group("Wheels", agg: max)
+
+@screen Rover
+output: "Rover LCD", 0
+profile: standard
+layout: grid(1, 1)
+bg: #0a0c10
+border_color: #22c55e
+
+@panel p at(0, 0, 1, 1) title: "SUSPENSION"
+line: "HEIGHT  " text(susp.height) unit("m") flat(#e2e8f0)
+line: "STRENGTH" bar(susp.strength) max(100) gradient(#ef4444, #eab308, #22c55e)
+line: "POWER   " bar(susp.power) max(100) gradient(#38bdf8, #22c55e)
+line: "FRICTION" bar(susp.friction) max(100) gradient(#22c55e, #eab308, #ef4444)
+line: "BRAKE   " checkbox(brk.brake) flat(#ef4444)

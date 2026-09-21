@@ -10,6 +10,8 @@ badge: "Blocks"
 
 In the Live column, **[x]** means `Program.cs` has code for that block type. **[ ]** means only the generic fallback applies: the value is 1 when the block is enabled and 0 otherwise. Blocks that are not in the table read 0.
 
+State fields such as `.locked`, `.connected`, `.brake`, `.producing`, `.projecting` and `.working` read 100 when true and 0 when false, and ratios such as a door's `.open` are 0 to 100, the same scale as `.percent`. That is what `checkbox`, `toggle`, `status`, `led` and `bar` expect. Item amounts and other raw values need `max(N)` to be drawn as a bar.
+
 | Category | In-Game Block Type | SE Interface | Live | Supported Properties | Recommended Gauge | Default Units |
 | :--- | :--- | :--- | :---: | :--- | :--- | :--- |
 | **Power** | Battery Block | `IMyBatteryBlock` | **[x]** | `.percent`, `.stored`, `.max`, `.input`, `.output` | `bar`, `flow`, `spark` | `MW` / `%` |
@@ -22,6 +24,9 @@ In the Live column, **[x]** means `Program.cs` has code for that block type. **[
 | **Gas/Life** | Air Vent | `IMyAirVent` | **[x]** | `.percent`, `.o2`, `.oxygen`, `.pressurized`, `.depressurize` | `bar`, `flow`, `status` | `kPa` / `%` |
 | **Gas/Life** | Medical Room / Survival Kit | `IMyMedicalRoom` | **[ ]** | `.enabled` (on/off only) | `toggle`, `status`, `led` | - |
 | **Storage** | Cargo Container | `IMyCargoContainer` | **[x]** | `.percent`, `.volume`, `.max`, `.mass` | `bar`, `spark` | `kL` / `t` |
+| **Production**| Projector | `IMyProjector` | **[x]** | `.percent` (built share), `.built`, `.remaining`, `.total`, `.armor`, `.buildable`, `.projecting` | `bar`, `text`, `status` | blocks |
+| **Production**| Welder / Grinder | `IMyShipToolBase` | **[x]** | `.percent`, `.working` | `status`, `checkbox` | - |
+| **Mechanical**| Wheel Suspension | `IMyMotorSuspension` | **[x]** | `.percent`, `.height`, `.strength`, `.power`, `.friction`, `.steer`, `.propulsion`, `.brake` | `bar`, `text`, `checkbox` | `m` / `%` |
 | **Storage** | Connector | `IMyShipConnector` | **[x]** | `.percent`, `.locked`, `.connected`, `.status` | `checkbox`, `status`, `toggle` | - |
 | **Storage** | Conveyor Sorter | `IMyConveyorSorter` | **[ ]** | `.enabled` (on/off only) | `toggle`, `status`, `led` | - |
 | **Drive** | Thruster (Atmo / Ion / H2) | `IMyThrust` | **[x]** | `.percent`, `.thrust`, `.max`, `.override` | `chevron`, `bar`, `spark` | `kN` / `%` |
