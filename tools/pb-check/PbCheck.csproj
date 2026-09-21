@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Compiles HelmCombined.min.cs against the game's own assemblies, as C# 6 in the Programmable Block
+       wrapper, with the MDK analyzers (MDK01 = the game's prohibited-API whitelist). This is the same
+       check the game runs on Check Code. Needs a Space Engineers install: set SE_BIN64 to its Bin64
+       folder. Run through Test-PbApi.ps1, which writes Wrapped.g.cs. -->
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>6</LangVersion>
+    <OutputType>Library</OutputType>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <Nullable>disable</Nullable>
+    <NoWarn>CS0169;CS0414;CS0649;CS0219;CS0168</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Wrapped.g.cs" />
+    <Reference Include="System.Collections.Immutable"><HintPath>$(SE_BIN64)/System.Collections.Immutable.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Sandbox.Common"><HintPath>$(SE_BIN64)/Sandbox.Common.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Sandbox.Game"><HintPath>$(SE_BIN64)/Sandbox.Game.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Sandbox.Graphics"><HintPath>$(SE_BIN64)/Sandbox.Graphics.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="SpaceEngineers.Game"><HintPath>$(SE_BIN64)/SpaceEngineers.Game.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="SpaceEngineers.ObjectBuilders"><HintPath>$(SE_BIN64)/SpaceEngineers.ObjectBuilders.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="VRage"><HintPath>$(SE_BIN64)/VRage.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="VRage.Audio"><HintPath>$(SE_BIN64)/VRage.Audio.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="VRage.Game"><HintPath>$(SE_BIN64)/VRage.Game.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="VRage.Input"><HintPath>$(SE_BIN64)/VRage.Input.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="VRage.Library"><HintPath>$(SE_BIN64)/VRage.Library.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="VRage.Math"><HintPath>$(SE_BIN64)/VRage.Math.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="VRage.Render"><HintPath>$(SE_BIN64)/VRage.Render.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="VRage.Render11"><HintPath>$(SE_BIN64)/VRage.Render11.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="VRage.Scripting"><HintPath>$(SE_BIN64)/VRage.Scripting.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="ProtoBuf.Net.Core"><HintPath>$(SE_BIN64)/ProtoBuf.Net.Core.dll</HintPath><Private>false</Private></Reference>
+    <PackageReference Include="Mal.Mdk2.PbAnalyzers" Version="2.2.0" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

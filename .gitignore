@@ -38,3 +38,4 @@ decom/
 DEVTRACKER-PENDING.md
 .smoke/
 tools/spritedump/CombinedCheck/Wrapped.g.cs
+tools/pb-check/Wrapped.g.cs

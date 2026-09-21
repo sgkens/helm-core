@@ -342,6 +342,20 @@ if (-not $NoMinify) {
     Write-Host "      Minified    : $minCharCount chars   → HelmCombined.min.cs" -ForegroundColor White
 }
 Write-Host ""
+
+# Compile the shipped script against the game's own assemblies (tools/pb-check). Needs a Space Engineers
+# install, so it runs only where SE_BIN64 points at the game's Bin64 folder; CI cannot carry the game.
+if (-not $NoMinify) {
+    if ($env:SE_BIN64) {
+        Write-Host "  [pb-check] Compiling against the game's assemblies" -ForegroundColor Yellow
+        & ([System.IO.Path]::Combine($ScriptDir, 'tools', 'pb-check', 'Test-PbApi.ps1'))
+        if ($LASTEXITCODE -ne 0) { throw "pb-check failed: the game would reject HelmCombined.min.cs." }
+    } else {
+        Write-Host "  [pb-check] Skipped: set SE_BIN64 to the game's Bin64 folder to compile against the real API." -ForegroundColor DarkYellow
+    }
+    Write-Host ""
+}
+
 Write-Host "  ============================================================" -ForegroundColor Cyan
 Write-Host "   Build complete." -ForegroundColor Cyan
 Write-Host "  ============================================================" -ForegroundColor Cyan
