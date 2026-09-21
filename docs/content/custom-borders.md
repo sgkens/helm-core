@@ -8,31 +8,35 @@ badge: "Styling"
 
 ## 1. Modular Border Styles
 
-You can set the border style at the screen level (and per panel in `helmv.ps1`):
+Set the border style on a screen, or on a single panel by writing `border:` after its `@panel` line:
 
 ```helm
 border: <style>
 ```
 
-| Style | Description | Character Set / Frame Preview |
+| Style | In the game (quads) | `helmv.ps1` (characters) |
 | :--- | :--- | :--- |
-| **`heavy`** | Thick box-drawing frames | `╔════╗` / `║    ║` / `╚════╝` |
-| **`double`** | High-tech double line frames | `╔════╗` / `║    ║` / `╚════╝` |
-| **`single`** | Clean single line borders | `┌────┐` / `│    │` / `└────┘` |
-| **`rounded`** | Rounded corner frames | `╭────╮` / `│    │` / `╰────╯` |
-| **`minimal`** | Space-saving dotted borders | `·────·` / `·    ·` / `·────·` |
-| **`ascii`** | Strict ASCII 7-bit characters | `+----+` / `|    |` / `+----+` |
-| **`graphic`** | Heavy solid block edges | `█▀▀▀▀█` / `█    █` / `█▄▄▄▄█` |
-| **`none`** | Borderless clean cards | No enclosing frame |
+| **`graphic`** (default), **`minimal`** | Top and bottom lines | Divider lines |
+| **`frame`**, **`single`** | Lines on all four sides | `┌────┐` / `│    │` / `└────┘` |
+| **`heavy`** | Four sides, twice as thick | `╔════╗` / `║    ║` / `╚════╝` |
+| **`double`** | Four sides and a second frame inside | `╔════╗` / `║    ║` / `╚════╝` |
+| **`rounded`** | Four sides with a circle at each corner | `╭────╮` / `│    │` / `╰────╯` |
+| **`corners`** | Bracket corners only | Drawn as a plain frame |
+| **`ascii`** | Text renderer with `+----+` frames | `+----+` / `|    |` / `+----+` |
+| **`none`** | No frame | No frame |
+
+### Colours
+
+`border_color: <color>` colours the frame. `border_gradient(#a, #b, ...)` blends through the stops from left to right along the top and bottom lines; the left side takes the first stop and the right side the last. `gradient_mode: steps` uses the first stop on top and the last on the bottom.
 
 ### Where each style applies
 
 | Renderer | Behavior |
 | :--- | :--- |
-| In-game script | Screen-level `border:` only. `none` removes the frame, `ascii` uses the text renderer with `+----+` frames, and every other style draws the standard sprite frame. A panel-level `border:` is parsed but ignored. |
-| `helmv.ps1` | All styles, at screen and panel level. |
+| In-game script | Screen-level `border:` frames the whole screen. `border:` on a `@panel` frames that panel (`none` removes it; a panel has no frame unless it sets one). `ascii` is screen-level only and switches the screen to the text renderer, where every panel is drawn as text |
+| `helmv.ps1` | All styles, at screen and panel level |
 
-`border_color:`, `border_gradient:`, `title_align:` and `title_color:` work at screen and panel level in both renderers. The LCD previews in these docs come from the in-game renderer, so they show one frame for every style except `ascii` and `none`.
+`border_color:`, `border_gradient:`, `title_align:` and `title_color:` work at screen and panel level in both renderers. The LCD previews in these docs come from the in-game renderer, so they show the frame the game draws.
 
 ---
 

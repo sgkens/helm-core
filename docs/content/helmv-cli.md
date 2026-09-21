@@ -95,6 +95,12 @@ While `helmv.ps1` is running interactively, you can control the simulation using
 | `orientation: vertical` | Horizontal rows | Columns |
 | `size(medium\|large)` | Same row height | Rows of 2 and 4 shares |
 | `label_color`, `track`, `color_by` | Ignored | Applied |
+| `dial` | Shown as a value | Arc of segments, needle and hub |
+| `ticks`, `marker`, `outline`, `dir: left` | Not drawn | Drawn on the bar |
+| `segments`, `points`, `icon`, `blink`, `value(off)` | Ignored | Applied |
+| `rate`, `eta`, `trend` | No value | Change per minute, time to empty or full, arrow |
+| `gap`, `padding` | Ignored | Applied |
+| `border: frame`, `border: corners` | Plain frame | Sides, or corner brackets |
 | A colour rule that answers `a/b` | Not blended | Gradient |
 | `bg_gradient`, `bg_texture`, value-driven `bg:` | One card colour | Drawn as set |
 | `mirror`, `mirror_panel`, `banner` | Not drawn | Copy of the screen, the ASCII art |
