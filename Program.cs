@@ -1735,6 +1735,48 @@ namespace IngameScript
             buf.Sprites.Add(new MySprite { Type = SpriteType.TEXTURE, Alignment = TextAlignment.CENTER, Data = data, Position = pos, Size = size, Color = col, RotationOrScale = rot });
         }
 
+        // Frames drawn with quads. graphic and minimal keep the top and bottom lines; frame, single, heavy, double and rounded add
+        // the sides; corners draws brackets. Gradient stops run left to right, the sides take the first and the last stop.
+        private void AddFrame(ScreenBuffer buf, string style, string[] grad, string colName, bool smooth, float l, float t, float r, float b)
+        {
+            style = style.ToLowerInvariant();
+            float th = style == "heavy" ? 4f : 2f, w = r - l, h = b - t;
+            Color c0 = ResolveColor(grad != null && grad.Length > 0 ? grad[0] : colName ?? "40, 60, 85");
+            Color c1 = grad != null && grad.Length > 1 ? ResolveColor(grad[grad.Length - 1]) : c0;
+            Action<float, float, float, float, Color> q = (x, y, qw, qh, c) => AddQuad(buf, new Vector2(x + qw / 2f, y + qh / 2f), new Vector2(qw, qh), c);
+            if (style == "corners")
+            {
+                float n = Math.Max(10f, Math.Min(w, h) * 0.15f);
+                q(l, t, n, th, c0); q(l, t, th, n, c0); q(r - n, t, n, th, c1); q(r - th, t, th, n, c1);
+                q(l, b - th, n, th, c0); q(l, b - n, th, n, c0); q(r - n, b - th, n, th, c1); q(r - th, b - n, th, n, c1);
+                return;
+            }
+            if (grad != null && grad.Length > 1 && smooth)
+            {
+                AddBands(buf, grad, "horizontal", l, t, w, th);
+                AddBands(buf, grad, "horizontal", l, b - th, w, th);
+            }
+            else
+            {
+                q(l, t, w, th, c0);
+                q(l, b - th, w, th, c1);
+            }
+            if ("|frame|single|heavy|double|rounded|".Contains("|" + style + "|"))
+            {
+                q(l, t, th, h, c0);
+                q(r - th, t, th, h, c1);
+            }
+            if (style == "rounded")
+            {
+                float d = th * 3f;
+                AddQuad(buf, new Vector2(l, t), new Vector2(d, d), c0, 0f, "Circle");
+                AddQuad(buf, new Vector2(r, t), new Vector2(d, d), c1, 0f, "Circle");
+                AddQuad(buf, new Vector2(l, b), new Vector2(d, d), c0, 0f, "Circle");
+                AddQuad(buf, new Vector2(r, b), new Vector2(d, d), c1, 0f, "Circle");
+            }
+            if (style == "double") AddFrame(buf, "single", grad, colName, smooth, l + 5f, t + 5f, r - 5f, b - 5f);
+        }
+
         private void BuildGraphicBuffer(ScreenDef screen, IMyTextSurface surface, ScreenBuffer buf)
         {
             buf.Sprites.Clear();
@@ -1792,25 +1834,8 @@ namespace IngameScript
 
             if (!screen.Border.Equals("none", StringComparison.OrdinalIgnoreCase))
             {
-                Color borderColTop = screen.BorderGradientColors != null && screen.BorderGradientColors.Length > 0
-                    ? ResolveColor(screen.BorderGradientColors[0])
-                    : ResolveColor(screen.BorderColor ?? "40, 60, 85");
-                Color borderColBot = screen.BorderGradientColors != null && screen.BorderGradientColors.Length > 1
-                    ? ResolveColor(screen.BorderGradientColors[screen.BorderGradientColors.Length - 1])
-                    : borderColTop;
-
                 float borderX = viewportOffset.X + (surfaceSize.X - usableW) / 2f;
-                if (screen.BorderGradientColors != null && screen.BorderGradientColors.Length > 1 && !screen.GradientSteps)
-                {
-                    // border_gradient blends across the frame: both lines run through all the stops, left to right.
-                    AddBands(buf, screen.BorderGradientColors, "horizontal", borderX, viewportOffset.Y + paddingY * 0.5f - 1f, usableW, 2f);
-                    AddBands(buf, screen.BorderGradientColors, "horizontal", borderX, viewportOffset.Y + surfaceSize.Y - (paddingY * 0.5f) - 1f, usableW, 2f);
-                }
-                else
-                {
-                    AddQuad(buf, new Vector2(viewportOffset.X + surfaceSize.X / 2f, viewportOffset.Y + paddingY * 0.5f), new Vector2(usableW, 2f), borderColTop);
-                    AddQuad(buf, new Vector2(viewportOffset.X + surfaceSize.X / 2f, viewportOffset.Y + surfaceSize.Y - (paddingY * 0.5f)), new Vector2(usableW, 2f), borderColBot);
-                }
+                AddFrame(buf, screen.Border, screen.BorderGradientColors, screen.BorderColor, !screen.GradientSteps, borderX - 2f, viewportOffset.Y + paddingY * 0.5f - 1f, borderX + usableW + 2f, viewportOffset.Y + surfaceSize.Y - paddingY * 0.5f + 1f);
             }
 
             var panels = screen.Panels;
@@ -1855,6 +1880,9 @@ namespace IngameScript
                         AddQuad(buf, new Vector2(pLeft + pWidth / 2f, pTop + pHeight / 2f), new Vector2(pWidth, pHeight), pc);
                     }
                 }
+
+                if (panel.Border != null && !panel.Border.Equals("none", StringComparison.OrdinalIgnoreCase))
+                    AddFrame(buf, panel.Border, panel.BorderGradientColors ?? screen.BorderGradientColors, panel.BorderColor ?? screen.BorderColor, !screen.GradientSteps, pLeft + 1f, pTop + 1f, pLeft + pWidth - 1f, pTop + pHeight - 1f);
 
                 string font = panel.Font ?? screen.Font ?? "Monospace";
                 float baseFontSize = Layout.GetProfileFontSize(screen.Profile, surfaceSize.X, surfaceSize.Y, screen.FontSize);
