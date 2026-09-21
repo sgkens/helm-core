@@ -13,6 +13,8 @@ class FBlock : IMyTerminalBlock {
   public dynamic IsSameConstructAs(params object[] a) { return Ship == ((FBlock)a[0]).Ship; }
   public override string ToString() { return Ship.Name + ":" + CustomName; }
 }
+class FConn : FBlock, IMyShipConnector { public dynamic Status { get; set; } public dynamic Enabled { get; set; } }
+class FDoor : FBlock, IMyDoor { public dynamic OpenRatio { get; set; } public dynamic Enabled { get; set; } }
 class FLcd : Dump.MockSurface, IMyTerminalBlock {
   public dynamic InventoryCount { get { return 0; } set { } } public dynamic GetInventory(params object[] a) { return null; }
   public Ship Ship; public FLcd(Ship s, string n) : base(512, 512) { Ship = s; CustomName = n; }
@@ -31,6 +33,11 @@ class FGts : IMyGridTerminalSystem {
   public dynamic GetBlockGroups(params object[] a) { ((List<IMyBlockGroup>)a[0]).AddRange(Groups); return null; }
 }
 static class ScopeTest {
+  public static double barInfo2(System.Collections.IList slots, List<VRage.Game.GUI.TextPanel.MySprite> sprites, int n) {
+    var slot = slots[n]; var t = slot.GetType();
+    float max = (float)t.GetField("BarMaxWidth").GetValue(slot);
+    return sprites[(int)t.GetField("FillSpriteIndex").GetValue(slot)].Size.Value.X / max;
+  }
   static int fails = 0;
   static void Check(bool ok, string what) { Console.WriteLine((ok ? "PASS  " : "FAIL  ") + what); if (!ok) fails++; }
   static int Main() {
@@ -39,17 +46,17 @@ static class ScopeTest {
     // the docked ship's blocks come FIRST, which is how GetBlockWithName finds the wrong one
     var fBat = new FBlock { Ship = dock, CustomName = "Main Battery" }; var mBat = new FBlock { Ship = mine, CustomName = "Main Battery" };
     var fTank = new FBlock { Ship = dock, CustomName = "H2 Tank Alpha" }; var mTank = new FBlock { Ship = sub, CustomName = "H2 Tank Alpha" };
-    var fLcd = new FLcd(dock, "Cockpit"); var mLcd = new FLcd(mine, "Cockpit"); var aLcd = new FLcd(mine, "AmmoLcd"); var gLcd = new FLcd(mine, "GradLcd"); var nLcd = new FLcd(mine, "NoneLcd"); var rLcd = new FLcd(mine, "RefLcd");
+    var fLcd = new FLcd(dock, "Cockpit"); var mLcd = new FLcd(mine, "Cockpit"); var aLcd = new FLcd(mine, "AmmoLcd"); var gLcd = new FLcd(mine, "GradLcd"); var nLcd = new FLcd(mine, "NoneLcd"); var rLcd = new FLcd(mine, "RefLcd"); var cLcd = new FLcd(mine, "CkLcd"); var conn = new FConn { Ship = mine, CustomName = "Dock Connector", Status = MyShipConnectorStatus.Connected }; var hdoor = new FDoor { Ship = mine, CustomName = "Hangar Door", OpenRatio = 0.5f };
     mBat.Invs = new[] { new FInv { Iron = 100, Ice = 5 }, new FInv { Iron = 50 } };
     mTank.Invs = new[] { new FInv { Iron = 25 } };
     fBat.Invs = new[] { new FInv { Iron = 9999 } };
     var gts = new FGts();
-    gts.All.AddRange(new IMyTerminalBlock[] { fBat, fTank, fLcd, mBat, mTank, mLcd, aLcd, gLcd, nLcd, rLcd, me });
+    gts.All.AddRange(new IMyTerminalBlock[] { fBat, fTank, fLcd, mBat, mTank, mLcd, aLcd, gLcd, nLcd, rLcd, cLcd, conn, hdoor, me });
     var gDock = new FGroup { Name = "Fleet" }; gDock.Blocks.Add(fBat); gDock.Blocks.Add(fTank);
     var gMine = new FGroup { Name = "Fleet" }; gMine.Blocks.Add(mBat); gMine.Blocks.Add(mTank);
     gts.Groups.Add(gDock); gts.Groups.Add(gMine);
     var gOnlyDock = new FGroup { Name = "DockOnly" }; gOnlyDock.Blocks.Add(fBat); gts.Groups.Add(gOnlyDock);
-    me.CustomData = "@bind bat = block(\"Main Battery\")\n@bind tank = block(\"H2 Tank\")\n@bind fleet = group(\"Fleet\", agg: avg)\n@bind wild = group(\"*Tank*\", agg: avg)\n@bind lost = group(\"DockOnly\", agg: avg)\n@bind none = block(\"Nothing Here\")\n@bind fleetsum = group(\"Fleet\", agg: sum)\n@bind dock = group(\"Fleet\", agg: sum, scope: all)\n@bind dockwild = group(\"*Tank*\", agg: sum, scope: all)\n@screen S\noutput: \"Cockpit\", 0\nlayout: grid(1, 1)\n@panel p at(0, 0, 1, 1) title: \"T\"\nline: \"B\" bar(bat.percent) flat(cyan)\n@screen A2\noutput: \"AmmoLcd\", 0\nlayout: grid(1, 1)\n@panel q at(0, 0, 1, 1) title: \"T\"\nline: \"HALF\" bar(bat.ingot:Iron) max(300) flat(cyan)\nline: \"OVER\" bar(bat.ingot:Iron) max(100) flat(cyan)\nline: \"DYN \" bar(bat.ingot:Iron) max(fleetsum.ingot:Iron) flat(cyan)\n@screen G\noutput: \"GradLcd\", 0\nlayout: grid(2, 1)\nbg_gradient(#000000, #ffffff)\n@panel a at(0, 0, 1, 1) title: \"A\"\nline: \"X\" bar(bat.percent) flat(cyan)\n@panel b at(1, 0, 1, 1) title: \"B\"\nline: \"Y\" bar(bat.percent) flat(cyan)\n@screen N\noutput: \"NoneLcd\", 0\nlayout: grid(2, 1)\nbg: #102030\npanel_bg: none\nalert_bg: #ff0000\n@panel a at(0, 0, 1, 1) title: \"A\"\nline: \"X\" bar(bat.percent) flat(cyan)\n@panel b at(1, 0, 1, 1) title: \"B\"\nline: \"Y\" bar(bat.percent) flat(cyan)\n@screen R\noutput: \"RefLcd\", 0\nlayout: grid(1, 1)\nrefresh: 600\n@panel r at(0, 0, 1, 1) title: \"R\"\nline: \"X\" bar(bat.percent) flat(cyan)\n";
+    me.CustomData = "@bind bat = block(\"Main Battery\")\n@bind tank = block(\"H2 Tank\")\n@bind fleet = group(\"Fleet\", agg: avg)\n@bind wild = group(\"*Tank*\", agg: avg)\n@bind lost = group(\"DockOnly\", agg: avg)\n@bind none = block(\"Nothing Here\")\n@bind fleetsum = group(\"Fleet\", agg: sum)\n@bind conn = block(\"Dock Connector\")\n@bind hdoor = block(\"Hangar Door\")\n@bind dock = group(\"Fleet\", agg: sum, scope: all)\n@bind dockwild = group(\"*Tank*\", agg: sum, scope: all)\n@screen S\noutput: \"Cockpit\", 0\nlayout: grid(1, 1)\n@panel p at(0, 0, 1, 1) title: \"T\"\nline: \"B\" bar(bat.percent) flat(cyan)\n@screen A2\noutput: \"AmmoLcd\", 0\nlayout: grid(1, 1)\n@panel q at(0, 0, 1, 1) title: \"T\"\nline: \"HALF\" bar(bat.ingot:Iron) max(300) flat(cyan)\nline: \"OVER\" bar(bat.ingot:Iron) max(100) flat(cyan)\nline: \"DYN \" bar(bat.ingot:Iron) max(fleetsum.ingot:Iron) flat(cyan)\n@screen G\noutput: \"GradLcd\", 0\nlayout: grid(2, 1)\nbg_gradient(#000000, #ffffff)\n@panel a at(0, 0, 1, 1) title: \"A\"\nline: \"X\" bar(bat.percent) flat(cyan)\n@panel b at(1, 0, 1, 1) title: \"B\"\nline: \"Y\" bar(bat.percent) flat(cyan)\n@screen N\noutput: \"NoneLcd\", 0\nlayout: grid(2, 1)\nbg: #102030\npanel_bg: none\nalert_bg: #ff0000\n@panel a at(0, 0, 1, 1) title: \"A\"\nline: \"X\" bar(bat.percent) flat(cyan)\n@panel b at(1, 0, 1, 1) title: \"B\"\nline: \"Y\" bar(bat.percent) flat(cyan)\n@screen C\noutput: \"CkLcd\", 0\nlayout: grid(1, 1)\n@panel c at(0, 0, 1, 1) title: \"C\"\nline: \"LINK\" checkbox(conn.connected) flat(cyan)\nline: \"DOOR\" bar(hdoor.open) flat(cyan)\n@screen R\noutput: \"RefLcd\", 0\nlayout: grid(1, 1)\nrefresh: 600\n@panel r at(0, 0, 1, 1) title: \"R\"\nline: \"X\" bar(bat.percent) flat(cyan)\n";
     MyGridProgram.BootstrapMe = me; MyGridProgram.BootstrapGts = gts;
     var prog = new Program();
     var binds = (Dictionary<string, List<IMyTerminalBlock>>)Dump.Get(prog, "_resolvedBinds");
@@ -101,6 +108,22 @@ static class ScopeTest {
     Check(Math.Abs(barInfo(2, "fill") - 150.0 / 175.0) < 0.01, "max(bind.field): 150 of fleetsum's 175 fills the bar to 85.7%: " + barInfo(2, "fill").ToString("0.000"));
     Check(barInfo(2, "text") == 150, "max(bind.field): the text keeps the real amount");
 
+    // Boolean and ratio fields are on the same 0 to 100 scale as percent, so checkbox, toggle, status and bar read them.
+    Check(field("conn", "connected") == 100, "fields: a connected connector reads 100, not 1");
+    Check(field("hdoor", "open") == 50, "fields: a door half open reads 50, not 0.5: " + field("hdoor", "open"));
+    var ck = cfg0.Screens[4];
+    for (int pass = 0; pass < 40; pass++) render.Invoke(prog, new object[] { ck });
+    var ckBuf = bufs.GetType().GetProperty("Item").GetValue(bufs, new object[] { ck });
+    var ckSlots = (System.Collections.IList)ckBuf.GetType().GetField("Slots").GetValue(ckBuf);
+    var ckSprites = (List<VRage.Game.GUI.TextPanel.MySprite>)ckBuf.GetType().GetField("Sprites").GetValue(ckBuf);
+    Func<int, string> valText = n => ckSprites[(int)ckSlots[n].GetType().GetField("ValSpriteIndex").GetValue(ckSlots[n])].Data;
+    Check(valText(0) == "ACTIVE", "fields: checkbox(conn.connected) reads ACTIVE when connected: " + valText(0));
+    conn.Status = MyShipConnectorStatus.Unconnected;
+    for (int pass = 0; pass < 40; pass++) render.Invoke(prog, new object[] { ck });
+    Check(valText(0) == "READY" && field("conn", "connected") == 0, "fields: and READY once it is disconnected: " + valText(0));
+    Check(Math.Abs(ScopeTest.barInfo2(ckSlots, ckSprites, 1) - 0.5) < 0.01, "fields: bar(hdoor.open) fills to 50% for a half open door: " + ScopeTest.barInfo2(ckSlots, ckSprites, 1).ToString("0.000"));
+    conn.Status = MyShipConnectorStatus.Connected;
+
     // Backgrounds: a gradient is drawn as 16 bands; the default card is a faint translucent overlay; panel_bg: none removes
     // the card; and the red alert flashes the background to alert_bg and back.
     Func<ScreenDef, List<VRage.Game.GUI.TextPanel.MySprite>> spritesOf = sc => {
@@ -135,7 +158,7 @@ static class ScopeTest {
     Console.WriteLine("--- info pane ---\n" + text + "-----------------");
     Check(text.Contains("HELM-[Kernel-(v0.0.0)]"), "console: header with the version");
     Check(text.Contains("krn-cfg") && text.Contains("cfg-dsp") && text.Contains("perf"), "console: krn-cfg, cfg-dsp and perf sections");
-    Check(text.Contains("screens " + cfg0.Screens.Count) && text.Contains("binds 7/9"), "console: all screens listed; 7 of 9 binds matched a block");
+    Check(text.Contains("screens " + cfg0.Screens.Count) && text.Contains("binds 9/11"), "console: all screens listed; 9 of 11 binds matched a block");
     Check(text.Contains("docked-ignored 3"), "console: three blocks on the docked ship were ignored");
     Check(text.Contains("512x512"), "console: display list shows the surface size");
     Check(text.Contains(" instr ") && text.Contains(" peak "), "console: perf shows the last run's instructions and the peak");
