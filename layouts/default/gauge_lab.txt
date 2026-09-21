@@ -1,0 +1,26 @@
+# Gauge Lab
+# The gauge options in one screen: a dial, a bar with ticks, markers and an outline, a bar that fills from the right, a 20-segment led bar, a 24-column sparkline, and framed panels.
+@bind pwr   = group("Batteries", agg: avg)
+@bind h2    = group("Hydrogen Tanks", agg: avg)
+@bind cargo = group("Cargo", agg: avg)
+
+@screen Lab
+output: "Lab LCD", 0
+layout: grid(2, 2)
+bg: #060a12
+border: double
+border_color: #38bdf8
+
+@panel dial at(0, 0, 1, 2) title: "DIAL"
+border: rounded
+line: "POWER" dial(pwr.percent) size(large) gradient(#22c55e, #eab308, #ef4444) track(#111827)
+
+@panel bars at(1, 0, 1, 1) title: "BARS"
+border: frame
+line: "H2   " bar(h2.percent) ticks(5) marker(25, 80) outline(#94a3b8) gradient(#ef4444, #eab308, #22c55e)
+line: "CARGO" bar(cargo.percent) dir: left flat(#38bdf8) outline(#94a3b8)
+
+@panel segs at(1, 1, 1, 1) title: "SEGMENTS"
+border: corners
+line: "LED  " led(pwr.percent) segments(20) gradient(#22c55e, #eab308, #ef4444) track(#0b1220)
+line: "TREND" spark(h2.percent) points(24) flat(#38bdf8)

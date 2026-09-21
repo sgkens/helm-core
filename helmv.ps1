@@ -987,6 +987,12 @@ $noteLines = @($notePanels | ForEach-Object { $_.Lines })
 if (@($noteLines | Where-Object { $_.Kind -eq 'Tank' }).Count -gt 0) { $notes.Add("tank/tube/bucket lines are drawn as plain bars here; the liquid, wave and bubbles show only in the game") }
 if (@($notePanels | Where-Object { $_.Orientation -eq 'vertical' }).Count -gt 0) { $notes.Add("vertical panels are drawn as horizontal ones here") }
 if (@($noteLines | Where-Object { $_.Size -gt 0 }).Count -gt 0) { $notes.Add("size(medium|large) does not change the row height in this preview") }
+if (@($noteLines | Where-Object { $_.Kind -eq 'Dial' }).Count -gt 0) { $notes.Add("dial lines are shown as a value here; the arc and needle show only in the game") }
+if (@($noteLines | Where-Object { $_.Ticks -gt 0 -or $_.Marks -or $_.Outline -or $_.Direction -eq 'left' }).Count -gt 0) { $notes.Add("ticks, marker, outline and dir: left on bars are not drawn in this preview") }
+if (@($noteLines | Where-Object { $_.Segs -gt 0 -or $_.Icon -or $_.BlinkRules -or $_.NoValue }).Count -gt 0) { $notes.Add("segments, points, icon, blink and value(off) are ignored in this preview") }
+if (@($noteLines | Where-Object { $_.Field -in @('rate', 'eta', 'trend') }).Count -gt 0) { $notes.Add("rate, eta and trend need the game's run history and show no value here") }
+if ($screen.Gap -ge 0 -or $screen.Padding -ge 0) { $notes.Add("gap and padding are ignored in this preview") }
+if ($screen.Border -in @('frame', 'corners')) { $notes.Add("border: $($screen.Border) is drawn as a plain frame here") }
 if (@($noteLines | Where-Object { $_.LabelColor -or $_.Track -or $_.ColorBind }).Count -gt 0) { $notes.Add("label_color, track and color_by are ignored in this preview") }
 if (@($noteLines | Where-Object { $null -ne $_.ColorRules -and @($_.ColorRules | Where-Object { $_.Color -like '*/*' }).Count -gt 0 }).Count -gt 0) { $notes.Add("colour rules that answer with a gradient (a/b) are not blended in this preview") }
 if ($screen.Mirror) { $notes.Add("mirror: '$($screen.Mirror)' is not drawn here; use -ScreenName to preview the source screen") }
