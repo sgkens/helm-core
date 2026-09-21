@@ -129,7 +129,8 @@ line: "URANIUM " text(reactor.ingot:Uranium) unit("kg")
 - The subtype is the game's internal name (`SteelPlate`, not "Steel Plate"), and it must not contain a dot.
 - Use `text(...)` for the amount alone. Add `max(N)` to draw a bar or a chart against a full amount, for example an ammunition load: `bar(guns.ammo:NATO_25x184mm) max(1200)`. Without `max(N)`, a `bar(...)` on an item field draws the block's fill percentage and prints the amount.
 - Each item line reads every block in its bind on every redraw. Bind a group instead of many single blocks, and check the `instr` figure in the console on a large grid before adding many item lines.
-- Listing everything a container holds is not supported.
+- **Largest items:** `text(bind.top1)` shows the largest item held by the bind's blocks, `top2` the next, up to any rank you use, for example `Iron ingot 1.5k`. Amounts are summed over every inventory of every block in the bind. Ore and ingots are named with their kind, other items by their subtype. A rank with no item shows `-`.
+- The ranking is scanned a few blocks per run within an instruction budget and refreshed every 15 seconds, so it lags the real contents. Listing every item is not supported.
 
 ### ASCII Banners
 
