@@ -221,6 +221,15 @@ line: ""O2""  bar(o2_$screen.percent) flat(cyan)
         Check(HelmParser.Parse("@screen a\nboot_calibrate: 0").Screens[0].BootCalibrate == 0f && HelmParser.Parse("@screen a\nboot_calibrate: off").Screens[0].BootCalibrate == 0f, "boot_calibrate: 0 and off switch the sweep off");
         Check(Math.Abs(HelmParser.Parse("@screen a\nboot_calibrate: 2.5s").Screens[0].BootCalibrate - 2.5f) < 0.001f, "boot_calibrate: 2.5s parsed");
 
+        // --- screen_bg and the partial background note ---
+        var cfgTrap = HelmParser.Parse("@screen a\noutput: \"x\", 0\nlayout: grid(2, 1)\n@panel p at(0, 0, 1, 1) title: \"P\"\n@panel q at(1, 0, 1, 1) title: \"Q\"\nbg: #4a0d67\n");
+        Check(cfgTrap.Errors.Count == 0 && cfgTrap.Warnings.Count == 1 && cfgTrap.Warnings[0].Contains("only 1 of 2 panels"), "bg: after the last @panel colours that panel only, and a warning says so: " + string.Join(" | ", cfgTrap.Warnings));
+        Check(cfgTrap.Screens[0].Background == null && cfgTrap.Screens[0].Panels[1].Background == "#4a0d67", "...the screen itself has no background");
+        var cfgFix = HelmParser.Parse("@screen a\noutput: \"x\", 0\nlayout: grid(2, 1)\n@panel p at(0, 0, 1, 1) title: \"P\"\n@panel q at(1, 0, 1, 1) title: \"Q\"\nscreen_bg: #4a0d67\n");
+        Check(cfgFix.Warnings.Count == 0 && cfgFix.Screens[0].Background == "#4a0d67" && cfgFix.Screens[0].Panels[1].Background == null, "screen_bg: sets the whole screen from anywhere in the block, with no note");
+        Check(HelmParser.Parse("@screen a\noutput: \"x\", 0\nbg: #4a0d67\n@panel p at(0, 0, 1, 1) title: \"P\"\n@panel q at(1, 0, 1, 1) title: \"Q\"\n").Warnings.Count == 0, "bg: before the first @panel colours the whole screen with no warning");
+        Check(HelmParser.Parse("@screen a\noutput: \"x\", 0\n@panel p at(0, 0, 1, 1) title: \"P\"\nbg: #111111\n@panel q at(1, 0, 1, 1) title: \"Q\"\nbg: #222222\n").Warnings.Count == 0, "a bg: on every panel is deliberate and gets no warning");
+
         // --- gradient_mode ---
         Check(!HelmParser.Parse("@screen a").Screens[0].GradientSteps, "gradients blend by default");
         Check(HelmParser.Parse("@screen a\ngradient_mode: steps").Screens[0].GradientSteps && !HelmParser.Parse("@screen a\ngradient_mode: smooth").Screens[0].GradientSteps, "gradient_mode: steps selects the nearest stop, smooth blends");

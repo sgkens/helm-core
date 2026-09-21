@@ -3,12 +3,13 @@
 # background, a panel that changes colour with a value, a panel that flashes on a threshold and a texture.
 @bind v = dynamic("demo.v", default: 62)
 
-# 1. Vertical gradient behind translucent panel cards (the default card lifts any background).
+# 1. Vertical gradient behind translucent panel cards (panel_bg: with an alpha value).
 @screen Gradient
 output: "Background LCD 1", 0
 profile: standard
 layout: grid(2, 1)
 bg_gradient(#0f172a, #312e81, #701a75)
+panel_bg: 255,255,255,14
 border_color: #a78bfa
 @panel a at(0, 0, 1, 1) title: "LEFT"
 line: "POWER   " bar(v.percent) gradient(#ef4444, #eab308, #22c55e)

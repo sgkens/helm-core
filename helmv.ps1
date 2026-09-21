@@ -1252,11 +1252,8 @@ function Get-CardBgRgb($panel, $screen, $sim, [bool]$alertPhase, [double]$rowFra
     elseif ($screen.BgGradient -and $screen.BgGradient.Length -gt 1) { $g = [HelmCore.Layout]::GradientLerp($screen.BgGradient, 100.0 * $rowFrac); $base = @([int]$g.R, [int]$g.G, [int]$g.B) }
     elseif (-not [string]::IsNullOrEmpty($screen.Background)) { $base = ConvertTo-BgRgb $screen.Background }
     if ($null -eq $base) { $base = @(0, 0, 0) }
-    if ($screen.GridCols -gt 1 -or $screen.GridRows -gt 1) {
-        if ($screen.PanelBg -eq 'none') { return $base }
-        if (-not [string]::IsNullOrEmpty($screen.PanelBg)) { $solid = ConvertTo-BgRgb $screen.PanelBg; if ($null -ne $solid) { return $solid } }
-        return @([int]($base[0] + (255 - $base[0]) * 6 / 255), [int]($base[1] + (255 - $base[1]) * 6 / 255), [int]($base[2] + (255 - $base[2]) * 6 / 255))
-    }
+    # panel_bg: is the only card; without it the screen background shows through as one colour.
+    if (-not [string]::IsNullOrEmpty($screen.PanelBg)) { $solid = ConvertTo-BgRgb $screen.PanelBg; if ($null -ne $solid) { return $solid } }
     return $base
 }
 

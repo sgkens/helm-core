@@ -337,6 +337,12 @@
                 foreach (var e in _config.Errors) sb.AppendLine(" - " + e);
                 _cfgErr = sb.ToString();
             }
+            if (_config.Warnings.Count > 0)
+            {
+                var wb = new StringBuilder("HELM notes:\n");
+                foreach (var w in _config.Warnings) wb.AppendLine(" - " + w);
+                _cfgErr += wb.ToString();
+            }
 
             _bindMap.Clear();
             foreach (var b in _config.Binds)
@@ -545,6 +551,7 @@
             ConLine(2, " screens " + _config.Screens.Count + "  binds " + bound + "/" + _config.Binds.Count + "  errors " + errs);
             ConLine(2, " alert " + (_globalRedAlert ? "RED" : "off") + "  blocks " + blockCount + "  docked-ignored " + _foreignBlocks);
             if (errs > 0) ConLine(3, " ! " + Trunc(_config.Errors[0], 40));
+            else if (_config.Warnings.Count > 0) ConLine(3, " ? " + Trunc(_config.Warnings[0], 40));
             ConLine(1, "cfg-dsp");
             int shown = 0;
             foreach (var s in _config.Screens)
@@ -1041,7 +1048,7 @@
                 {
                     var size = surface.SurfaceSize;
                     var stats = Layout.ComputeStats(screen);
-                    Echo($"[OK] Screen \"{screen.Name}\" [{screen.Profile}] -> {screen.OutputBlockName} [#{screen.OutputSurfaceIndex}] ({size.X:0}x{size.Y:0} px, {stats.TotalAllocatedSprites} sprites)");
+                    Echo($"[OK] Screen \"{screen.Name}\" [{screen.Profile}] -> {screen.OutputBlockName} [#{screen.OutputSurfaceIndex}] ({size.X:0}x{size.Y:0} px, texture {surface.TextureSize.X:0}x{surface.TextureSize.Y:0}, {stats.TotalAllocatedSprites} sprites)");
                 }
                 else
                 {
@@ -1660,12 +1667,12 @@
                 }
                 else
                 {
-                    // A panel's own colour, its value-driven colour, or (on a multi-panel screen) the default card: a faint
-                    // white overlay that lifts any background instead of painting a second colour. panel_bg: sets it or "none".
+                    // A panel's own colour or value-driven colour, or the card colour set by panel_bg:. Without any of these
+                    // nothing is drawn, so the screen background shows through as one colour.
                     Color pc;
                     if (panel.BgRules != null) pc = ResolveColor(panel.BgRules.First(r => r.IsDefault).Color);
                     else if (!string.IsNullOrEmpty(panel.Background)) pc = ResolveColor(panel.Background);
-                    else if (screen.GridCols > 1 || screen.GridRows > 1) pc = string.IsNullOrEmpty(screen.PanelBg) ? new Color(255, 255, 255, 6) : ResolveColor(screen.PanelBg);
+                    else if (!string.IsNullOrEmpty(screen.PanelBg)) pc = ResolveColor(screen.PanelBg);
                     else pc = Color.Transparent;
                     if (pc.A > 0 || ruled)
                     {
@@ -2678,6 +2685,7 @@
         public List<BindDef> Binds = new List<BindDef>();
         public List<ScreenDef> Screens = new List<ScreenDef>();
         public List<string> Errors = new List<string>();
+        public List<string> Warnings = new List<string>(); // probable mistakes that are not errors
         // ASCII art blocks from "@banner name" ... "@end", one entry per line, left indentation removed.
         public Dictionary<string, List<string>> Banners = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
     }
@@ -3046,6 +3054,11 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                         RequireScreen(current, "gradient_mode:");
                         current.GradientSteps = line.Substring("gradient_mode:".Length).Trim().Equals("steps", StringComparison.OrdinalIgnoreCase);
                     }
+                    else if (line.StartsWith("screen_bg:"))
+                    {
+                        RequireScreen(current, "screen_bg:");
+                        current.Background = line.Substring("screen_bg:".Length).Trim();
+                    }
                     else if (line.StartsWith("panel_bg:"))
                     {
                         RequireScreen(current, "panel_bg:");
@@ -3112,6 +3125,10 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
 
             foreach (var sc in cfg.Screens)
             {
+                // bg: after an @panel line colours that panel only. A screen where only some panels have one shows two colours.
+                int own = sc.Panels.Count(pn => pn.Background != null || pn.BgRules != null || pn.BgGradient != null);
+                if (sc.Panels.Count > 1 && own > 0 && own < sc.Panels.Count)
+                    cfg.Warnings.Add("screen '" + sc.Name + "': only " + own + " of " + sc.Panels.Count + " panels have their own bg:, so the screen shows two colours. bg: after an @panel colours that panel only; use screen_bg: (or bg: before the first @panel) for the whole screen");
                 if (sc.Banner != null && !cfg.Banners.ContainsKey(sc.Banner)) cfg.Errors.Add("Screen '" + sc.Name + "': banner '" + sc.Banner + "' is not defined (@banner " + sc.Banner + " ... @end)");
                 if (sc.BootLogo != null && !cfg.Banners.ContainsKey(sc.BootLogo)) cfg.Errors.Add("Screen '" + sc.Name + "': boot_logo '" + sc.BootLogo + "' is not defined (@banner " + sc.BootLogo + " ... @end)");
             }

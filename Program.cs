@@ -366,6 +366,12 @@ namespace IngameScript
                 foreach (var e in _config.Errors) sb.AppendLine(" - " + e);
                 _cfgErr = sb.ToString();
             }
+            if (_config.Warnings.Count > 0)
+            {
+                var wb = new StringBuilder("HELM notes:\n");
+                foreach (var w in _config.Warnings) wb.AppendLine(" - " + w);
+                _cfgErr += wb.ToString();
+            }
 
             _bindMap.Clear();
             foreach (var b in _config.Binds)
@@ -574,6 +580,7 @@ namespace IngameScript
             ConLine(2, " screens " + _config.Screens.Count + "  binds " + bound + "/" + _config.Binds.Count + "  errors " + errs);
             ConLine(2, " alert " + (_globalRedAlert ? "RED" : "off") + "  blocks " + blockCount + "  docked-ignored " + _foreignBlocks);
             if (errs > 0) ConLine(3, " ! " + Trunc(_config.Errors[0], 40));
+            else if (_config.Warnings.Count > 0) ConLine(3, " ? " + Trunc(_config.Warnings[0], 40));
             ConLine(1, "cfg-dsp");
             int shown = 0;
             foreach (var s in _config.Screens)
@@ -1070,7 +1077,7 @@ namespace IngameScript
                 {
                     var size = surface.SurfaceSize;
                     var stats = Layout.ComputeStats(screen);
-                    Echo($"[OK] Screen \"{screen.Name}\" [{screen.Profile}] -> {screen.OutputBlockName} [#{screen.OutputSurfaceIndex}] ({size.X:0}x{size.Y:0} px, {stats.TotalAllocatedSprites} sprites)");
+                    Echo($"[OK] Screen \"{screen.Name}\" [{screen.Profile}] -> {screen.OutputBlockName} [#{screen.OutputSurfaceIndex}] ({size.X:0}x{size.Y:0} px, texture {surface.TextureSize.X:0}x{surface.TextureSize.Y:0}, {stats.TotalAllocatedSprites} sprites)");
                 }
                 else
                 {
@@ -1689,12 +1696,12 @@ namespace IngameScript
                 }
                 else
                 {
-                    // A panel's own colour, its value-driven colour, or (on a multi-panel screen) the default card: a faint
-                    // white overlay that lifts any background instead of painting a second colour. panel_bg: sets it or "none".
+                    // A panel's own colour or value-driven colour, or the card colour set by panel_bg:. Without any of these
+                    // nothing is drawn, so the screen background shows through as one colour.
                     Color pc;
                     if (panel.BgRules != null) pc = ResolveColor(panel.BgRules.First(r => r.IsDefault).Color);
                     else if (!string.IsNullOrEmpty(panel.Background)) pc = ResolveColor(panel.Background);
-                    else if (screen.GridCols > 1 || screen.GridRows > 1) pc = string.IsNullOrEmpty(screen.PanelBg) ? new Color(255, 255, 255, 6) : ResolveColor(screen.PanelBg);
+                    else if (!string.IsNullOrEmpty(screen.PanelBg)) pc = ResolveColor(screen.PanelBg);
                     else pc = Color.Transparent;
                     if (pc.A > 0 || ruled)
                     {
