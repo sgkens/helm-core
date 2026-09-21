@@ -1327,25 +1327,7 @@ namespace IngameScript
 
         private double ResolvePercentForBind(string bindName)
         {
-            BindDef bindDef;
-            _bindMap.TryGetValue(bindName, out bindDef);
-            if (bindDef != null && bindDef.Kind == BindKind.Dynamic)
-            {
-                string k = !string.IsNullOrEmpty(bindDef.DynamicKey) ? bindDef.DynamicKey : bindName;
-                double dVal;
-                if (_dynamicValues.TryGetValue(k, out dVal)) return dVal;
-                return bindDef.DefaultValue;
-            }
-            double dynVal;
-            if (_dynamicValues.TryGetValue(bindName, out dynVal)) return dynVal;
-
-            List<IMyTerminalBlock> blocks;
-            if (!_resolvedBinds.TryGetValue(bindName, out blocks) || blocks.Count == 0) return 0.0;
-            if (blocks.Count == 1) return ResolvePercent(blocks[0]);
-
-            var values = new List<double>();
-            foreach (var b in blocks) values.Add(ResolvePercent(b));
-            return Aggregator.Aggregate(bindDef != null ? bindDef.Aggregation : Agg.Avg, values);
+            return ResolveFieldValue(bindName, "percent");
         }
 
         private static string FormatDisplayValue(double value, LineDef line)
@@ -1671,6 +1653,22 @@ namespace IngameScript
         }
 
 
+        // Sets the text and colour of a line's value sprite, or the colour of its fill sprite, in the retained buffer.
+        private static void SetVal(ScreenBuffer buf, LineSlot slot, string text, Color col)
+        {
+            var v = buf.Sprites[slot.ValSpriteIndex];
+            v.Data = text;
+            v.Color = col;
+            buf.Sprites[slot.ValSpriteIndex] = v;
+        }
+
+        private static void SetFill(ScreenBuffer buf, LineSlot slot, Color col)
+        {
+            var f = buf.Sprites[slot.FillSpriteIndex];
+            f.Color = col;
+            buf.Sprites[slot.FillSpriteIndex] = f;
+        }
+
         private bool RenderScreenGraphic(ScreenDef screen, IMyTextSurface surface)
         {
             ScreenBuffer buf;
@@ -1765,10 +1763,7 @@ namespace IngameScript
                         fillSprite.Color = barCol;
                         buf.Sprites[slot.FillSpriteIndex] = fillSprite;
 
-                        var valSprite = buf.Sprites[slot.ValSpriteIndex];
-                        valSprite.Data = FormatDisplayValue(value, line);
-                        valSprite.Color = barCol;
-                        buf.Sprites[slot.ValSpriteIndex] = valSprite;
+                        SetVal(buf, slot, FormatDisplayValue(value, line), barCol);
                     }
                 }
                 else if (line.Kind == LineKind.LedBar || line.Kind == LineKind.Hazard || line.Kind == LineKind.Chevron || line.Kind == LineKind.Dots)
@@ -1787,10 +1782,7 @@ namespace IngameScript
                             buf.Sprites[slot.ExtraSpriteIndices[s]] = segSprite;
                         }
 
-                        var valSprite = buf.Sprites[slot.ValSpriteIndex];
-                        valSprite.Data = FormatDisplayValue(value, line);
-                        valSprite.Color = barCol;
-                        buf.Sprites[slot.ValSpriteIndex] = valSprite;
+                        SetVal(buf, slot, FormatDisplayValue(value, line), barCol);
                     }
                 }
                 else if (line.Kind == LineKind.Spark)
@@ -1817,10 +1809,7 @@ namespace IngameScript
                             buf.Sprites[slot.ExtraSpriteIndices[p]] = colSprite;
                         }
 
-                        var valSprite = buf.Sprites[slot.ValSpriteIndex];
-                        valSprite.Data = FormatDisplayValue(value, line);
-                        valSprite.Color = barCol;
-                        buf.Sprites[slot.ValSpriteIndex] = valSprite;
+                        SetVal(buf, slot, FormatDisplayValue(value, line), barCol);
                     }
                 }
                 else if (line.Kind == LineKind.Balance)
@@ -1852,10 +1841,7 @@ namespace IngameScript
                         fillSprite.Color = barCol;
                         buf.Sprites[slot.FillSpriteIndex] = fillSprite;
 
-                        var valSprite = buf.Sprites[slot.ValSpriteIndex];
-                        valSprite.Data = FormatDisplayValue(value, line);
-                        valSprite.Color = barCol;
-                        buf.Sprites[slot.ValSpriteIndex] = valSprite;
+                        SetVal(buf, slot, FormatDisplayValue(value, line), barCol);
                     }
                 }
                 else if (line.Kind == LineKind.Toggle)
@@ -1873,10 +1859,7 @@ namespace IngameScript
                         fillSprite.Color = knobCol;
                         buf.Sprites[slot.FillSpriteIndex] = fillSprite;
 
-                        var valSprite = buf.Sprites[slot.ValSpriteIndex];
-                        valSprite.Data = isOn ? "ON" : "OFF";
-                        valSprite.Color = knobCol;
-                        buf.Sprites[slot.ValSpriteIndex] = valSprite;
+                        SetVal(buf, slot, isOn ? "ON" : "OFF", knobCol);
                     }
                 }
                 else if (line.Kind == LineKind.Checkbox)
@@ -1887,14 +1870,9 @@ namespace IngameScript
                         bool isChecked = value >= 50.0;
                         Color checkCol = isChecked ? (barCol != Color.White ? barCol : new Color(56, 189, 248)) : new Color(30, 36, 48);
 
-                        var fillSprite = buf.Sprites[slot.FillSpriteIndex];
-                        fillSprite.Color = checkCol;
-                        buf.Sprites[slot.FillSpriteIndex] = fillSprite;
+                        SetFill(buf, slot, checkCol);
 
-                        var valSprite = buf.Sprites[slot.ValSpriteIndex];
-                        valSprite.Data = isChecked ? "ACTIVE" : "READY";
-                        valSprite.Color = isChecked ? checkCol : new Color(148, 163, 184);
-                        buf.Sprites[slot.ValSpriteIndex] = valSprite;
+                        SetVal(buf, slot, isChecked ? "ACTIVE" : "READY", isChecked ? checkCol : new Color(148, 163, 184));
                     }
                 }
                 else if (line.Kind == LineKind.Status)
@@ -1905,14 +1883,9 @@ namespace IngameScript
                         string statusLabel = value >= 75.0 ? "ONLINE" : (value >= 25.0 ? "STBY" : "OFFLINE");
                         Color statusCol = value >= 75.0 ? new Color(34, 197, 94) : (value >= 25.0 ? new Color(234, 179, 8) : new Color(239, 68, 68));
 
-                        var fillSprite = buf.Sprites[slot.FillSpriteIndex];
-                        fillSprite.Color = statusCol;
-                        buf.Sprites[slot.FillSpriteIndex] = fillSprite;
+                        SetFill(buf, slot, statusCol);
 
-                        var valSprite = buf.Sprites[slot.ValSpriteIndex];
-                        valSprite.Data = statusLabel;
-                        valSprite.Color = statusCol;
-                        buf.Sprites[slot.ValSpriteIndex] = valSprite;
+                        SetVal(buf, slot, statusLabel, statusCol);
                     }
                 }
                 else if (line.Kind == LineKind.Ammo)
@@ -1930,10 +1903,7 @@ namespace IngameScript
                             buf.Sprites[slot.ExtraSpriteIndices[p]] = pipSprite;
                         }
 
-                        var valSprite = buf.Sprites[slot.ValSpriteIndex];
-                        valSprite.Data = FormatDisplayValue(value, line);
-                        valSprite.Color = barCol;
-                        buf.Sprites[slot.ValSpriteIndex] = valSprite;
+                        SetVal(buf, slot, FormatDisplayValue(value, line), barCol);
                     }
                 }
                 else if (line.Kind == LineKind.Flow)
@@ -1972,10 +1942,7 @@ namespace IngameScript
                     fillSprite.Color = flowCol;
                     buf.Sprites[slot.FillSpriteIndex] = fillSprite;
 
-                    var valSprite = buf.Sprites[slot.ValSpriteIndex];
-                    valSprite.Data = flowText;
-                    valSprite.Color = flowCol;
-                    buf.Sprites[slot.ValSpriteIndex] = valSprite;
+                    SetVal(buf, slot, flowText, flowCol);
                 }
                 else // Text line
                 {
@@ -1994,10 +1961,7 @@ namespace IngameScript
                         if (txtCol == Color.Red && alertPhase)
                             txtCol = new Color(255, 75, 75);
 
-                        var valSprite = buf.Sprites[slot.ValSpriteIndex];
-                        valSprite.Data = dt ?? FormatDisplayValue(value, line);
-                        valSprite.Color = txtCol;
-                        buf.Sprites[slot.ValSpriteIndex] = valSprite;
+                        SetVal(buf, slot, dt ?? FormatDisplayValue(value, line), txtCol);
                     }
                 }
 

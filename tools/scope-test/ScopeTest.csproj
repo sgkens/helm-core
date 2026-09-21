@@ -10,6 +10,7 @@
     <StartupObject>ScopeTest</StartupObject>
     <NoWarn>CS0169;CS0414;CS0649;CS0219;CS8981</NoWarn>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <DefineConstants>$(DefineConstants);HELM_TOOLS</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../HelmCore.cs" />

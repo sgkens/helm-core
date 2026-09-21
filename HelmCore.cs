@@ -374,6 +374,7 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
             BuiltinTemplates[name] = t;
         }
 
+#if HELM_TOOLS // Not shipped in the Programmable Block script (Build-Release.ps1 removes these blocks).
         public static void LoadTemplateFile(string content)
         {
             if (string.IsNullOrWhiteSpace(content)) return;
@@ -405,6 +406,7 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                 }
             }
         }
+#endif
 
         private static string NormalizeParam(string p)
         {
@@ -1213,11 +1215,13 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
     // ---------- Layout / rendering (still pure — produces colored text lines,
     // not sprites. The SE-side adapter turns these into MySprite TEXT objects.) ----------
 
+#if HELM_TOOLS
     public class RenderedLine
     {
         public string Text;
         public string Color; // color name/string as given in the DSL; SE-side maps to a real Color
     }
+#endif
 
     public static class Layout
     {
