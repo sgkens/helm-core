@@ -105,6 +105,7 @@
 
         private int _screenCursor = 0;
         private double _rescanSec = 0;
+        private double _probeUntil = 0;  // probe: the test pattern is on screen until this time
         private double _time = 0;        // seconds since the script started (Runtime.TimeSinceLastRun)
         private int _idleRuns = 0;       // consecutive runs in which nothing was redrawn
         private Dictionary<ScreenDef, double> _bootT0 = new Dictionary<ScreenDef, double>();
@@ -172,6 +173,19 @@
             {
                 StartBoot();
             }
+            else if (arg == "probe")
+            {
+                _probeUntil = _time + 20.0;
+                DrawProbes();
+                Echo("[HELM] Test pattern on every screen for 20 s");
+                return;
+            }
+            else if (arg == "starter")
+            {
+                if (string.IsNullOrWhiteSpace(Me.CustomData)) Me.CustomData = StarterLayout;
+                ReloadConfig();
+                StartBoot();
+            }
             else if (arg == "console on" || arg == "console off")
             {
                 _consoleOn = arg == "console on";
@@ -217,6 +231,15 @@
             {
                 _rescanSec = 0;
                 ResolveBindsAndOutputs();
+            }
+
+            if (_probeUntil > 0)
+            {
+                if (_time < _probeUntil) { UpdateConsole(); return; }
+                _probeUntil = 0;
+                _screenBuffers.Clear();
+                _lastSignature.Clear();
+                _consoleAt = 0;
             }
 
             if (_config == null || _config.Screens.Count == 0)
@@ -416,6 +439,50 @@
             }
         }
 
+        // ---------------- probe and starter ----------------
+
+        private const string StarterLayout = "# HELM starter. Set output: to the name of your LCD (any part of the name works), then run this block with the argument: reload\n@bind batt = block(\"Battery\")\n@screen Demo\noutput: \"LCD\", 0\nlayout: grid(1, 1)\n@panel p at(0, 0, 1, 1) title: \"HELM\"\nline: \"BATTERY \" bar(batt.percent) gradient(#ef4444, #eab308, #22c55e)\n";
+
+        // A test pattern that shows which part of a real screen the script's coordinates cover: a gray frame at the
+        // texture edges, a blue fill over the surface (the viewport) with a coloured square in each corner, and the sizes.
+        private void DrawProbes()
+        {
+            var all = new List<IMyTextSurface>();
+            if (_pbSurface != null) all.Add(_pbSurface);
+            foreach (var o in _resolvedOutputs.Values) all.Add(o);
+            foreach (var sf in all) DrawProbe(sf);
+        }
+
+        private static void ProbeQuad(List<MySprite> sp, float cx, float cy, float w, float h, Color c)
+        {
+            sp.Add(new MySprite { Type = SpriteType.TEXTURE, Data = "SquareSimple", Position = new Vector2(cx, cy), Size = new Vector2(w, h), Color = c });
+        }
+
+        private void DrawProbe(IMyTextSurface sf)
+        {
+            Vector2 size = sf.SurfaceSize, tex = sf.TextureSize, off = (tex - size) / 2f;
+            var sp = new List<MySprite>();
+            Color gray = new Color(150, 150, 150);
+            ProbeQuad(sp, tex.X / 2f, 2f, tex.X, 4f, gray);
+            ProbeQuad(sp, tex.X / 2f, tex.Y - 2f, tex.X, 4f, gray);
+            ProbeQuad(sp, 2f, tex.Y / 2f, 4f, tex.Y, gray);
+            ProbeQuad(sp, tex.X - 2f, tex.Y / 2f, 4f, tex.Y, gray);
+            ProbeQuad(sp, off.X + size.X / 2f, off.Y + size.Y / 2f, size.X, size.Y, new Color(20, 40, 90));
+            float k = 32f;
+            ProbeQuad(sp, off.X + k / 2f, off.Y + k / 2f, k, k, new Color(255, 0, 0));
+            ProbeQuad(sp, off.X + size.X - k / 2f, off.Y + k / 2f, k, k, new Color(0, 255, 0));
+            ProbeQuad(sp, off.X + k / 2f, off.Y + size.Y - k / 2f, k, k, new Color(255, 255, 0));
+            ProbeQuad(sp, off.X + size.X - k / 2f, off.Y + size.Y - k / 2f, k, k, new Color(255, 0, 255));
+            float y = off.Y + size.Y / 2f - 30f;
+            AddBootText(sp, "SURFACE " + size.X.ToString("0") + "x" + size.Y.ToString("0"), Color.White, off.X + 44f, y, 0.9f);
+            AddBootText(sp, "TEXTURE " + tex.X.ToString("0") + "x" + tex.Y.ToString("0"), Color.White, off.X + 44f, y + 24f, 0.9f);
+            AddBootText(sp, "OFFSET  " + off.X.ToString("0") + "," + off.Y.ToString("0"), Color.White, off.X + 44f, y + 48f, 0.9f);
+            using (var frame = sf.DrawFrame())
+            {
+                frame.AddRange(sp);
+            }
+        }
+
         // ---------------- contents ranking ----------------
         // text(bind.top1) shows the largest item held by the bind's blocks, top2 the next, and so on. The blocks are
         // read a few per run within an instruction budget, one pass every 15 s, and the ranking is published when a pass ends.
@@ -528,7 +595,7 @@
                 // Once a second while active; every 5 s when idle so the idle run stays cheap.
                 _consoleAt = _time + (_idleRuns > _config.Screens.Count + 1 ? 5.0 : 1.0);
                 BuildConsole();
-                if (_consoleOn && _pbSurface != null) DrawConsole();
+                if (_consoleOn && _pbSurface != null && _probeUntil == 0) DrawConsole();
             }
             Echo(_consoleText);
         }
@@ -553,6 +620,7 @@
             if (errs > 0) ConLine(3, " ! " + Trunc(_config.Errors[0], 40));
             else if (_config.Warnings.Count > 0) ConLine(3, " ? " + Trunc(_config.Warnings[0], 40));
             ConLine(1, "cfg-dsp");
+            if (_config.Screens.Count == 0) ConLine(3, " no @screen: run 'starter'");
             int shown = 0;
             foreach (var s in _config.Screens)
             {
