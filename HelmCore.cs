@@ -39,7 +39,7 @@ namespace HelmCore
         public bool AllShips;   // scope: all - also use blocks on ships docked on a connector
     }
 
-    public enum LineKind { Text, Bar, LedBar, Spark, Hazard, Chevron, Dots, Balance, Toggle, Checkbox, Status, Ammo, Flow, Tank }
+    public enum LineKind { Text, Bar, LedBar, Spark, Hazard, Chevron, Dots, Balance, Toggle, Checkbox, Status, Ammo, Flow, Tank, Dial }
 
     public class ColorRule
     {
@@ -61,6 +61,14 @@ namespace HelmCore
         public string Direction = "right"; // "right", "left", "up", "down"
         public string Unit;           // e.g. "MW", "kL", "km", "t", "%"
         public string Format;         // e.g. "F1", "F0", "N0"
+        public List<double> Marks;    // marker(N, ...): threshold ticks on a bar, in percent of the bar
+        public string Icon;           // icon(Name): a built-in sprite drawn before the label
+        public List<ColorRule> BlinkRules; // blink(bind.field > N): the gauge flashes while the comparison is true
+        public string BlinkBind, BlinkField;
+        public bool NoValue;          // value(off): no value text, and the gauge uses its space
+        public int Segs;              // segments(N) for led and dots, points(N) for spark (2 to 40; 0 = the default)
+        public int Ticks;             // ticks(N): a bar divided into N parts
+        public string Outline;        // outline(color): a frame around a bar
         public int Size;              // size(medium) = 1, size(large) = 2: the row takes 2 or 4 shares of its panel and the bar grows with it
         public string ColorBind, ColorField; // color_by(bind.field): the colour follows another value than the one the gauge shows
         public string LabelColor, Track; // label_color(...) and track(...): the label text and the empty part of a bar
@@ -203,6 +211,7 @@ namespace HelmCore
         public int BootStaggerTicks = 10;
         public int BootBatch = 1; // screens that power on together
         public float BootCalibrate = 1.2f; // boot_calibrate: seconds the gauges sweep 0 to 100 to the live value after the boot (0 = off)
+        public float Gap = -1f, Padding = -1f; // gap: pixels between panels; padding: pixels around the screen (-1 = the default)
         public bool GradientSteps; // gradient_mode: steps - gradients pick the nearest stop instead of blending
         public string PanelBg;    // colour of the default card behind panels of a multi-panel screen; "none" for no card (default: a faint white overlay)
         public string BgTexture;  // bg_texture: name of a built-in sprite drawn over the background
@@ -671,6 +680,13 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     {
                         RequireScreen(current, "bg_texture_color:");
                         current.BgTextureColor = line.Substring("bg_texture_color:".Length).Trim();
+                    }
+                    else if (line.StartsWith("gap:") || line.StartsWith("padding:"))
+                    {
+                        bool isGap = line.StartsWith("gap:");
+                        RequireScreen(current, isGap ? "gap:" : "padding:");
+                        float pv = float.Parse(line.Substring(line.IndexOf(':') + 1).Trim(), System.Globalization.CultureInfo.InvariantCulture);
+                        if (isGap) current.Gap = pv; else current.Padding = pv;
                     }
                     else if (line.StartsWith("gradient_mode:"))
                     {
@@ -1206,6 +1222,7 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
             else if (func == "flow" || func == "rate" || func == "spinner") def.Kind = LineKind.Flow;
             else if (func == "text") def.Kind = LineKind.Text;
             else if (func == "tank" || func == "tube" || func == "bucket") def.Kind = LineKind.Tank;
+            else if (func == "dial" || func == "gauge" || func == "arc") def.Kind = LineKind.Dial;
             else throw new FormatException($"unknown display function '{func}'");
 
             // 3) chained modifiers: gradient(...) / flat(...) / color(...) / pattern(...) / dir / unit / format
@@ -1262,6 +1279,27 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     string sz = mArgs.Trim().ToLowerInvariant();
                     def.Size = sz == "large" || sz == "fill" ? 2 : sz == "medium" ? 1 : 0;
                 }
+                else if (mFunc == "marker")
+                {
+                    def.Marks = new List<double>();
+                    foreach (var mk in SplitArgs(mArgs))
+                    {
+                        double mv2;
+                        if (!double.TryParse(mk, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out mv2)) throw new FormatException("marker() takes numbers from 0 to 100");
+                        def.Marks.Add(mv2);
+                    }
+                }
+                else if (mFunc == "icon") def.Icon = mArgs.Trim();
+                else if (mFunc == "blink")
+                {
+                    string bx = mArgs.Trim(), bc = StripLeadingFieldRef(bx);
+                    SplitRef(bx.Substring(0, bx.Length - bc.Length), out def.BlinkBind, out def.BlinkField);
+                    def.BlinkRules = new List<ColorRule> { new ColorRule { Expr = bc, Color = "on" } };
+                }
+                else if (mFunc == "value") def.NoValue = mArgs.Trim().Equals("off", StringComparison.OrdinalIgnoreCase);
+                else if (mFunc == "ticks") def.Ticks = int.Parse(mArgs.Trim());
+                else if (mFunc == "segments" || mFunc == "points") def.Segs = Math.Max(2, Math.Min(40, int.Parse(mArgs.Trim())));
+                else if (mFunc == "outline") def.Outline = mArgs.Trim();
                 else if (mFunc == "color_by")
                 {
                     var cb = mArgs.Trim().Split('.');

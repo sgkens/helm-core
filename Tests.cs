@@ -294,6 +294,18 @@ line: ""O2""  bar(o2_$screen.percent) flat(cyan)
         Check(cfgCb.Errors.Count == 0 && cfgCb.Screens[0].MirrorPanel == "p", "mirror_panel parses: " + string.Join(" | ", cfgCb.Errors));
         Check(cfgCb.Screens[0].Panels[0].Lines[0].ColorBind == "c" && cfgCb.Screens[0].Panels[0].Lines[0].ColorField == "temp", "color_by(bind.field) parses");
 
+        var cfgBd = HelmParser.Parse("@screen a\noutput: \"x\", 0\nline: \"A\" bar(b.percent) ticks(4) marker(25, 80.5) outline(#ff00ff) dir: left\nline: \"B\" led(b.percent) segments(20)\nline: \"C\" spark(b.percent) points(99)\n");
+        var bdl = cfgBd.Screens[0].Lines[0];
+        Check(cfgBd.Errors.Count == 0 && bdl.Ticks == 4 && bdl.Marks.Count == 2 && bdl.Marks[1] == 80.5 && bdl.Outline == "#ff00ff" && bdl.Direction == "left", "ticks, marker, outline and dir parse: " + string.Join(" | ", cfgBd.Errors));
+
+        var cfgIb = HelmParser.Parse("@screen a\noutput: \"x\", 0\nline: \"I\" bar(b.percent) icon(IconEnergy) blink(b.percent < 20)\n");
+        var ibl = cfgIb.Screens[0].Lines[0];
+        Check(cfgIb.Errors.Count == 0 && ibl.Icon == "IconEnergy" && ibl.BlinkBind == "b" && ibl.BlinkField == "percent" && ibl.BlinkRules.Count == 1, "icon and blink parse: " + string.Join(" | ", cfgIb.Errors));
+        var cfgKn = HelmParser.Parse("@screen a\noutput: \"x\", 0\ngap: 12.5\npadding: 0\nline: \"K\" bar(b.percent) value(off)\n");
+        Check(cfgKn.Errors.Count == 0 && cfgKn.Screens[0].Gap == 12.5f && cfgKn.Screens[0].Padding == 0f && cfgKn.Screens[0].Lines[0].NoValue, "gap, padding and value(off) parse: " + string.Join(" | ", cfgKn.Errors));
+        Check(HelmParser.Parse("@screen a\noutput: \"x\", 0\nline: \"D\" dial(b.percent) segments(12)\n").Screens[0].Lines[0].Kind == LineKind.Dial, "dial parses (also gauge, arc)");
+        Check(cfgBd.Screens[0].Lines[1].Segs == 20 && cfgBd.Screens[0].Lines[2].Segs == 40, "segments(20) and points(99, capped at 40) parse");
+
         // --- Banners: raw ASCII art blocks ---
         string bannerDsl = "@banner logo\n\n        ZZ   # \"q\"\n     ZZ ZZ\n\n@end\n@screen a\noutput: \"x\", 0\nbanner: logo\nboot_logo: logo\nbanner_color: red\n";
         var cfgBan = HelmParser.Parse(bannerDsl);
