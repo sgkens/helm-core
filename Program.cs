@@ -144,6 +144,8 @@ namespace IngameScript
         private Dictionary<ScreenDef, double> _drawAt = new Dictionary<ScreenDef, double>(); // refresh: earliest next draw
         private Dictionary<string, int> _topN = new Dictionary<string, int>();      // bind -> highest topN rank used by a line
         private List<string> _topKeys = new List<string>();
+        private Dictionary<string, int> _txtN = new Dictionary<string, int>();      // bind -> highest lineN used by a line
+        private double _txtAt;
         private Dictionary<string, double> _topAcc = new Dictionary<string, double>();
         private List<MyInventoryItem> _itemBuf = new List<MyInventoryItem>();
         private int _topBind = -1, _topBlock;   // position of the contents scan (-1 = waiting for the next pass)
@@ -306,6 +308,7 @@ namespace IngameScript
             Runtime.UpdateFrequency = _idleRuns <= _config.Screens.Count + 1 ? UpdateFrequency.Update10 : UpdateFrequency.Update100;
 
             ScanTop();
+            ScanText();
             UpdateConsole();
             EchoNotes();
 
@@ -521,15 +524,16 @@ namespace IngameScript
 
         private static bool IsTop(string f)
         {
-            return f.Length > 3 && f.StartsWith("top") && char.IsDigit(f[3]);
+            return f.Length > 3 && (f.StartsWith("top") && char.IsDigit(f[3]) || f.Length > 4 && f.StartsWith("line") && char.IsDigit(f[4]));
         }
 
         private void FindTopLines()
         {
             _topN.Clear();
             _topKeys.Clear();
+            _txtN.Clear();
             _topBind = -1;
-            _topAt = 0;
+            _topAt = _txtAt = 0;
             foreach (var sc in _config.Screens)
             {
                 var lists = new List<List<LineDef>>();
@@ -539,13 +543,29 @@ namespace IngameScript
                     foreach (var ln in ls)
                     {
                         if (!IsTop(ln.Field)) continue;
-                        int n = int.Parse(ln.Field.Substring(3));
+                        bool top = ln.Field[0] == 't';
+                        var dic = top ? _topN : _txtN;
+                        int n = int.Parse(ln.Field.Substring(top ? 3 : 4));
                         int have;
-                        _topN.TryGetValue(ln.BindName, out have);
-                        _topN[ln.BindName] = Math.Max(have, n);
+                        dic.TryGetValue(ln.BindName, out have);
+                        dic[ln.BindName] = Math.Max(have, n);
                     }
             }
             _topKeys.AddRange(_topN.Keys);
+        }
+
+        // text(bind.line1) shows the first line of the text on a text panel (or LCD) the bind names: read every 2 s.
+        private void ScanText()
+        {
+            if (_txtN.Count == 0 || _time < _txtAt) return;
+            _txtAt = _time + 2.0;
+            foreach (var kv in _txtN)
+            {
+                List<IMyTerminalBlock> blocks;
+                var sf = _resolvedBinds.TryGetValue(kv.Key, out blocks) && blocks.Count > 0 ? blocks[0] as IMyTextSurface : null;
+                string[] ls = sf == null ? new string[0] : sf.GetText().Split('\n');
+                for (int r = 1; r <= kv.Value; r++) _dynText[kv.Key + ".line" + r] = r <= ls.Length ? ls[r - 1].TrimEnd('\r') : "";
+            }
         }
 
         private void ScanTop()
