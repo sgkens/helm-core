@@ -3,7 +3,7 @@ title: "Gauge Primitives"
 description: "Reference for each gauge type and its options."
 order: 4
 section: "Visual Primitives"
-badge: "13 Types"
+badge: "14 Types"
 ---
 
 ## 1. Linear Progress Bar (`bar`)
@@ -173,6 +173,20 @@ line: "H2" tank(h2.percent) gradient(#1e3a8a, #38bdf8)
 
 ---
 
+## 14. Dial (`dial`, `gauge`, `arc`)
+
+A half circle of segments that light up from left to right with the value, with a needle and a hub.
+
+```helm
+line: "POWER" dial(pwr.percent) size(large) gradient(#22c55e, #eab308, #ef4444) segments(20)
+```
+
+- **Colour**: A gradient runs along the arc by position (green at the start, red at the end). `color(...)` rules colour all lit segments alike. `track(color)` colours the unlit ones.
+- **Size**: The radius follows the row height and the free width, so use `size(large)` or a tall panel.
+- **Preset**: `gauge_lab`. `helmv.ps1` shows a dial as a value only.
+
+---
+
 ## Options Every Gauge Takes
 
 | Option | Effect |
@@ -182,6 +196,11 @@ line: "H2" tank(h2.percent) gradient(#1e3a8a, #38bdf8)
 | `color_by(bind.field)` | Colour rules and gradients read another value than the one the gauge shows |
 | `max(N)` / `max(bind.field)` | The full amount, for item counts and raw values |
 | `size(medium)` / `size(large)` | The row takes 2 or 4 shares of its panel and the bar grows with it |
+| `ticks(N)`, `marker(a, b)`, `outline(color)`, `dir: left` | Bar dressing: division lines, threshold ticks, a frame, fill from the right |
+| `segments(N)` / `points(N)` | Segments of `led`, `dots` and `dial`; columns of `spark` |
+| `value(off)` | Hide the value text; the gauge takes its space |
+| `icon(Name)` | A built-in sprite before the label |
+| `blink(bind.field > N)` | The line flashes while the comparison is true |
 | `label_color(color)` | Colour of the label text |
 | `track(color)` | Colour of the empty part of the gauge |
 | `unit("MW")`, `format:` | Value text |

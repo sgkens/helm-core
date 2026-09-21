@@ -79,6 +79,7 @@ title_color: #<hexcolor>
 - `bg: #hex`: Screen background color (e.g. `#090b0f`). See [Backgrounds](#backgrounds) for gradients, panel colours and the alert background.
 - `border_color: #hex`: Screen border frame color. `border_gradient(#a, #b, ...)` blends through the stops from left to right along the top and bottom lines (`gradient_mode: steps` uses the first stop on top and the last on the bottom).
 - `gradient_mode: smooth` or `steps`: How gradients pick a colour. Default `smooth`.
+- `gap: N` and `padding: N`: Pixels between panels and around the screen. See [Layout Options and Line Details](#layout-options-and-line-details).
 - `border: style`: The frame. In the game: `graphic` and `minimal` draw the top and bottom lines; `frame`, `single`, `heavy` (thicker) and `double` (a second inner frame) also draw the sides; `rounded` adds a circle at each corner; `corners` draws corner brackets; `ascii` uses text characters; `none` draws nothing. `border_color` and `border_gradient(...)` colour it. Put `border:` after an `@panel` line to frame that panel.
 - `mirror: "Screen"` and `mirror_panel: "Panel"`: Copy another screen, or one panel of it. See [Mirroring a Screen](#mirroring-a-screen).
 - `banner: name`, `boot_logo: name`, `boot_batch`, `boot_calibrate`: See [ASCII Banners](#ascii-banners) and [Boot Sequence Directives](#boot-sequence-directives).
@@ -121,6 +122,67 @@ Every kind of line (bar, led, dots, toggle, checkbox, status, text, tank) picks 
 - `label_color(color)` sets the colour of the label text (also under a vertical column).
 - `track(color)` sets the empty part of any gauge: the track of a bar, the unlit segments of `led`, `dots`, `chevron`, `hazard` and `ammo`, and the tube of a tank or vertical bar.
 - Inside `color(...)` write colours as names or `/` gradients of names. A `#` that follows a space starts a comment, so `default: #22c55e` is cut off; `gradient(#..., #...)`, `flat(#...)`, `label_color(#...)` and `track(#...)` are not affected.
+
+### Bar Dressing and Segment Counts
+
+Options for the shape of a gauge. They change no value, only how it is drawn.
+
+| Modifier | Applies to | Effect |
+| :--- | :--- | :--- |
+| `dir: left` | `bar` | The bar fills from the right end. Default `right` |
+| `ticks(N)` | `bar` | Divides the bar into N equal parts with thin dark lines |
+| `marker(25, 80)` | `bar` | Draws a white tick at each listed percent of the bar, for thresholds. On a `dir: left` bar the percents run from the right |
+| `outline(color)` | `bar` | A frame around the bar |
+| `segments(N)` | `led`, `dots`, `dial` | Number of segments (2 to 40). Defaults: `led` 10, `dots` 12, `dial` 16 |
+| `points(N)` | `spark` | Number of columns, and the length of the history (2 to 40). Default 8 |
+| `track(color)` | every gauge | Colour of the empty or unlit part |
+
+```helm
+line: "H2   " bar(h2.percent) ticks(5) marker(25, 80) outline(#94a3b8) gradient(#ef4444, #eab308, #22c55e)
+line: "LED  " led(pwr.percent) segments(20) track(#0b1220)
+line: "TREND" spark(h2.percent) points(24) flat(#38bdf8)
+```
+
+See the `gauge_lab` preset.
+
+### Dial
+
+`dial(bind.field)` (also `gauge(...)` and `arc(...)`) draws a half circle of segments that light up from left to right with the value, a needle, and a hub. `gradient(#a, #b, ...)` colours the arc by position, so a green-to-red gradient runs along the whole arc; `color(...)` rules colour every lit segment the same. `segments(N)` sets the arc segments and `track(color)` the unlit ones.
+
+The dial sits between the label and the value and takes its radius from the row height, so give it `size(large)` or a tall panel:
+
+```helm
+@panel dial at(0, 0, 1, 2) title: "POWER"
+line: "POWER" dial(pwr.percent) size(large) gradient(#22c55e, #eab308, #ef4444)
+```
+
+### Rate, ETA and Trend
+
+`text(bind.rate)`, `text(bind.eta)` and `text(bind.trend)` show how a bind's percent is changing:
+
+| Field | Shows | Example |
+| :--- | :--- | :--- |
+| `rate` | Change per minute | `-2.4%/min` |
+| `eta` | Time until empty (falling) or full (rising) at that rate | `empty 18m 20s`, `full 1h 5m`, `--` when steady |
+| `trend` | An arrow | `^` rising, `v` falling, `=` steady |
+
+The value is sampled every 5 seconds and smoothed, so a new screen shows `--` until it has two samples.
+
+```helm
+line: "BATT  " bar(batt.percent) gradient(#ef4444, #eab308, #22c55e)
+line: "RATE  " text(batt.rate) flat(#94a3b8)
+line: "EMPTY " text(batt.eta) color(batt.percent < 20 : red, default: white)
+```
+
+### Layout Options and Line Details
+
+| Option | Where | Effect |
+| :--- | :--- | :--- |
+| `gap: N` | `@screen` | Pixels between panels (default 8) |
+| `padding: N` | `@screen` | Pixels between the screen edge and the panels and border (default about 2% of the screen). `0` puts the border on the edge |
+| `value(off)` | line | Hides the value text and gives its space to the gauge |
+| `icon(Name)` | line | Draws a built-in sprite before the label. Run the block with `scan` to list the names the game offers |
+| `blink(bind.field > N)` | line | The line flashes (dims in half of each alert cycle) while the comparison is true. It works with any colour, not only red |
 
 ### Mirroring a Screen
 
@@ -284,7 +346,7 @@ line: "<LABEL8>" <kind>(<bind>.<field>) <color_spec> [unit("<unit>")] [dir:<up|d
 ### Line Syntax Rules
 
 1. **Label**: Exactly 8 characters (padded with spaces, e.g. `"BATTERY "`, `"O2 TANK "`, `"CARGO   "`).
-2. **Gauge Kind**: One of the 10+ supported widgets (`bar`, `flow`, `spark`, `balance`, `dots`, `chevron`, `hazard`, `led`, `toggle`, `checkbox`, `ammo`, `status`, `text`, `tank`).
+2. **Gauge Kind**: One of the 10+ supported widgets (`bar`, `flow`, `spark`, `balance`, `dots`, `chevron`, `hazard`, `led`, `toggle`, `checkbox`, `ammo`, `status`, `text`, `tank`, `dial`).
 3. **Property Target**: `<bind_name>.<property_name>`.
 4. **Color Specification**:
    - `flat(#hex)`: Single uniform color (e.g. `flat(#38bdf8)`).
@@ -299,6 +361,8 @@ line: "<LABEL8>" <kind>(<bind>.<field>) <color_spec> [unit("<unit>")] [dir:<up|d
    - `color_by(bind.field)`: Colours the gauge by another value than the one it shows.
    - `size(medium)` or `size(large)`: Gives the row more of its panel. See [Bar Sizes](#bar-sizes).
    - `label_color(color)` and `track(color)`: Colour of the label text and of the empty part of the gauge.
+   - `ticks(N)`, `marker(...)`, `outline(color)`, `dir: left`, `segments(N)`, `points(N)`: See [Bar Dressing and Segment Counts](#bar-dressing-and-segment-counts).
+   - `value(off)`, `icon(Name)`, `blink(condition)`: See [Layout Options and Line Details](#layout-options-and-line-details).
 
 ### Complete Panel Example
 

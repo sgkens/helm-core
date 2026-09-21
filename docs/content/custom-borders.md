@@ -21,7 +21,7 @@ border: <style>
 | **`heavy`** | Four sides, twice as thick | `╔════╗` / `║    ║` / `╚════╝` |
 | **`double`** | Four sides and a second frame inside | `╔════╗` / `║    ║` / `╚════╝` |
 | **`rounded`** | Four sides with a circle at each corner | `╭────╮` / `│    │` / `╰────╯` |
-| **`corners`** | Bracket corners only | Drawn as `single` |
+| **`corners`** | Bracket corners only | Drawn as a plain frame |
 | **`ascii`** | Text renderer with `+----+` frames | `+----+` / `|    |` / `+----+` |
 | **`none`** | No frame | No frame |
 

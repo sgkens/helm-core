@@ -9,7 +9,7 @@
 
 ```text
 [h1]HELM: High-Efficiency Lightweight Monitor[/h1]
-[b]Declarative LCD dashboard script with 14 visual control types and automatic block discovery.[/b]
+[b]Declarative LCD dashboard script with 15 visual control types and automatic block discovery.[/b]
 
 Are you tired of complex LCD scripts that lag your dedicated server, generate garbage collection spikes, or break the moment you rename a block? 
 [b]HELM[/b] is a declarative HUD and LCD script for vanilla Space Engineers. It needs no mods.
@@ -19,7 +19,7 @@ Are you tired of complex LCD scripts that lag your dedicated server, generate ga
 [*] [b]Retained sprite buffers[/b]: Sprites are created once and updated in place, and percentage strings are cached, to keep per-tick allocation low. Measured numbers are not published yet.
 [*] [b]Declarative DSL in Custom Data[/b]: Configure multi-screen, multi-panel layouts directly in the Programmable Block's Custom Data with clean, human-readable syntax.
 [*] [b]Zero-Friction Block Discovery[/b]: Wildcard pattern matching (e.g. [code]Battery*[/code], [code]*Hydro*[/code]) and automatic typed grid fallbacks. No need to spend 20 minutes renaming every battery or tank on your ship!
-[*] [b]14 Specialized Visual Controls[/b]:
+[*] [b]15 Specialized Visual Controls[/b]:
     • [b]bar()[/b]: Proportional fill bar with smoothed movement
     • [b]led()[/b]: Discrete 10-step segmented LED meter
     • [b]spark()[/b]: Historical 8-tick rolling sparkline trend graph
@@ -33,9 +33,13 @@ Are you tired of complex LCD scripts that lag your dedicated server, generate ga
     • [b]ammo()[/b]: Magazine bullet counter
     • [b]flow()[/b]: Directional fluid/gas transfer indicator (also written [code]spinner()[/code])
     • [b]text()[/b]: Formatted telemetry readout with threshold coloring
+    • [b]dial()[/b]: Half-circle gauge with a lit arc, needle and hub (also [code]gauge()[/code] and [code]arc()[/code])
     • [b]tank()[/b]: Liquid tube that fills from the bottom, with a moving wave line and rising bubbles (also [code]tube()[/code] and [code]bucket()[/code])
 [*] [b]Sizes, Columns and Tanks[/b]: [code]size(medium)[/code] and [code]size(large)[/code] give a row 2 or 4 shares of its panel, [code]orientation: vertical[/code] lays lines out as columns, and a panel that spans the screen is a full-screen tank or bar. Grid layouts combine all of these.
 [*] [b]Colours, Gradients and Conditions[/b]: [code]flat()[/code], [code]gradient()[/code] and [code]color()[/code] rules work on every gauge. A rule can answer with a gradient ([code]red/orange[/code]), [code]color_by()[/code] colours a gauge by another value, and [code]track()[/code] and [code]label_color()[/code] colour the empty part and the label.
+[*] [b]Bar Dressing and Line Details[/b]: [code]ticks()[/code], [code]marker()[/code], [code]outline()[/code], [code]dir: left[/code], [code]segments()[/code], [code]points()[/code], [code]value(off)[/code], [code]icon()[/code] and [code]blink()[/code].
+[*] [b]Rate, ETA and Trend[/b]: [code]text(batt.rate)[/code], [code]eta[/code] and [code]trend[/code] show how fast a battery or tank is filling or draining and when it will be empty or full.
+[*] [b]Frames[/b]: [code]border:[/code] styles ([code]frame[/code], [code]corners[/code], [code]double[/code], [code]rounded[/code], [code]heavy[/code]) are drawn in game, for screens and for single panels.
 [*] [b]Backgrounds[/b]: Solid or gradient (vertical or horizontal), see-through, textured, colours that follow a value, backgrounds that flash on a threshold, and a red-alert flash.
 [*] [b]Contents and Amounts[/b]: Bars and text for items in cargo and reactors ([code]cargo.ingot:Iron[/code]), the five largest items ([code]top1[/code] to [code]top5[/code]), and [code]max(N)[/code] as the full amount.
 [*] [b]Mirrors and LCD Text[/b]: [code]mirror:[/code] shows another HELM screen (or one panel of it) on another display. [code]text(notes.line1)[/code] shows a line of the text on any other LCD. Only text can be read; the game gives scripts no access to another screen's picture.
@@ -78,7 +82,7 @@ External scripts (autopilots, combat computers, sorters) can broadcast directly 
 [code]IGC.SendBroadcastMessage("HELM", "target.lock=1;dist=1420;speed=104");[/code]
 
 [h2]✦ Performance Notes[/h2]
-• [b]Script size[/b]: about 89.5k characters minified, under the 100k Programmable Block limit.
+• [b]Script size[/b]: about 94.2k characters minified, under the 100k Programmable Block limit.
 • [b]Rendering[/b]: one screen is redrawn per run, so multi-screen setups are spread across ticks.
 • [b]Not yet measured[/b]: instruction counts and allocations in game. Numbers will be added once they have been measured.
 ```
@@ -96,6 +100,7 @@ border: frame                    # graphic, frame, corners, single, heavy, doubl
 border_color: cyan               # Named color (#hex or color name)
 bg: #0a0c10                      # Background color (or bg_gradient(#000, #123), screen_bg:, panel_bg:)
 refresh: 600                     # Draw at most every N ticks (optional)
+gap: 8                           # Pixels between panels (padding: N sets the screen edge)
 mirror: "Other Screen"           # Copy another screen instead of drawing panels
 boot_duration: 2.0s              # Boot sequence duration
 boot_gradient: cyan, blue        # Boot progress gradient
@@ -125,12 +130,15 @@ line: "ASSEMBL" flow(factory.producing) flat(lime)
 line: "CARGO  " bar(cargo.percent) size(medium) gradient(#22c55e, #ef4444) track(#111827)
 line: "IRON   " bar(cargo.ingot:Iron) max(5000) flat(cyan)
 line: "H2     " tank(h2.percent) gradient(#1e3a8a, #38bdf8)
+line: "POWER  " dial(batt.percent) size(large) gradient(#22c55e, #eab308, #ef4444)
+line: "BATT   " bar(batt.percent) ticks(5) marker(25) outline(#94a3b8)
+line: "ETA    " text(batt.eta) flat(#94a3b8)
 ```
 
 ---
 
 ## Included Layouts
-The `layouts` folder contains 64 ready-made layouts. Copy one into the Programmable Block's Custom Data.
+The `layouts` folder contains 65 ready-made layouts. Copy one into the Programmable Block's Custom Data.
 
 - `airlock_security`: Pressure cycle and bulkhead gate security monitor
 - `alert_states`: Values at and past alert thresholds: hazard bars, status badges and ammo counters.
@@ -156,6 +164,7 @@ The `layouts` folder contains 64 ready-made layouts. Copy one into the Programma
 - `dynamic_telemetry`: Demonstrates HELM acting as a micro-framework receiving IGC / CLI data
 - `fighter_ammo`: Ammunition and missiles as bars against a full load, with fuel and an ammunition trend. max(N) is the full load: the bar shows amount / N, the text shows the real amount.
 - `fighter_hud`: Combat strike craft flight dynamics and tactical status
+- `gauge_lab`: The gauge options in one screen: a dial, a bar with ticks, markers and an outline, a bar that fills from the right, a 20-segment led bar, a 24-column sparkline, and framed panels.
 - `gradient_stress`: Edge case: gradients with many stops, two identical stops (a single-stop gradient is a parse error), and named versus hex colors.
 - `grid_4x4`: Sixteen panels on one large screen: density and per-panel viewport limits.
 - `hangar_bay`: Doors, connector, landing gear and pressure for a hangar.
