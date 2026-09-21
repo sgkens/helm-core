@@ -62,6 +62,7 @@ While `helmv.ps1` is running interactively, you can control the simulation using
 | `-ScreenProfile` | `string` | `Auto` | `TextPanel` (1:1), `WideLCD` (2:1), `CockpitSmall` (2:1), `CornerLCD` (4:1), `CockpitCorner` (2:1), `Off`. |
 | `-RenderMode` | `string` | `Auto` | `Graphic` (UTF-8 block characters and gradients), `Ascii` (strict vanilla SE text), `Auto`. |
 | `-Border` | `string` | Layout def | `heavy`, `double`, `single`, `minimal`, `rounded`, `ascii`, `graphic`, `none`. |
+| `-RedAlert` | `switch` | `$false` | Turns on the red alert: card backgrounds flash to the screen's `alert_bg` colour, as `alert red` does in game. |
 | `-Measurement` | `switch` | `$false` | Enables engineering measurements with dynamic width balancing (aliases: `-Units`). |
 | `-Percent` | `switch` | `$false` | Forces clean percentage formatting across all gauges. |
 | `-SingleFrame` | `switch` | `$false` | Renders a single frame and exits (perfect for headless CI or piping). |

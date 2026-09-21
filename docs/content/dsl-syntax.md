@@ -103,7 +103,7 @@ Colours are `#rrggbb`, a name, or `r,g,b,a` with an alpha from 0 to 255, so a ba
 - **The default card** is white at about 2% opacity, so it lifts whatever is behind it, a solid colour, a gradient or a transparent screen, instead of adding a second colour. Before this, every multi-panel screen drew a fixed near-black card, which showed as a different colour behind each panel on a coloured background.
 - **Red alert:** `alert red` flashes every screen's background between `bg` and `alert_bg` (half a cycle each, about every second and a half at the fast rate) until `alert off`. Gauges whose colour is red also flash, as before.
 - **Values:** `bg: color(...)` and `flash:` read a block field on every redraw, so a panel can turn red as a value falls. `flash:` uses the same `alert_period:` as the red alert.
-- The `background_lab` preset shows a gradient (vertical and horizontal), two deliberate tones, a see-through screen, an alert background, a panel that follows a value, a panel that flashes and a texture. `helmv.ps1` does not draw gradients, panel cards or the alert flash.
+- The `background_lab` preset shows a gradient (vertical and horizontal), two deliberate tones, a see-through screen, an alert background, a panel that follows a value, a panel that flashes and a texture. `helmv.ps1` draws the card backgrounds (solid, per-panel, value-driven, a vertical gradient across each card and the default card) and, with `-RedAlert`, the alert flash. It does not draw horizontal gradients, textures or the gutters between cards.
 
 ### Item Amounts (Cargo and Reactor Contents)
 

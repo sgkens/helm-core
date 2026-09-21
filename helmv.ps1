@@ -21,7 +21,7 @@ param(
                  'planetary_base', 'command_carrier', 'survival_essentials', 'deep_space_explorer',
                  'mining_fleet_coordinator', 'atmospheric_lander',
                  'single_line', 'power_only', 'cargo_minimal', 'corner_gauge_cluster', 'all_gauges_showcase', 'long_labels', 'numeric_extremes', 'border_styles_gallery', 'title_alignment',
-                 'template_stamp', 'multi_screen_one_pb', 'grid_4x4', 'panel_spans', 'transparent_bg', 'gradient_stress', 'units_all', 'boot_custom', 'alert_states', 'hangar_bay', 'solar_farm', 'piston_crane', 'docking_control', 'hydrogen_plant', 'sensor_security', 'trading_station', 'missing_binds', 'template_nested', 'dynamic_strings')]
+                 'template_stamp', 'multi_screen_one_pb', 'grid_4x4', 'panel_spans', 'transparent_bg', 'gradient_stress', 'units_all', 'boot_custom', 'alert_states', 'hangar_bay', 'solar_farm', 'piston_crane', 'docking_control', 'hydrogen_plant', 'sensor_security', 'trading_station', 'missing_binds', 'template_nested', 'dynamic_strings', 'background_lab', 'cargo_contents', 'fighter_ammo', 'startup_banner', 'projector_welder', 'rover_suspension', 'top_contents')]
     [string]$Preset = 'bridge',
 
     [Parameter(ParameterSetName = 'Custom', Mandatory = $true)]
@@ -29,6 +29,9 @@ param(
 
     [Parameter()]
     [switch]$Boot,
+
+    [Parameter()]
+    [switch]$RedAlert,
 
     [Parameter()]
     [double]$BootDuration,
@@ -284,13 +287,15 @@ $helmCoreCs = [System.IO.Path]::Combine($scriptDir, "HelmCore.cs")
 $tempDll = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), "HelmCore.dll")
 
 if (-not (Get-Module -Name "HelmCore" -ErrorAction SilentlyContinue) -and -not ("HelmCore.HelmParser" -as [type])) {
-    if (-not [System.IO.File]::Exists($tempDll) -or ([System.IO.File]::GetLastWriteTime($helmCoreCs) -gt [System.IO.File]::GetLastWriteTime($tempDll))) {
+    if (-not [System.IO.File]::Exists($tempDll) -or ([System.IO.File]::GetLastWriteTime($helmCoreCs) -gt [System.IO.File]::GetLastWriteTime($tempDll)) -or
+        ([System.IO.File]::GetLastWriteTime($MyInvocation.MyCommand.Path) -gt [System.IO.File]::GetLastWriteTime($tempDll))) {
         Write-Host "Compiling HelmCore.cs for offline simulation..." -ForegroundColor DarkGray
+        # HELM_TOOLS keeps the template-file loader, which the game script does not ship (see Build-Release.ps1).
         $csc = Get-Command csc -ErrorAction SilentlyContinue
         if ($csc) {
-            & csc -nologo -target:library -out:$tempDll $helmCoreCs | Out-Null
+            & csc -nologo -target:library -define:HELM_TOOLS -out:$tempDll $helmCoreCs | Out-Null
         } else {
-            Add-Type -Path $helmCoreCs
+            Add-Type -TypeDefinition ("#define HELM_TOOLS`n" + [System.IO.File]::ReadAllText($helmCoreCs)) -ReferencedAssemblies 'System.Linq'
         }
     }
     if ([System.IO.File]::Exists($tempDll) -and -not ("HelmCore.HelmParser" -as [type])) {
@@ -311,6 +316,7 @@ if ([System.IO.File]::Exists($templatesTxt) -and ("HelmCore.HelmParser" -as [typ
 # ANSI & TUI Styling Definitions (Palette & UI Objects)
 # -------------------------------------------------------------------------
 $script:ESC = [char]27
+$script:RedAlert = [bool]$RedAlert
 $script:ANSI = @{
     Reset      = "$($script:ESC)[0m"
     Bold       = "$($script:ESC)[1m"
@@ -1209,6 +1215,62 @@ function Format-TelemetryValue(
     return "$($value.ToString('F1'))%"
 }
 
+# ---------------------------------------------------------------------------
+# Card backgrounds. The in-game script paints the screen background, then a card behind each panel of a multi-panel
+# screen, then the contents. Here each card line gets one background colour: the panel's own colour, a value-driven
+# colour (bg: color(...)), a vertical gradient across the card, the screen's colour, or the default card (white at
+# 6/255 over the screen background). flash: and -RedAlert switch it to alert_bg on the alert phase.
+# Not drawn: horizontal gradients, textures and the gutters between cards.
+# ---------------------------------------------------------------------------
+function ConvertTo-BgRgb([string]$color) {
+    if ([string]::IsNullOrEmpty($color)) { return $null }
+    $c = [HelmCore.HelmColor]::Parse($color)
+    if ($c.IsTransparent) { return $null }
+    return @([int]$c.R, [int]$c.G, [int]$c.B)
+}
+
+function Get-CardBgRgb($panel, $screen, $sim, [bool]$alertPhase, [double]$rowFrac) {
+    $alertCol = if ([string]::IsNullOrEmpty($screen.AlertBg)) { '#5b0f0f' } else { $screen.AlertBg }
+    $alertOn  = ($alertCol -ne 'none') -and $alertPhase
+    if ($alertOn) {
+        foreach ($src in @($panel, $screen)) {
+            if ($src.FlashRules -and $src.FlashRules.Count -gt 0 -and $null -ne [HelmCore.Layout]::ResolveConditionalColor($src.FlashRules, $sim.GetValue($src.FlashBind))) {
+                return (ConvertTo-BgRgb $alertCol)
+            }
+        }
+        if ($script:RedAlert) { return (ConvertTo-BgRgb $alertCol) }
+    }
+
+    # The panel's own background, if it has one.
+    if ($panel.BgRules -and $panel.BgRules.Count -gt 0) { return (ConvertTo-BgRgb ([HelmCore.Layout]::ResolveConditionalColor($panel.BgRules, $sim.GetValue($panel.BgBind)))) }
+    if ($panel.BgGradient -and $panel.BgGradient.Length -gt 1) { $g = [HelmCore.Layout]::GradientLerp($panel.BgGradient, 100.0 * $rowFrac); return @([int]$g.R, [int]$g.G, [int]$g.B) }
+    if (-not [string]::IsNullOrEmpty($panel.Background)) { return (ConvertTo-BgRgb $panel.Background) }
+
+    # Otherwise the screen background, with the default card over it on a multi-panel screen.
+    $base = @(10, 12, 16)
+    if ($screen.BgRules -and $screen.BgRules.Count -gt 0) { $base = ConvertTo-BgRgb ([HelmCore.Layout]::ResolveConditionalColor($screen.BgRules, $sim.GetValue($screen.BgBind))) }
+    elseif ($screen.BgGradient -and $screen.BgGradient.Length -gt 1) { $g = [HelmCore.Layout]::GradientLerp($screen.BgGradient, 100.0 * $rowFrac); $base = @([int]$g.R, [int]$g.G, [int]$g.B) }
+    elseif (-not [string]::IsNullOrEmpty($screen.Background)) { $base = ConvertTo-BgRgb $screen.Background }
+    if ($null -eq $base) { $base = @(0, 0, 0) }
+    if ($screen.GridCols -gt 1 -or $screen.GridRows -gt 1) {
+        if ($screen.PanelBg -eq 'none') { return $base }
+        if (-not [string]::IsNullOrEmpty($screen.PanelBg)) { $solid = ConvertTo-BgRgb $screen.PanelBg; if ($null -ne $solid) { return $solid } }
+        return @([int]($base[0] + (255 - $base[0]) * 6 / 255), [int]($base[1] + (255 - $base[1]) * 6 / 255), [int]($base[2] + (255 - $base[2]) * 6 / 255))
+    }
+    return $base
+}
+
+function Set-CardBg([System.Collections.Generic.List[string]]$lines, $panel, $screen, $sim, [bool]$alertPhase) {
+    $n = $lines.Count
+    $reset = "$($script:ESC)[0m"
+    for ($i = 0; $i -lt $n; $i++) {
+        $rgb = Get-CardBgRgb $panel $screen $sim $alertPhase ($i / [Math]::Max(1, $n - 1))
+        if ($null -eq $rgb) { continue }
+        $bg = "$($script:ESC)[48;2;$($rgb[0]);$($rgb[1]);$($rgb[2])m"
+        $lines[$i] = $bg + ([string]$lines[$i]).Replace($reset, $reset + $bg) + $reset
+    }
+}
+
 function Render-PanelCardLines(
     [HelmCore.PanelDef]$panel,
     [HelmCore.ScreenDef]$screen,
@@ -1351,6 +1413,7 @@ function Render-PanelCardLines(
     }
 
     $lines.Add((Format-TuiFooter $cardWidth $borderCol $borderStyle $strictSEAscii $bGrad))
+    Set-CardBg $lines $panel $screen $sim $alertPhase
     return $lines
 }
 
