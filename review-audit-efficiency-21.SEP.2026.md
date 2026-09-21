@@ -124,3 +124,19 @@ After items 1 to 5 the script has roughly 6,000 to 10,000 characters of headroom
 | Identifier renaming (`tools/minify-rename`) | 25,636 characters: 97,622 to 71,986, 28,014 free |
 
 The renamed script is proven equivalent to the source by `tools/rename-check` on all presets and compiles against the game's own assemblies. It has not run in the game yet.
+
+## Approved feature batch (22 SEP 2026)
+
+Cost of each feature in minified characters, in build order. The script went from 73,051 to 80,482 characters; 19,518 remain under 100,000.
+
+| Feature | Characters |
+| :--- | ---: |
+| `refresh:` used, `alert_period:`, `scope: all`, `max(bind.field)` | 1,051 |
+| Projector, welder and suspension fields; state fields on the 0 to 100 scale | 542 |
+| Value-driven and flashing backgrounds, panel and horizontal gradients, textures | 2,881 |
+| Smooth gradients and blended border gradient | 801 |
+| Calibration sweep | 596 |
+| Ranked contents (`top1`, `top2`, ...) | 1,560 |
+| **Total** | **7,431** |
+
+The `refresh:` setting, the boot sequence, smooth gradients and the calibration sweep were the four documented features the script lacked in the first efficiency audit; all four are now implemented. Bug found on the way: boolean and ratio block fields returned 0 to 1 while every state gauge reads 0 to 100.
