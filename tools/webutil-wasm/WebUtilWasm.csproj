@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+  <!-- Spike for TASK-39.0: the real script (Program.cs) and parser (HelmCore.cs) compiled to WebAssembly through the
+       stand-in game API, so a browser tool can render a layout on every edit. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <NoWarn>CS0169;CS0414;CS0649;CS0219;CS8981;CA1416</NoWarn>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <DefineConstants>$(DefineConstants);HELM_TOOLS</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>full</TrimMode>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <WasmEnableES6ExportedRuntime>true</WasmEnableES6ExportedRuntime>
+  </PropertyGroup>
+  <ItemGroup>
+    <TrimmerRootAssembly Include="WebUtilWasm" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../HelmCore.cs" />
+    <Compile Include="../../Program.cs" />
+    <Compile Include="../spritedump/SeShim.cs" />
+    <Compile Include="../spritedump/SeShim.Blocks.cs" />
+    <Compile Include="Host.cs" />
+  </ItemGroup>
+</Project>
