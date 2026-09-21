@@ -149,6 +149,8 @@ Configuration errors (a misspelled directive, a bad number) are listed the same 
 | `output block '...' not found` | No block on your ship has a name containing the `output:` text (a docked ship's blocks are ignored) | Rename the block or fix the `output:` text; use a name that only one block contains |
 | A cockpit shows nothing on one screen | Wrong surface number | Cockpit surfaces are numbered from 0; try `output: "Cockpit", 1` |
 | Gauges show `ERR` | An `@bind` name matches no block | Check the block or group name, or run `scan` to see which binds matched nothing |
+| No boot screen and the LCD stays blank | Custom Data has no `@screen`, so nothing is drawn on any LCD. The block's own screen shows the console with `screens 0` | Run the block with the argument `starter`, set `output:` to your LCD's name, then run `reload` |
+| A screen looks split or cut off | Either `bg:` colours one panel only (see the next row), or the screen's drawable area is not what the script assumes | Run the block with the argument `probe`. Blue fill with a coloured square in each corner means the script covers the whole screen. If you see a gray frame at the edge or a cut-off pattern, send the sizes it prints |
 | Half the screen is one colour and half another | `bg:` was written after an `@panel` line, so it colours that panel only (the console shows a `?` note) | Use `screen_bg: <color>`, or put `bg:` before the first `@panel` |
 | Layout edits take a moment to appear | The script re-reads Custom Data on its next run, about two seconds later | Run the block with argument `reload` to apply them at once |
 | Check Code reports errors | The editor still contains part of the old script | Select everything in the editor and replace it with `HelmCombined.min.cs` |
@@ -162,6 +164,8 @@ You can run these commands from a timer block, sensor, or cockpit hotbar:
 | `reload` | Re-parses Custom Data and rebuilds screen ASTs. |
 | `refresh` | Re-resolves block names and screen surfaces without re-parsing. |
 | `boot` | Plays the boot sequence again on every screen. |
+| `starter` | Writes a sample layout into an empty Custom Data (it never overwrites one that has content), then loads it. Change `output:` to the name of your LCD and run `reload`. |
+| `probe` | Draws a test pattern for 20 seconds on the block's own screen and on every configured screen, to check what part of a real screen the script covers. No layout is needed |
 | `console on` / `console off` | Shows or hides the console on the Programmable Block's own screen. |
 | `scan` (also `diagnose`, `test`) | Prints a diagnostic report of binds, surfaces and instruction use, and the sprite names the game offers for `bg_texture`. |
 | `alert red` (also `on`) | Turns on the red alert: every screen's background flashes to its `alert_bg` colour, and red gauges flash. |
