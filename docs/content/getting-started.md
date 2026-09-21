@@ -106,11 +106,32 @@ output: "<Block Name>", <surface_index>
 
 ## 6. Verify & Troubleshoot
 
-Open the Programmable Block terminal. The output pane shows one line per run, with the screen that was drawn, the instruction count and the run time (example values):
+Select the Programmable Block in the terminal. The info pane on the right shows the HELM console, and the same console is drawn in grays and magenta on the Programmable Block's own screen (example values):
 
 ```text
-HELM [SurvivalCockpit] instr 1234/50000 — 0.2ms
+HELM-[Kernel-(v0.11.0)]
+------------------------------
+krn-cfg
+ screens 3  binds 11/12  errors 0
+ alert off  blocks 27  docked-ignored 0
+cfg-dsp
+ Cockpit        512x512   live
+ Bridge LCD     1024x512  live
+ Airlock        512x256   no block
+perf
+ tick 812  0.030 ms
+ instr 10  peak 2140  max 50000
+ rate Update100  idle 6  up 1342s
+ last Bridge LCD
 ```
+
+| Section | Shows |
+| :--- | :--- |
+| `krn-cfg` | Screens and binds configured, binds that matched at least one block, config errors (the first one is shown), the alert state, blocks in use and blocks ignored because they are on docked ships |
+| `cfg-dsp` | Each display: name, surface size and `live`, `boot` or `no block` |
+| `perf` | Run count, run time, instructions of the last run and the highest so far, the update rate and how long the screens have been idle |
+
+The console refreshes once a second while screens are changing and every five seconds when idle. The run argument `console off` returns the Programmable Block's own screen to the game, and `console on` draws it again.
 
 If a block is missing or renamed, HELM does not crash. The value of the affected gauge shows a red `ERR`, and the problem is listed in the Programmable Block's output pane on every run:
 
@@ -140,6 +161,7 @@ You can run these commands from a timer block, sensor, or cockpit hotbar:
 | `reload` | Re-parses Custom Data and rebuilds screen ASTs. |
 | `refresh` | Re-resolves block names and screen surfaces without re-parsing. |
 | `boot` | Plays the boot sequence again on every screen. |
+| `console on` / `console off` | Shows or hides the console on the Programmable Block's own screen. |
 | `scan` (also `diagnose`, `test`) | Prints a diagnostic report of binds, surfaces and instruction use. |
 | `alert red` (also `on`) | Turns on the flashing red alert across all screens. |
 | `alert off` | Clears the alert state. |
