@@ -93,6 +93,14 @@
         private int _idleRuns = 0;       // consecutive runs in which nothing was redrawn
         private Dictionary<ScreenDef, double> _bootT0 = new Dictionary<ScreenDef, double>();
         private int _tickCounter = 0;
+        private const string HELM_VERSION = "0.11.0"; // stamped from the VERSION file by Build-Release.ps1
+        private IMyTextSurface _pbSurface;             // the Programmable Block's own screen (console)
+        private bool _consoleOn = true;
+        private double _consoleAt = 0;
+        private string _consoleText = "";
+        private string _lastScreen = "";
+        private int _instrLast = 0, _instrPeak = 0; // instructions of the last completed run, and the highest so far
+        private List<KeyValuePair<string, int>> _con = new List<KeyValuePair<string, int>>();
         private const double RESCAN_SECONDS = 120; // PDR §5: rescan blocks periodically, not per tick
 
         // Approximate line height in pixels per unit FontSize.
@@ -114,6 +122,7 @@
             catch {}
             ReloadConfig();
             StartBoot();
+            InitConsole();
         }
 
         public void Main(string argument, UpdateType updateType)
@@ -138,6 +147,12 @@
             else if (arg == "boot")
             {
                 StartBoot();
+            }
+            else if (arg == "console on" || arg == "console off")
+            {
+                _consoleOn = arg == "console on";
+                InitConsole();
+                _consoleAt = 0;
             }
             else if (arg == "scan" || arg == "diagnose" || arg == "test")
             {
@@ -182,6 +197,7 @@
 
             if (_config == null || _config.Screens.Count == 0)
             {
+                UpdateConsole();
                 EchoNotes();
                 Echo("HELM: no valid @screen configured. Check Custom Data.");
                 return;
@@ -192,6 +208,7 @@
             // screen in one pass.
             var screen = _config.Screens[_screenCursor % _config.Screens.Count];
             _screenCursor++;
+            _lastScreen = screen.Name;
 
             // Screens that are booting draw their boot frame every run (cheap); the others take turns.
             bool active = _bootT0.Count > 0;
@@ -204,11 +221,11 @@
             _idleRuns = active ? 0 : _idleRuns + 1;
             Runtime.UpdateFrequency = _idleRuns <= _config.Screens.Count + 1 ? UpdateFrequency.Update10 : UpdateFrequency.Update100;
 
-            // PDR §9 profiling hook — leave this in during development so the
-            // §4 "working hypothesis" numbers can actually be replaced with
-            // measured ones.
+            UpdateConsole();
             EchoNotes();
-            Echo($"HELM [{screen.Name}] instr {Runtime.CurrentInstructionCount}/{Runtime.MaxInstructionCount} — {Runtime.LastRunTimeMs:0.###}ms");
+
+            _instrLast = Runtime.CurrentInstructionCount;
+            if (_instrLast > _instrPeak) _instrPeak = _instrLast;
         }
 
         // Config errors and output-block problems are kept and echoed on every run: Echo text is replaced each run.
@@ -355,6 +372,120 @@
                         }
                     }
                 }
+            }
+        }
+
+        // ---------------- console ----------------
+        // One model, two views: the info pane in the terminal (Echo, plain text) and the Programmable Block's own
+        // screen (grays and magenta). It is rebuilt once a second; Echo repeats the cached text every run because
+        // the game clears it each run.
+
+        private void ConLine(int style, string text)
+        {
+            _con.Add(new KeyValuePair<string, int>(text, style));
+        }
+
+        private static string Trunc(string s, int n)
+        {
+            return s.Length > n ? s.Substring(0, n) : s;
+        }
+
+        private void InitConsole()
+        {
+            var prov = Me as IMyTextSurfaceProvider;
+            if (prov == null || prov.SurfaceCount < 1) return;
+            _pbSurface = prov.GetSurface(0);
+            _pbSurface.ContentType = _consoleOn ? ContentType.SCRIPT : ContentType.NONE;
+            _pbSurface.Script = "";
+        }
+
+        private void UpdateConsole()
+        {
+            if (_time >= _consoleAt)
+            {
+                // Once a second while active; every 5 s when idle so the idle run stays cheap.
+                _consoleAt = _time + (_idleRuns > _config.Screens.Count + 1 ? 5.0 : 1.0);
+                BuildConsole();
+                if (_consoleOn && _pbSurface != null) DrawConsole();
+            }
+            Echo(_consoleText);
+        }
+
+        // Styles: 0 header, 1 section, 2 body, 3 warning, 4 rule.
+        private void BuildConsole()
+        {
+            _con.Clear();
+            int bound = 0, blockCount = 0;
+            foreach (var b in _config.Binds)
+            {
+                List<IMyTerminalBlock> l;
+                if (b.Kind == BindKind.Dynamic) { bound++; continue; }
+                if (_resolvedBinds.TryGetValue(b.Name, out l)) { blockCount += l.Count; if (l.Count > 0) bound++; }
+            }
+            int errs = _config.Errors.Count;
+            ConLine(0, "HELM-[Kernel-(v" + HELM_VERSION + ")]");
+            ConLine(4, "------------------------------");
+            ConLine(1, "krn-cfg");
+            ConLine(2, " screens " + _config.Screens.Count + "  binds " + bound + "/" + _config.Binds.Count + "  errors " + errs);
+            ConLine(2, " alert " + (_globalRedAlert ? "RED" : "off") + "  blocks " + blockCount + "  docked-ignored " + _foreignBlocks);
+            if (errs > 0) ConLine(3, " ! " + Trunc(_config.Errors[0], 40));
+            ConLine(1, "cfg-dsp");
+            int shown = 0;
+            foreach (var s in _config.Screens)
+            {
+                if (++shown > 10) { ConLine(2, " +" + (_config.Screens.Count - 10) + " more"); break; }
+                IMyTextSurface sf;
+                string size = "--", state = "no block";
+                if (_resolvedOutputs.TryGetValue(s, out sf))
+                {
+                    size = sf.SurfaceSize.X.ToString("0") + "x" + sf.SurfaceSize.Y.ToString("0");
+                    state = _bootT0.ContainsKey(s) ? "boot" : "live";
+                }
+                ConLine(state == "no block" ? 3 : 2, " " + Trunc(s.Name, 14).PadRight(14) + " " + size.PadRight(9) + " " + state);
+            }
+            ConLine(1, "perf");
+            ConLine(2, " tick " + _tickCounter + "  " + Runtime.LastRunTimeMs.ToString("0.000") + " ms");
+            ConLine(2, " instr " + _instrLast + "  peak " + _instrPeak + "  max " + Runtime.MaxInstructionCount);
+            ConLine(2, " rate " + Runtime.UpdateFrequency + "  idle " + _idleRuns + "  up " + (int)_time + "s");
+            if (_lastScreen.Length > 0) ConLine(2, " last " + _lastScreen);
+
+            var sb = new StringBuilder();
+            foreach (var kv in _con) sb.AppendLine(kv.Key);
+            _consoleText = sb.ToString();
+        }
+
+        private static Color ConColor(int style)
+        {
+            switch (style)
+            {
+                case 0: return new Color(232, 121, 249);
+                case 1: return new Color(192, 38, 211);
+                case 3: return new Color(255, 80, 255);
+                case 4: return new Color(71, 85, 105);
+            }
+            return new Color(170, 180, 195);
+        }
+
+        private void DrawConsole()
+        {
+            Vector2 size = _pbSurface.SurfaceSize;
+            Vector2 off = (_pbSurface.TextureSize - size) / 2f;
+            int chars = 30;
+            foreach (var kv in _con) chars = Math.Max(chars, kv.Key.Length);
+            Vector2 cell = _pbSurface.MeasureStringInPixels(new StringBuilder("M"), "Monospace", 1f);
+            float scale = Math.Min(1f, Math.Min(size.X * 0.94f / (chars * cell.X), size.Y * 0.94f / (_con.Count * cell.Y)));
+            float x = off.X + size.X * 0.03f;
+            float y = off.Y + size.Y * 0.03f;
+            var sp = new List<MySprite>();
+            sp.Add(new MySprite { Type = SpriteType.TEXTURE, Data = "SquareSimple", Position = off + size / 2f, Size = size, Color = new Color(12, 12, 16) });
+            foreach (var kv in _con)
+            {
+                AddBootText(sp, kv.Key, ConColor(kv.Value), x, y, scale);
+                y += cell.Y * scale;
+            }
+            using (var frame = _pbSurface.DrawFrame())
+            {
+                frame.AddRange(sp);
             }
         }
 

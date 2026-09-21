@@ -10,19 +10,22 @@ public bool Initialized=false;}private class LineSlot{public LineDef Line;public
 public bool HasDynamicLabel=false;public List<int>ExtraSpriteIndices=new List<int>();public float[]SparkHistory=new float[8];public float BarLeft;public float BarMaxWidth;
 public float BarHeight;public float BarCenterY;public double LastValue= -99999.0;public string LastText;public float DisplayValue= -1f;}private Dictionary<ScreenDef,ScreenBuffer>_screenBuffers=new Dictionary<ScreenDef,ScreenBuffer>();
 private int _screenCursor=0;private double _rescanSec=0;private double _time=0;private int _idleRuns=0;private Dictionary<ScreenDef,double>_bootT0=new Dictionary<ScreenDef,double>();
-private int _tickCounter=0;private const double RESCAN_SECONDS=120;private const float APPROX_LINE_HEIGHT_PER_FONTSIZE=22f;public Program(){Runtime.UpdateFrequency=UpdateFrequency.Update10;
-try{_helmBroadcastListener=IGC.RegisterBroadcastListener("HELM");_helmBroadcastListener.SetMessageCallback("HELM_IGC");}catch{}ReloadConfig();StartBoot();}public void Main(string argument,UpdateType updateType){
-double dt=Runtime.TimeSinceLastRun.TotalSeconds;_time+=dt;if((updateType&UpdateType.IGC)!=0||argument=="HELM_IGC"){ProcessIgcMessages();}string rawArg=(argument ?? "").Trim();
-string arg=rawArg.ToLowerInvariant();if(arg=="reload"){ReloadConfig();}else if(arg=="refresh"){ResolveBindsAndOutputs();}else if(arg=="boot"){StartBoot();}else if(arg=="scan"||arg=="diagnose"||arg=="test"){
+private int _tickCounter=0;private const string HELM_VERSION="0.11.0";private IMyTextSurface _pbSurface;private bool _consoleOn=true;private double _consoleAt=0;
+private string _consoleText="";private string _lastScreen="";private int _instrLast=0,_instrPeak=0;private List<KeyValuePair<string,int>>_con=new List<KeyValuePair<string,int>>();
+private const double RESCAN_SECONDS=120;private const float APPROX_LINE_HEIGHT_PER_FONTSIZE=22f;public Program(){Runtime.UpdateFrequency=UpdateFrequency.Update10;
+try{_helmBroadcastListener=IGC.RegisterBroadcastListener("HELM");_helmBroadcastListener.SetMessageCallback("HELM_IGC");}catch{}ReloadConfig();StartBoot();InitConsole();
+}public void Main(string argument,UpdateType updateType){double dt=Runtime.TimeSinceLastRun.TotalSeconds;_time+=dt;if((updateType&UpdateType.IGC)!=0||argument=="HELM_IGC"){
+ProcessIgcMessages();}string rawArg=(argument ?? "").Trim();string arg=rawArg.ToLowerInvariant();if(arg=="reload"){ReloadConfig();}else if(arg=="refresh"){ResolveBindsAndOutputs();
+}else if(arg=="boot"){StartBoot();}else if(arg=="console on"||arg=="console off"){_consoleOn=arg=="console on";InitConsole();_consoleAt=0;}else if(arg=="scan"||arg=="diagnose"||arg=="test"){
 RunSelfDiagnostics();return;}else if(arg.StartsWith("set ")){string rest=rawArg.Substring(4).Trim();int eq=rest.IndexOf('=');int sp=rest.IndexOf(' ');int sep=eq>0 ? eq : sp;
 if(sep>0){string k=rest.Substring(0,sep).Trim();string v=rest.Substring(sep+1).Trim();ApplyDynamicPayload($"{k}={v}");Echo($"[HELM] Set dynamic variable '{k}' = {v}");
 }return;}else if(arg.StartsWith("alert")){string val=arg.Length>5 ? arg.Substring(5).Trim(): "toggle";if(val=="toggle")_globalRedAlert= !_globalRedAlert;else _globalRedAlert=val=="red"||val=="on"||val=="1"||val=="true";
 Echo($"[HELM] Red alert state: {_globalRedAlert}");return;}else if(Me.CustomData!=_lastCustomData){ReloadConfig();}_tickCounter++;_rescanSec+=dt;if(_rescanSec>=RESCAN_SECONDS){
-_rescanSec=0;ResolveBindsAndOutputs();}if(_config==null||_config.Screens.Count==0){EchoNotes();Echo("HELM: no valid @screen configured. Check Custom Data.");return;
-}var screen=_config.Screens[_screenCursor%_config.Screens.Count];_screenCursor++;bool active=_bootT0.Count>0;if(active)RenderBoots();if(!_bootT0.ContainsKey(screen)&&RenderScreen(screen))active=true;
-_idleRuns=active ? 0 : _idleRuns+1;Runtime.UpdateFrequency=_idleRuns<=_config.Screens.Count+1 ? UpdateFrequency.Update10 : UpdateFrequency.Update100;EchoNotes();
-Echo($"HELM [{screen.Name}] instr {Runtime.CurrentInstructionCount}/{Runtime.MaxInstructionCount} — {Runtime.LastRunTimeMs:0.###}ms");}private void EchoNotes(){
-if(_cfgErr.Length>0)Echo(_cfgErr);if(_outErr.Length>0)Echo(_outErr.ToString());}private List<IMyTerminalBlock>AllBlocks(){if(!_allLoaded){_allBlocks.Clear();GridTerminalSystem.GetBlocks(_allBlocks);
+_rescanSec=0;ResolveBindsAndOutputs();}if(_config==null||_config.Screens.Count==0){UpdateConsole();EchoNotes();Echo("HELM: no valid @screen configured. Check Custom Data.");
+return;}var screen=_config.Screens[_screenCursor%_config.Screens.Count];_screenCursor++;_lastScreen=screen.Name;bool active=_bootT0.Count>0;if(active)RenderBoots();
+if(!_bootT0.ContainsKey(screen)&&RenderScreen(screen))active=true;_idleRuns=active ? 0 : _idleRuns+1;Runtime.UpdateFrequency=_idleRuns<=_config.Screens.Count+1 ? UpdateFrequency.Update10 : UpdateFrequency.Update100;
+UpdateConsole();EchoNotes();_instrLast=Runtime.CurrentInstructionCount;if(_instrLast>_instrPeak)_instrPeak=_instrLast;}private void EchoNotes(){if(_cfgErr.Length>0)Echo(_cfgErr);
+if(_outErr.Length>0)Echo(_outErr.ToString());}private List<IMyTerminalBlock>AllBlocks(){if(!_allLoaded){_allBlocks.Clear();GridTerminalSystem.GetBlocks(_allBlocks);
 int reachable=_allBlocks.Count;_allBlocks.RemoveAll(b=> !b.IsSameConstructAs(Me));_foreignBlocks=reachable-_allBlocks.Count;_allLoaded=true;}return _allBlocks;}
 private IMyTerminalBlock FindBlock(string name){var b=GridTerminalSystem.GetBlockWithName(name);if(b==null||b.IsSameConstructAs(Me))return b;var all=AllBlocks();
 for(int i=0;i<all.Count;i++)if(all[i].CustomName.IndexOf(name,StringComparison.OrdinalIgnoreCase)>=0)return all[i];return null;}private void CollectGroup(string name,List<IMyTerminalBlock>into){
@@ -39,7 +42,24 @@ _globalRedAlert=valStr.Equals("red",StringComparison.OrdinalIgnoreCase)||valStr=
 }else{double num;_dynText.Remove(key);if(double.TryParse(valStr,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out num)){
 _dynamicValues[key]=num;}else if(valStr.Equals("true",StringComparison.OrdinalIgnoreCase)||valStr.Equals("on",StringComparison.OrdinalIgnoreCase)){_dynamicValues[key]=100.0;
 }else if(valStr.Equals("false",StringComparison.OrdinalIgnoreCase)||valStr.Equals("off",StringComparison.OrdinalIgnoreCase)){_dynamicValues[key]=0.0;}else{_dynText[key]=valStr;
-}}}}}private static readonly string[]BootLogo={"        ZZ     ZZ","     ZZ ZZ     ZZ ZZ","   ZZVZ ZZ     ZZ ZVZZ","  ZZZZZ ZZZZZZZZZ ZZZZZ"," ZVZ    ZZ     ZZ    ZVZ"," ZGZ    ZZ     ZZ    ZGZ"," ZVVZ   ZZ     ZZ   ZVVZ","  ZVVZ ZZ       ZZ ZUVZ","   ZZZ Z         Z ZZZ","     ZZZZZZZ ZZZZZZZ","        ZZZZ ZZZZ"}
+}}}}}private void ConLine(int style,string text){_con.Add(new KeyValuePair<string,int>(text,style));}private static string Trunc(string s,int n){return s.Length>n ? s.Substring(0,n): s;
+}private void InitConsole(){var prov=Me as IMyTextSurfaceProvider;if(prov==null||prov.SurfaceCount<1)return;_pbSurface=prov.GetSurface(0);_pbSurface.ContentType=_consoleOn ? ContentType.SCRIPT : ContentType.NONE;
+_pbSurface.Script="";}private void UpdateConsole(){if(_time>=_consoleAt){_consoleAt=_time+(_idleRuns>_config.Screens.Count+1 ? 5.0 : 1.0);BuildConsole();if(_consoleOn&&_pbSurface!=null)DrawConsole();
+}Echo(_consoleText);}private void BuildConsole(){_con.Clear();int bound=0,blockCount=0;foreach(var b in _config.Binds){List<IMyTerminalBlock>l;if(b.Kind==BindKind.Dynamic){
+bound++;continue;}if(_resolvedBinds.TryGetValue(b.Name,out l)){blockCount+=l.Count;if(l.Count>0)bound++;}}int errs=_config.Errors.Count;ConLine(0,"HELM-[Kernel-(v"+HELM_VERSION+")]");
+ConLine(4,"------------------------------");ConLine(1,"krn-cfg");ConLine(2," screens "+_config.Screens.Count+"  binds "+bound+"/"+_config.Binds.Count+"  errors "+errs);
+ConLine(2," alert "+(_globalRedAlert ? "RED" : "off")+"  blocks "+blockCount+"  docked-ignored "+_foreignBlocks);if(errs>0)ConLine(3," ! "+Trunc(_config.Errors[0],40));
+ConLine(1,"cfg-dsp");int shown=0;foreach(var s in _config.Screens){if(++shown>10){ConLine(2," +"+(_config.Screens.Count-10)+" more");break;}IMyTextSurface sf;string size="--",state="no block";
+if(_resolvedOutputs.TryGetValue(s,out sf)){size=sf.SurfaceSize.X.ToString("0")+"x"+sf.SurfaceSize.Y.ToString("0");state=_bootT0.ContainsKey(s)? "boot" : "live";
+}ConLine(state=="no block" ? 3 : 2," "+Trunc(s.Name,14).PadRight(14)+" "+size.PadRight(9)+" "+state);}ConLine(1,"perf");ConLine(2," tick "+_tickCounter+"  "+Runtime.LastRunTimeMs.ToString("0.000")+" ms");
+ConLine(2," instr "+_instrLast+"  peak "+_instrPeak+"  max "+Runtime.MaxInstructionCount);ConLine(2," rate "+Runtime.UpdateFrequency+"  idle "+_idleRuns+"  up "+(int)_time+"s");
+if(_lastScreen.Length>0)ConLine(2," last "+_lastScreen);var sb=new StringBuilder();foreach(var kv in _con)sb.AppendLine(kv.Key);_consoleText=sb.ToString();}private static Color ConColor(int style){
+switch(style){case 0: return new Color(232,121,249);case 1: return new Color(192,38,211);case 3: return new Color(255,80,255);case 4: return new Color(71,85,105);
+}return new Color(170,180,195);}private void DrawConsole(){Vector2 size=_pbSurface.SurfaceSize;Vector2 off=(_pbSurface.TextureSize-size)/2f;int chars=30;foreach(var kv in _con)chars=Math.Max(chars,kv.Key.Length);
+Vector2 cell=_pbSurface.MeasureStringInPixels(new StringBuilder("M"),"Monospace",1f);float scale=Math.Min(1f,Math.Min(size.X*0.94f/(chars*cell.X),size.Y*0.94f/(_con.Count*cell.Y)));
+float x=off.X+size.X*0.03f;float y=off.Y+size.Y*0.03f;var sp=new List<MySprite>();sp.Add(new MySprite{Type=SpriteType.TEXTURE,Data="SquareSimple",Position=off+size/2f,Size=size,Color=new Color(12,12,16)}
+);foreach(var kv in _con){AddBootText(sp,kv.Key,ConColor(kv.Value),x,y,scale);y+=cell.Y*scale;}using(var frame=_pbSurface.DrawFrame()){frame.AddRange(sp);}}private static readonly string[]BootLogo={
+"        ZZ     ZZ","     ZZ ZZ     ZZ ZZ","   ZZVZ ZZ     ZZ ZVZZ","  ZZZZZ ZZZZZZZZZ ZZZZZ"," ZVZ    ZZ     ZZ    ZVZ"," ZGZ    ZZ     ZZ    ZGZ"," ZVVZ   ZZ     ZZ   ZVVZ","  ZVVZ ZZ       ZZ ZUVZ","   ZZZ Z         Z ZZZ","     ZZZZZZZ ZZZZZZZ","        ZZZZ ZZZZ"}
 ;private void StartBoot(){_bootT0.Clear();if(_config==null)return;for(int i=0;i<_config.Screens.Count;i++){var s=_config.Screens[i];if(s.BootDuration>0f)_bootT0[s]=_time+i*s.BootStaggerTicks/60.0;
 }}private void RenderBoots(){List<ScreenDef>done=null;foreach(var kv in _bootT0){double p=(_time-kv.Value)/kv.Key.BootDuration;if(p<0)continue;if(p>=1.0){if(done==null)done=new List<ScreenDef>();
 done.Add(kv.Key);continue;}DrawBoot(kv.Key,p);}if(done==null)return;foreach(var s in done){_bootT0.Remove(s);_screenBuffers.Remove(s);_lastSignature.Remove(s);}

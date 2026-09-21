@@ -126,6 +126,15 @@ $nsClose     = $programContent.LastIndexOf('}')
 $classClose  = $programContent.LastIndexOf('}', $nsClose - 1)
 $progBody    = $programContent.Substring($classOpen + 1, $classClose - $classOpen - 1).Trim("`r", "`n")
 
+# Stamp the version from the VERSION file into the script (shown in the console header). An empty file keeps 0.0.0.
+$verFile = [System.IO.Path]::Combine($ScriptDir, 'VERSION')
+if ([System.IO.File]::Exists($verFile)) {
+    $ver = [System.IO.File]::ReadAllText($verFile).Trim().TrimStart('v', 'V')
+    if ($ver -match '^[0-9A-Za-z.+\-]+$') {
+        $progBody = ([string]$progBody).Replace('HELM_VERSION = "0.0.0"', 'HELM_VERSION = "' + $ver + '"')
+    }
+}
+
 # Body inside `namespace HelmCore { ... }` in HelmCore.cs (types nested into Program below)
 $startNs = $coreContent.IndexOf("namespace HelmCore")
 if ($startNs -lt 0) { throw "HelmCore.cs: 'namespace HelmCore' not found" }
