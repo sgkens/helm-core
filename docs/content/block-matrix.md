@@ -54,12 +54,14 @@ State fields such as `.locked`, `.connected`, `.brake`, `.producing`, `.projecti
 
 ## Item Fields and Text Panels
 
-Two kinds of field work on blocks that are not in the table by type.
+Three kinds of field work on blocks that are not in the table by type.
 
 | Field | Reads | Example |
 | :--- | :--- | :--- |
 | `<kind>:<Subtype>` | Amount of one item in the inventories of the bound blocks. `kind` is `ingot`, `ore`, `component`, `ammo` and so on | `bar(cargo.ingot:Iron) max(5000)` |
+| `share:<kind>:<Subtype>` | The volume the item takes as a percent of the bound blocks' inventory capacity (amount times the item's volume, divided by capacity). Use `max(100)` on a gauge | `bar(cargo.share:ingot:Iron) max(100)` |
 | `top1`, `top2`, ... | The largest item held, the next largest, and so on, as text (`Iron ingot 4.2K`). Scanned a few blocks per run, refreshed every 15 seconds | `text(cargo.top1)` |
+| `rate`, `eta`, `trend` | How the bind's percent is changing: change per minute, time until empty or full, and an arrow. Sampled every 5 seconds | `text(batt.eta)` |
 | `line1`, `line2`, ... | A line of the text on a text panel or LCD, as text. Read every 2 seconds | `text(notes.line1)` |
 
 See [Item Amounts](/docs/dsl-syntax/#item-amounts-cargo-and-reactor-contents) and [Text From Another LCD](/docs/dsl-syntax/#text-from-another-lcd).
