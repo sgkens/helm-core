@@ -90,13 +90,19 @@ A screen is drawn in layers: the screen background, then a card behind each pane
 | `bg_gradient(<color>, <color>, ...)` | `@screen` | Vertical gradient, top to bottom, drawn as 16 bands. Replaces `bg:` |
 | `bg: <color>` | after an `@panel` line | Background of that panel only. Use different colours for a deliberate two-tone screen |
 | `panel_bg: <color>` or `none` | `@screen` | The card behind every panel that has no `bg:` of its own. `none` draws no card |
+| `bg: color(<bind>.<field> <op> N : <color>, ..., default: <color>)` | `@screen` or after an `@panel` line | Background that follows a value, like the colour rules of `text()` lines. `bg: color(batt.percent < 25 : #7f1d1d, batt.percent < 60 : #78350f, default: #14532d)` |
+| `flash: <bind>.<field> <op> N` | `@screen` or after an `@panel` line | Flashes that background to `alert_bg` while the comparison is true, for example `flash: batt.percent < 15` |
+| `bg_gradient_dir: vertical` or `horizontal` | `@screen` or after an `@panel` line | Direction of `bg_gradient(...)` (default vertical). A gradient can also be given to a single panel |
+| `bg_texture: <name>` | `@screen` | Draws one of the game's built-in sprites over the background, scaled to the screen. Run the block with the argument `scan` to list the names the game offers |
+| `bg_texture_color: <color>` | `@screen` | Tint of the texture (default white at 24/255 opacity) |
 | `alert_bg: <color>` or `none` | `@screen` | Colour the background flashes to while the red alert is on (default `#5b0f0f`). `none` turns the flash off for this screen |
 
 Colours are `#rrggbb`, a name, or `r,g,b,a` with an alpha from 0 to 255, so a background or card can be translucent.
 
 - **The default card** is white at about 2% opacity, so it lifts whatever is behind it, a solid colour, a gradient or a transparent screen, instead of adding a second colour. Before this, every multi-panel screen drew a fixed near-black card, which showed as a different colour behind each panel on a coloured background.
 - **Red alert:** `alert red` flashes every screen's background between `bg` and `alert_bg` (half a cycle each, about every second and a half at the fast rate) until `alert off`. Gauges whose colour is red also flash, as before.
-- The `background_lab` preset shows a gradient, two deliberate tones, a see-through screen and an alert background. `helmv.ps1` does not draw gradients, panel cards or the alert flash.
+- **Values:** `bg: color(...)` and `flash:` read a block field on every redraw, so a panel can turn red as a value falls. `flash:` uses the same `alert_period:` as the red alert.
+- The `background_lab` preset shows a gradient (vertical and horizontal), two deliberate tones, a see-through screen, an alert background, a panel that follows a value, a panel that flashes and a texture. `helmv.ps1` does not draw gradients, panel cards or the alert flash.
 
 ### Item Amounts (Cargo and Reactor Contents)
 
