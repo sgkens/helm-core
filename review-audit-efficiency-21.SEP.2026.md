@@ -114,3 +114,13 @@ After items 1 to 5 the script has roughly 6,000 to 10,000 characters of headroom
 | P6 refresh rate and damping | First version in `492c81c`: `Update10` while booting, changing, easing or alerting, `Update100` when idle; block rescans every 120 s. To be revisited after more in-game and stress testing. The `refresh:` setting is still parsed but unused |
 | Boot sequence | Fixed in `492c81c`: implemented in the game script. Calibration sweeps remain helmv-only |
 | Smooth gradients, field case | Open, needs a decision (implement or correct the docs) |
+
+## Headroom follow-up (22 SEP 2026)
+
+| Change | Result |
+| :--- | :--- |
+| Trims (shared sprite updates, one percent lookup, harness-only code out, redundant `private`) | 3,007 characters |
+| Features added meanwhile (boot batches, banners, item amounts, `max(N)`, console, docked-ship scoping) | about 9,300 characters |
+| Identifier renaming (`tools/minify-rename`) | 25,636 characters: 97,622 to 71,986, 28,014 free |
+
+The renamed script is proven equivalent to the source by `tools/rename-check` on all presets and compiles against the game's own assemblies. It has not run in the game yet.
