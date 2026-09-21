@@ -16,7 +16,7 @@ Are you tired of complex LCD scripts that lag your dedicated server, generate ga
 
 [h2]✦ Key Features[/h2]
 [list]
-[*] [b]Retained sprite buffers[/b]: Sprites are created once and updated in place, and percentage strings are cached, to keep per-tick allocation low. Measured numbers are not published yet.
+[*] [b]Retained sprite buffers[/b]: Sprites are created once and updated in place, and percentage strings are cached, to keep per-tick allocation low. In a first in-game run with one display it used 10 of the 50,000 instructions when idle and 0.025 to 0.030 ms per run.
 [*] [b]Declarative DSL in Custom Data[/b]: Configure multi-screen, multi-panel layouts directly in the Programmable Block's Custom Data with clean, human-readable syntax.
 [*] [b]Zero-Friction Block Discovery[/b]: Wildcard pattern matching (e.g. [code]Battery*[/code], [code]*Hydro*[/code]) and automatic typed grid fallbacks. No need to spend 20 minutes renaming every battery or tank on your ship!
 [*] [b]15 Specialized Visual Controls[/b]:
@@ -84,7 +84,7 @@ External scripts (autopilots, combat computers, sorters) can broadcast directly 
 [h2]✦ Performance Notes[/h2]
 • [b]Script size[/b]: about 94.2k characters minified, under the 100k Programmable Block limit.
 • [b]Rendering[/b]: one screen is redrawn per run, so multi-screen setups are spread across ticks.
-• [b]Not yet measured[/b]: instruction counts and allocations in game. Numbers will be added once they have been measured.
+• [b]Measured in game[/b] (one display, idle): 10 of 50,000 instructions, 0.025 to 0.030 ms per run. Not yet measured: larger grids, the item-contents scan, and allocations.
 ```
 
 ---
