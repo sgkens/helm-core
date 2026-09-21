@@ -539,12 +539,14 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     else if (line.StartsWith("boot_duration:"))
                     {
                         RequireScreen(current, "boot_duration:");
+                        // "3s" is seconds; a bare number is game ticks (60 per second): "180" is 3 seconds.
                         string dStr = line.Substring("boot_duration:".Length).Trim().ToLowerInvariant();
-                        if (dStr.EndsWith("s")) dStr = dStr.Substring(0, dStr.Length - 1).Trim();
+                        bool inSeconds = dStr.EndsWith("s");
+                        if (inSeconds) dStr = dStr.Substring(0, dStr.Length - 1).Trim();
                         float dur;
                         if (float.TryParse(dStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out dur))
                         {
-                            current.BootDuration = dur;
+                            current.BootDuration = inSeconds ? dur : dur / 60f;
                         }
                     }
                     else if (line.StartsWith("boot_log:"))
@@ -1356,6 +1358,12 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
             }
             while (p < pattern.Length && pattern[p] == '*') p++;
             return p == pattern.Length;
+        }
+
+        // Number of diagnostic boot lines shown at boot progress p (0 to 1): at least one once the boot has started.
+        public static int BootLogCount(double p, int total)
+        {
+            return Math.Max(0, Math.Min(total, 1 + (int)(Math.Max(0.0, p) * total)));
         }
 
         // Picks a color along a multi-stop gradient by percent (0-100).

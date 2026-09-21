@@ -87,9 +87,12 @@
             = new Dictionary<ScreenDef, ScreenBuffer>();
 
         private int _screenCursor = 0;
-        private int _rescanCounter = 0;
+        private double _rescanSec = 0;
+        private double _time = 0;        // seconds since the script started (Runtime.TimeSinceLastRun)
+        private int _idleRuns = 0;       // consecutive runs in which nothing was redrawn
+        private Dictionary<ScreenDef, double> _bootT0 = new Dictionary<ScreenDef, double>();
         private int _tickCounter = 0;
-        private const int RESCAN_EVERY_N_RUNS = 100; // PDR §5: rescan blocks periodically, not per tick
+        private const double RESCAN_SECONDS = 120; // PDR §5: rescan blocks periodically, not per tick
 
         // Approximate line height in pixels per unit FontSize.
         // *** UNVERIFIED — a placeholder, not a researched constant. ***
@@ -101,7 +104,7 @@
 
         public Program()
         {
-            Runtime.UpdateFrequency = UpdateFrequency.Update100; // PDR §4 default hypothesis
+            Runtime.UpdateFrequency = UpdateFrequency.Update10; // fast while booting; Main() drops to Update100 when idle
             try
             {
                 _helmBroadcastListener = IGC.RegisterBroadcastListener("HELM");
@@ -109,10 +112,13 @@
             }
             catch {}
             ReloadConfig();
+            StartBoot();
         }
 
         public void Main(string argument, UpdateType updateType)
         {
+            double dt = Runtime.TimeSinceLastRun.TotalSeconds;
+            _time += dt;
             if ((updateType & UpdateType.IGC) != 0 || argument == "HELM_IGC")
             {
                 ProcessIgcMessages();
@@ -127,6 +133,10 @@
             else if (arg == "refresh")
             {
                 ResolveBindsAndOutputs();
+            }
+            else if (arg == "boot")
+            {
+                StartBoot();
             }
             else if (arg == "scan" || arg == "diagnose" || arg == "test")
             {
@@ -162,10 +172,10 @@
             }
 
             _tickCounter++;
-            _rescanCounter++;
-            if (_rescanCounter >= RESCAN_EVERY_N_RUNS)
+            _rescanSec += dt;
+            if (_rescanSec >= RESCAN_SECONDS)
             {
-                _rescanCounter = 0;
+                _rescanSec = 0;
                 ResolveBindsAndOutputs();
             }
 
@@ -182,7 +192,16 @@
             var screen = _config.Screens[_screenCursor % _config.Screens.Count];
             _screenCursor++;
 
-            RenderScreen(screen);
+            // Screens that are booting draw their boot frame every run (cheap); the others take turns.
+            bool active = _bootT0.Count > 0;
+            if (active) RenderBoots();
+            if (!_bootT0.ContainsKey(screen) && RenderScreen(screen)) active = true;
+
+            // Fast (Update10) while anything is booting, changing, easing or alerting; slow (Update100) once
+            // every screen has been idle for a few runs. Refresh rates are to be revisited after more in-game
+            // and stress testing (DEVTRACKER TASK-32.7).
+            _idleRuns = active ? 0 : _idleRuns + 1;
+            Runtime.UpdateFrequency = _idleRuns <= _config.Screens.Count + 1 ? UpdateFrequency.Update10 : UpdateFrequency.Update100;
 
             // PDR §9 profiling hook — leave this in during development so the
             // §4 "working hypothesis" numbers can actually be replaced with
@@ -230,6 +249,7 @@
 
             _screenBuffers.Clear();
             _lastSignature.Clear();
+            _bootT0.Clear();
             ResolveBindsAndOutputs();
         }
 
@@ -289,6 +309,124 @@
                         }
                     }
                 }
+            }
+        }
+
+        // ---------------- boot sequence ----------------
+
+        // Startup logo. Drawn line by line with the screen's boot gradient.
+        private static readonly string[] BootLogo =
+        {
+            "        ZZ     ZZ",
+            "     ZZ ZZ     ZZ ZZ",
+            "   ZZVZ ZZ     ZZ ZVZZ",
+            "  ZZZZZ ZZZZZZZZZ ZZZZZ",
+            " ZVZ    ZZ     ZZ    ZVZ",
+            " ZGZ    ZZ     ZZ    ZGZ",
+            " ZVVZ   ZZ     ZZ   ZVVZ",
+            "  ZVVZ ZZ       ZZ ZUVZ",
+            "   ZZZ Z         Z ZZZ",
+            "     ZZZZZZZ ZZZZZZZ",
+            "        ZZZZ ZZZZ"
+        };
+
+        // Starts the boot sequence: screen i powers on i * boot_stagger ticks after the first. boot_duration: 0 skips it.
+        private void StartBoot()
+        {
+            _bootT0.Clear();
+            if (_config == null) return;
+            for (int i = 0; i < _config.Screens.Count; i++)
+            {
+                var s = _config.Screens[i];
+                if (s.BootDuration > 0f) _bootT0[s] = _time + i * s.BootStaggerTicks / 60.0;
+            }
+        }
+
+        private void RenderBoots()
+        {
+            List<ScreenDef> done = null;
+            foreach (var kv in _bootT0)
+            {
+                double p = (_time - kv.Value) / kv.Key.BootDuration;
+                if (p < 0) continue;
+                if (p >= 1.0)
+                {
+                    if (done == null) done = new List<ScreenDef>();
+                    done.Add(kv.Key);
+                    continue;
+                }
+                DrawBoot(kv.Key, p);
+            }
+            if (done == null) return;
+            foreach (var s in done)
+            {
+                // Rebuild the normal screen from scratch so it draws on its next turn.
+                _bootT0.Remove(s);
+                _screenBuffers.Remove(s);
+                _lastSignature.Remove(s);
+            }
+        }
+
+        private static void AddBootText(List<MySprite> sp, string text, Color col, float x, float y, float scale)
+        {
+            var t = MySprite.CreateText(text, "Monospace", col, scale, TextAlignment.LEFT);
+            t.Position = new Vector2(x, y);
+            sp.Add(t);
+        }
+
+        // One boot frame at progress p (0 to 1): logo, message and the diagnostic lines revealed so far.
+        private void DrawBoot(ScreenDef screen, double p)
+        {
+            IMyTextSurface surface;
+            if (!_resolvedOutputs.TryGetValue(screen, out surface)) return;
+
+            Vector2 size = surface.SurfaceSize;
+            Vector2 off = (surface.TextureSize - size) / 2f;
+            var logs = screen.GetEffectiveBootLogs();
+            string msg = screen.BootMessage ?? "HELM TELEMETRY KERNEL ONLINE";
+            bool logo = size.Y >= 200f;
+
+            // Fit the block to the surface with the real font metrics.
+            int chars = msg.Length + 3;
+            foreach (var l in logs) chars = Math.Max(chars, l.Length + 5);
+            if (logo) foreach (var l in BootLogo) chars = Math.Max(chars, l.Length);
+            int rows = (logo ? BootLogo.Length + 1 : 0) + 2 + logs.Count;
+            Vector2 cell = surface.MeasureStringInPixels(new StringBuilder("M"), "Monospace", 1f);
+            float scale = Math.Min(1f, Math.Min(size.X * 0.94f / (chars * cell.X), size.Y * 0.94f / (rows * cell.Y)));
+            float x0 = off.X + (size.X - chars * cell.X * scale) / 2f;
+            float y = off.Y + (size.Y - rows * cell.Y * scale) / 2f;
+            float lh = cell.Y * scale;
+
+            var sp = new List<MySprite>();
+            sp.Add(new MySprite { Type = SpriteType.TEXTURE, Data = "SquareSimple", Position = off + size / 2f, Size = size, Color = new Color(10, 12, 16) });
+
+            if (logo)
+            {
+                string[] stops = screen.BootGradientColors != null && screen.BootGradientColors.Length > 0 ? screen.BootGradientColors : new[] { screen.BootColor };
+                for (int i = 0; i < BootLogo.Length; i++)
+                {
+                    HelmColor c = Layout.GradientLerp(stops, BootLogo.Length > 1 ? 100.0 * i / (BootLogo.Length - 1) : 0.0);
+                    AddBootText(sp, BootLogo[i], new Color(c.R, c.G, c.B), x0, y, scale);
+                    y += lh;
+                }
+                y += lh;
+            }
+
+            AddBootText(sp, ">> " + msg, new Color(34, 197, 94), x0, y, scale);
+            y += lh * 2f;
+
+            int shown = Layout.BootLogCount(p, logs.Count);
+            for (int i = 0; i < shown; i++)
+            {
+                bool ok = i == logs.Count - 1 && p >= 0.8;
+                AddBootText(sp, ok ? "[OK]" : "[..]", ok ? new Color(34, 197, 94) : new Color(56, 189, 248), x0, y, scale);
+                AddBootText(sp, logs[i], new Color(203, 213, 225), x0 + 5f * cell.X * scale, y, scale);
+                y += lh;
+            }
+
+            using (var frame = surface.DrawFrame())
+            {
+                frame.AddRange(sp);
             }
         }
 
@@ -1019,20 +1157,18 @@
 
         // ---------------- rendering ----------------
 
-        private void RenderScreen(ScreenDef screen)
+        // Returns true when the screen was redrawn (something changed).
+        private bool RenderScreen(ScreenDef screen)
         {
             IMyTextSurface surface;
             if (!_resolvedOutputs.TryGetValue(screen, out surface))
-                return;
+                return false;
 
             if (screen.Border.Equals("ascii", StringComparison.OrdinalIgnoreCase))
             {
-                RenderScreenAscii(screen, surface);
+                return RenderScreenAscii(screen, surface);
             }
-            else
-            {
-                RenderScreenGraphic(screen, surface);
-            }
+            return RenderScreenGraphic(screen, surface);
         }
 
         // =========================================================================
@@ -1333,7 +1469,7 @@
         }
 
 
-        private void RenderScreenGraphic(ScreenDef screen, IMyTextSurface surface)
+        private bool RenderScreenGraphic(ScreenDef screen, IMyTextSurface surface)
         {
             ScreenBuffer buf;
             if (!_screenBuffers.TryGetValue(screen, out buf))
@@ -1681,13 +1817,16 @@
                     frame.AddRange(buf.Sprites);
                 }
             }
+        
+
+            return dirty;
         }
 
         // =========================================================================
         // Legacy/Retro ASCII Bordered Window Rendering
         // =========================================================================
 
-        private void RenderScreenAscii(ScreenDef screen, IMyTextSurface surface)
+        private bool RenderScreenAscii(ScreenDef screen, IMyTextSurface surface)
         {
             surface.FontSize = screen.FontSize;
 
@@ -1782,7 +1921,7 @@
             string signature = string.Join("\n", borderedRaw);
             string prevSig;
             if (_lastSignature.TryGetValue(screen, out prevSig) && prevSig == signature)
-                return;
+                return false;
             _lastSignature[screen] = signature;
 
             using (var frame = surface.DrawFrame())
@@ -1815,6 +1954,9 @@
                     y += lineHeight;
                 }
             }
+        
+
+            return true;
         }
 
         private Color ResolveColor(string name)
@@ -2359,12 +2501,14 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     else if (line.StartsWith("boot_duration:"))
                     {
                         RequireScreen(current, "boot_duration:");
+                        // "3s" is seconds; a bare number is game ticks (60 per second): "180" is 3 seconds.
                         string dStr = line.Substring("boot_duration:".Length).Trim().ToLowerInvariant();
-                        if (dStr.EndsWith("s")) dStr = dStr.Substring(0, dStr.Length - 1).Trim();
+                        bool inSeconds = dStr.EndsWith("s");
+                        if (inSeconds) dStr = dStr.Substring(0, dStr.Length - 1).Trim();
                         float dur;
                         if (float.TryParse(dStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out dur))
                         {
-                            current.BootDuration = dur;
+                            current.BootDuration = inSeconds ? dur : dur / 60f;
                         }
                     }
                     else if (line.StartsWith("boot_log:"))
@@ -3176,6 +3320,12 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
             }
             while (p < pattern.Length && pattern[p] == '*') p++;
             return p == pattern.Length;
+        }
+
+        // Number of diagnostic boot lines shown at boot progress p (0 to 1): at least one once the boot has started.
+        public static int BootLogCount(double p, int total)
+        {
+            return Math.Max(0, Math.Min(total, 1 + (int)(Math.Max(0.0, p) * total)));
         }
 
         // Picks a color along a multi-stop gradient by percent (0-100).

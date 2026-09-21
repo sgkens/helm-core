@@ -9,32 +9,49 @@ return PCT_CACHE[idx];}private class ScreenBuffer{public List<MySprite>Sprites=n
 public bool Initialized=false;}private class LineSlot{public LineDef Line;public int FillSpriteIndex= -1;public int ValSpriteIndex= -1;public int LabelSpriteIndex= -1;
 public bool HasDynamicLabel=false;public List<int>ExtraSpriteIndices=new List<int>();public float[]SparkHistory=new float[8];public float BarLeft;public float BarMaxWidth;
 public float BarHeight;public float BarCenterY;public double LastValue= -99999.0;public string LastText;public float DisplayValue= -1f;}private Dictionary<ScreenDef,ScreenBuffer>_screenBuffers=new Dictionary<ScreenDef,ScreenBuffer>();
-private int _screenCursor=0;private int _rescanCounter=0;private int _tickCounter=0;private const int RESCAN_EVERY_N_RUNS=100;private const float APPROX_LINE_HEIGHT_PER_FONTSIZE=22f;
-public Program(){Runtime.UpdateFrequency=UpdateFrequency.Update100;try{_helmBroadcastListener=IGC.RegisterBroadcastListener("HELM");_helmBroadcastListener.SetMessageCallback("HELM_IGC");
-}catch{}ReloadConfig();}public void Main(string argument,UpdateType updateType){if((updateType&UpdateType.IGC)!=0||argument=="HELM_IGC"){ProcessIgcMessages();}string rawArg=(argument ?? "").Trim();
-string arg=rawArg.ToLowerInvariant();if(arg=="reload"){ReloadConfig();}else if(arg=="refresh"){ResolveBindsAndOutputs();}else if(arg=="scan"||arg=="diagnose"||arg=="test"){
+private int _screenCursor=0;private double _rescanSec=0;private double _time=0;private int _idleRuns=0;private Dictionary<ScreenDef,double>_bootT0=new Dictionary<ScreenDef,double>();
+private int _tickCounter=0;private const double RESCAN_SECONDS=120;private const float APPROX_LINE_HEIGHT_PER_FONTSIZE=22f;public Program(){Runtime.UpdateFrequency=UpdateFrequency.Update10;
+try{_helmBroadcastListener=IGC.RegisterBroadcastListener("HELM");_helmBroadcastListener.SetMessageCallback("HELM_IGC");}catch{}ReloadConfig();StartBoot();}public void Main(string argument,UpdateType updateType){
+double dt=Runtime.TimeSinceLastRun.TotalSeconds;_time+=dt;if((updateType&UpdateType.IGC)!=0||argument=="HELM_IGC"){ProcessIgcMessages();}string rawArg=(argument ?? "").Trim();
+string arg=rawArg.ToLowerInvariant();if(arg=="reload"){ReloadConfig();}else if(arg=="refresh"){ResolveBindsAndOutputs();}else if(arg=="boot"){StartBoot();}else if(arg=="scan"||arg=="diagnose"||arg=="test"){
 RunSelfDiagnostics();return;}else if(arg.StartsWith("set ")){string rest=rawArg.Substring(4).Trim();int eq=rest.IndexOf('=');int sp=rest.IndexOf(' ');int sep=eq>0 ? eq : sp;
 if(sep>0){string k=rest.Substring(0,sep).Trim();string v=rest.Substring(sep+1).Trim();ApplyDynamicPayload($"{k}={v}");Echo($"[HELM] Set dynamic variable '{k}' = {v}");
 }return;}else if(arg.StartsWith("alert")){string val=arg.Length>5 ? arg.Substring(5).Trim(): "toggle";if(val=="toggle")_globalRedAlert= !_globalRedAlert;else _globalRedAlert=val=="red"||val=="on"||val=="1"||val=="true";
-Echo($"[HELM] Red alert state: {_globalRedAlert}");return;}else if(Me.CustomData!=_lastCustomData){ReloadConfig();}_tickCounter++;_rescanCounter++;if(_rescanCounter>=RESCAN_EVERY_N_RUNS){
-_rescanCounter=0;ResolveBindsAndOutputs();}if(_config==null||_config.Screens.Count==0){EchoNotes();Echo("HELM: no valid @screen configured. Check Custom Data.");
-return;}var screen=_config.Screens[_screenCursor%_config.Screens.Count];_screenCursor++;RenderScreen(screen);EchoNotes();Echo($"HELM [{screen.Name}] instr {Runtime.CurrentInstructionCount}/{Runtime.MaxInstructionCount} — {Runtime.LastRunTimeMs:0.###}ms");
-}private void EchoNotes(){if(_cfgErr.Length>0)Echo(_cfgErr);if(_outErr.Length>0)Echo(_outErr.ToString());}private List<IMyTerminalBlock>AllBlocks(){if(!_allLoaded){
-_allBlocks.Clear();GridTerminalSystem.GetBlocks(_allBlocks);_allLoaded=true;}return _allBlocks;}private void ReloadConfig(){_lastCustomData=Me.CustomData;_config=HelmParser.Parse(_lastCustomData);
-_cfgErr="";if(_config.Errors.Count>0){var sb=new StringBuilder("HELM config errors:\n");foreach(var e in _config.Errors)sb.AppendLine(" - "+e);_cfgErr=sb.ToString();
-}_bindMap.Clear();foreach(var b in _config.Binds)if(!_bindMap.ContainsKey(b.Name))_bindMap[b.Name]=b;_screenBuffers.Clear();_lastSignature.Clear();ResolveBindsAndOutputs();
-}private void ProcessIgcMessages(){try{while(_helmBroadcastListener!=null&&_helmBroadcastListener.HasPendingMessage){var msg=_helmBroadcastListener.AcceptMessage();
-if(msg.Data is string){ApplyDynamicPayload((string)msg.Data);}}}catch{}}private void ApplyDynamicPayload(string payload){if(string.IsNullOrEmpty(payload))return;
-var pairs=payload.Split(';');for(int i=0;i<pairs.Length;i++){var pair=pairs[i].Trim();if(pair.Length==0)continue;int eq=pair.IndexOf('=');if(eq<0)eq=pair.IndexOf(':');
-if(eq>0){string key=pair.Substring(0,eq).Trim();string valStr=pair.Substring(eq+1).Trim();if(key.Equals("alert",StringComparison.OrdinalIgnoreCase)){_globalRedAlert=valStr.Equals("red",StringComparison.OrdinalIgnoreCase)||valStr=="1"||valStr.Equals("true",StringComparison.OrdinalIgnoreCase)||valStr.Equals("on",StringComparison.OrdinalIgnoreCase);
+Echo($"[HELM] Red alert state: {_globalRedAlert}");return;}else if(Me.CustomData!=_lastCustomData){ReloadConfig();}_tickCounter++;_rescanSec+=dt;if(_rescanSec>=RESCAN_SECONDS){
+_rescanSec=0;ResolveBindsAndOutputs();}if(_config==null||_config.Screens.Count==0){EchoNotes();Echo("HELM: no valid @screen configured. Check Custom Data.");return;
+}var screen=_config.Screens[_screenCursor%_config.Screens.Count];_screenCursor++;bool active=_bootT0.Count>0;if(active)RenderBoots();if(!_bootT0.ContainsKey(screen)&&RenderScreen(screen))active=true;
+_idleRuns=active ? 0 : _idleRuns+1;Runtime.UpdateFrequency=_idleRuns<=_config.Screens.Count+1 ? UpdateFrequency.Update10 : UpdateFrequency.Update100;EchoNotes();
+Echo($"HELM [{screen.Name}] instr {Runtime.CurrentInstructionCount}/{Runtime.MaxInstructionCount} — {Runtime.LastRunTimeMs:0.###}ms");}private void EchoNotes(){
+if(_cfgErr.Length>0)Echo(_cfgErr);if(_outErr.Length>0)Echo(_outErr.ToString());}private List<IMyTerminalBlock>AllBlocks(){if(!_allLoaded){_allBlocks.Clear();GridTerminalSystem.GetBlocks(_allBlocks);
+_allLoaded=true;}return _allBlocks;}private void ReloadConfig(){_lastCustomData=Me.CustomData;_config=HelmParser.Parse(_lastCustomData);_cfgErr="";if(_config.Errors.Count>0){
+var sb=new StringBuilder("HELM config errors:\n");foreach(var e in _config.Errors)sb.AppendLine(" - "+e);_cfgErr=sb.ToString();}_bindMap.Clear();foreach(var b in _config.Binds)if(!_bindMap.ContainsKey(b.Name))_bindMap[b.Name]=b;
+_screenBuffers.Clear();_lastSignature.Clear();_bootT0.Clear();ResolveBindsAndOutputs();}private void ProcessIgcMessages(){try{while(_helmBroadcastListener!=null&&_helmBroadcastListener.HasPendingMessage){
+var msg=_helmBroadcastListener.AcceptMessage();if(msg.Data is string){ApplyDynamicPayload((string)msg.Data);}}}catch{}}private void ApplyDynamicPayload(string payload){
+if(string.IsNullOrEmpty(payload))return;var pairs=payload.Split(';');for(int i=0;i<pairs.Length;i++){var pair=pairs[i].Trim();if(pair.Length==0)continue;int eq=pair.IndexOf('=');
+if(eq<0)eq=pair.IndexOf(':');if(eq>0){string key=pair.Substring(0,eq).Trim();string valStr=pair.Substring(eq+1).Trim();if(key.Equals("alert",StringComparison.OrdinalIgnoreCase)){
+_globalRedAlert=valStr.Equals("red",StringComparison.OrdinalIgnoreCase)||valStr=="1"||valStr.Equals("true",StringComparison.OrdinalIgnoreCase)||valStr.Equals("on",StringComparison.OrdinalIgnoreCase);
 }else{double num;_dynText.Remove(key);if(double.TryParse(valStr,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out num)){
 _dynamicValues[key]=num;}else if(valStr.Equals("true",StringComparison.OrdinalIgnoreCase)||valStr.Equals("on",StringComparison.OrdinalIgnoreCase)){_dynamicValues[key]=100.0;
 }else if(valStr.Equals("false",StringComparison.OrdinalIgnoreCase)||valStr.Equals("off",StringComparison.OrdinalIgnoreCase)){_dynamicValues[key]=0.0;}else{_dynText[key]=valStr;
-}}}}}private void ResolveBindsAndOutputs(){_resolvedBinds.Clear();_resolvedOutputs.Clear();_fallbackUsed.Clear();_outErr.Clear();_allLoaded=false;if(_config==null)return;
-foreach(var bind in _config.Binds){var blocks=new List<IMyTerminalBlock>();if(bind.Kind==BindKind.Dynamic){string k= !string.IsNullOrEmpty(bind.DynamicKey)? bind.DynamicKey : bind.Name;
-if(!_dynamicValues.ContainsKey(k)){_dynamicValues[k]=bind.DefaultValue;if(bind.DefaultText!=null)_dynText[k]=bind.DefaultText;}_resolvedBinds[bind.Name]=blocks;
-continue;}var targets=bind.TargetNames.Count>0 ? bind.TargetNames : new List<string>{bind.TargetName};foreach(var targetName in targets){if(string.IsNullOrEmpty(targetName))continue;
-bool isWildcard=targetName.Contains("*")||targetName.Contains("?");if(bind.Kind==BindKind.Group||isWildcard){var group=GridTerminalSystem.GetBlockGroupWithName(targetName);
+}}}}}private static readonly string[]BootLogo={"        ZZ     ZZ","     ZZ ZZ     ZZ ZZ","   ZZVZ ZZ     ZZ ZVZZ","  ZZZZZ ZZZZZZZZZ ZZZZZ"," ZVZ    ZZ     ZZ    ZVZ"," ZGZ    ZZ     ZZ    ZGZ"," ZVVZ   ZZ     ZZ   ZVVZ","  ZVVZ ZZ       ZZ ZUVZ","   ZZZ Z         Z ZZZ","     ZZZZZZZ ZZZZZZZ","        ZZZZ ZZZZ"}
+;private void StartBoot(){_bootT0.Clear();if(_config==null)return;for(int i=0;i<_config.Screens.Count;i++){var s=_config.Screens[i];if(s.BootDuration>0f)_bootT0[s]=_time+i*s.BootStaggerTicks/60.0;
+}}private void RenderBoots(){List<ScreenDef>done=null;foreach(var kv in _bootT0){double p=(_time-kv.Value)/kv.Key.BootDuration;if(p<0)continue;if(p>=1.0){if(done==null)done=new List<ScreenDef>();
+done.Add(kv.Key);continue;}DrawBoot(kv.Key,p);}if(done==null)return;foreach(var s in done){_bootT0.Remove(s);_screenBuffers.Remove(s);_lastSignature.Remove(s);}
+}private static void AddBootText(List<MySprite>sp,string text,Color col,float x,float y,float scale){var t=MySprite.CreateText(text,"Monospace",col,scale,TextAlignment.LEFT);
+t.Position=new Vector2(x,y);sp.Add(t);}private void DrawBoot(ScreenDef screen,double p){IMyTextSurface surface;if(!_resolvedOutputs.TryGetValue(screen,out surface))return;
+Vector2 size=surface.SurfaceSize;Vector2 off=(surface.TextureSize-size)/2f;var logs=screen.GetEffectiveBootLogs();string msg=screen.BootMessage ?? "HELM TELEMETRY KERNEL ONLINE";
+bool logo=size.Y>=200f;int chars=msg.Length+3;foreach(var l in logs)chars=Math.Max(chars,l.Length+5);if(logo)foreach(var l in BootLogo)chars=Math.Max(chars,l.Length);
+int rows=(logo ? BootLogo.Length+1 : 0)+2+logs.Count;Vector2 cell=surface.MeasureStringInPixels(new StringBuilder("M"),"Monospace",1f);float scale=Math.Min(1f,Math.Min(size.X*0.94f/(chars*cell.X),size.Y*0.94f/(rows*cell.Y)));
+float x0=off.X+(size.X-chars*cell.X*scale)/2f;float y=off.Y+(size.Y-rows*cell.Y*scale)/2f;float lh=cell.Y*scale;var sp=new List<MySprite>();sp.Add(new MySprite{
+Type=SpriteType.TEXTURE,Data="SquareSimple",Position=off+size/2f,Size=size,Color=new Color(10,12,16)});if(logo){string[]stops=screen.BootGradientColors!=null&&screen.BootGradientColors.Length>0 ? screen.BootGradientColors : new[]{
+screen.BootColor};for(int i=0;i<BootLogo.Length;i++){HelmColor c=Layout.GradientLerp(stops,BootLogo.Length>1 ? 100.0*i/(BootLogo.Length-1): 0.0);AddBootText(sp,BootLogo[i],new Color(c.R,c.G,c.B),x0,y,scale);
+y+=lh;}y+=lh;}AddBootText(sp,">> "+msg,new Color(34,197,94),x0,y,scale);y+=lh*2f;int shown=Layout.BootLogCount(p,logs.Count);for(int i=0;i<shown;i++){bool ok=i==logs.Count-1&&p>=0.8;
+AddBootText(sp,ok ? "[OK]" : "[..]",ok ? new Color(34,197,94): new Color(56,189,248),x0,y,scale);AddBootText(sp,logs[i],new Color(203,213,225),x0+5f*cell.X*scale,y,scale);
+y+=lh;}using(var frame=surface.DrawFrame()){frame.AddRange(sp);}}private void ResolveBindsAndOutputs(){_resolvedBinds.Clear();_resolvedOutputs.Clear();_fallbackUsed.Clear();
+_outErr.Clear();_allLoaded=false;if(_config==null)return;foreach(var bind in _config.Binds){var blocks=new List<IMyTerminalBlock>();if(bind.Kind==BindKind.Dynamic){
+string k= !string.IsNullOrEmpty(bind.DynamicKey)? bind.DynamicKey : bind.Name;if(!_dynamicValues.ContainsKey(k)){_dynamicValues[k]=bind.DefaultValue;if(bind.DefaultText!=null)_dynText[k]=bind.DefaultText;
+}_resolvedBinds[bind.Name]=blocks;continue;}var targets=bind.TargetNames.Count>0 ? bind.TargetNames : new List<string>{bind.TargetName};foreach(var targetName in targets){
+if(string.IsNullOrEmpty(targetName))continue;bool isWildcard=targetName.Contains("*")||targetName.Contains("?");if(bind.Kind==BindKind.Group||isWildcard){var group=GridTerminalSystem.GetBlockGroupWithName(targetName);
 if(group!=null){var groupBlocks=new List<IMyTerminalBlock>();group.GetBlocks(groupBlocks);foreach(var gb in groupBlocks){if(!blocks.Contains(gb))blocks.Add(gb);
 }}else{var allBlocks=AllBlocks();for(int b=0;b<allBlocks.Count;b++){var tb=allBlocks[b];if(isWildcard ? Layout.MatchWildcard(targetName,tb.CustomName): string.Equals(targetName,tb.CustomName,StringComparison.OrdinalIgnoreCase)){
 if(!blocks.Contains(tb))blocks.Add(tb);}}}}else{var block=GridTerminalSystem.GetBlockWithName(targetName);if(block!=null&& !blocks.Contains(block))blocks.Add(block);
@@ -121,9 +138,9 @@ string k= !string.IsNullOrEmpty(bindDef.DynamicKey)? bindDef.DynamicKey : bindNa
 }double dynVal;if(_dynamicValues.TryGetValue(bindName,out dynVal))return dynVal;List<IMyTerminalBlock>blocks;if(!_resolvedBinds.TryGetValue(bindName,out blocks)||blocks.Count==0)return 0.0;
 if(blocks.Count==1)return ResolvePercent(blocks[0]);var values=new List<double>();foreach(var b in blocks)values.Add(ResolvePercent(b));return Aggregator.Aggregate(bindDef!=null ? bindDef.Aggregation : Agg.Avg,values);
 }private static string FormatDisplayValue(double value,LineDef line){if(line==null||(string.IsNullOrEmpty(line.Unit)&&string.IsNullOrEmpty(line.Format)&&line.Field=="percent")){
-return GetPercentString(value);}return Layout.FormatDisplayValue(value,line.Unit,line.Format);}private void RenderScreen(ScreenDef screen){IMyTextSurface surface;
-if(!_resolvedOutputs.TryGetValue(screen,out surface))return;if(screen.Border.Equals("ascii",StringComparison.OrdinalIgnoreCase)){RenderScreenAscii(screen,surface);
-}else{RenderScreenGraphic(screen,surface);}}private static void AddQuad(ScreenBuffer buf,Vector2 pos,Vector2 size,Color col,float rot=0f,string data="SquareSimple"){
+return GetPercentString(value);}return Layout.FormatDisplayValue(value,line.Unit,line.Format);}private bool RenderScreen(ScreenDef screen){IMyTextSurface surface;
+if(!_resolvedOutputs.TryGetValue(screen,out surface))return false;if(screen.Border.Equals("ascii",StringComparison.OrdinalIgnoreCase)){return RenderScreenAscii(screen,surface);
+}return RenderScreenGraphic(screen,surface);}private static void AddQuad(ScreenBuffer buf,Vector2 pos,Vector2 size,Color col,float rot=0f,string data="SquareSimple"){
 buf.Sprites.Add(new MySprite{Type=SpriteType.TEXTURE,Data=data,Position=pos,Size=size,Color=col,RotationOrScale=rot});}private void BuildGraphicBuffer(ScreenDef screen,IMyTextSurface surface,ScreenBuffer buf){
 buf.Sprites.Clear();buf.Slots.Clear();Vector2 surfaceSize=surface.SurfaceSize;Vector2 textureSize=surface.TextureSize;Vector2 viewportOffset=(textureSize-surfaceSize)/2f;
 float paddingX=Math.Max(4f,surfaceSize.X*0.02f);float paddingY=Math.Max(4f,surfaceSize.Y*0.02f);if(screen.Profile=="compact"||(screen.Profile=="auto"&&surfaceSize.Y<=260f&&surfaceSize.Y>150f)){
@@ -174,7 +191,7 @@ float gap=2f;float pipW=Math.Max(2f,(barWidth-(gap*(pipCount-1)))/pipCount);for(
 }}else if(line.Kind==LineKind.Flow){AddQuad(buf,new Vector2(barLeft+(barWidth/2f),centerY),new Vector2(barWidth,barHeight),new Color(20,24,30));slot.FillSpriteIndex=buf.Sprites.Count;
 float indW=Math.Max(4f,barHeight);AddQuad(buf,new Vector2(barLeft+(barWidth/2f),centerY),new Vector2(indW,indW),ResolveColor(line.FlatColor),0f,"Triangle");}}var valSprite=MySprite.CreateText("---",font,Color.White,fontSize,TextAlignment.RIGHT);
 valSprite.Position=new Vector2(pLeft+pWidth-innerPadX,textY);slot.ValSpriteIndex=buf.Sprites.Count;buf.Sprites.Add(valSprite);buf.Slots.Add(slot);}}buf.LastSurfaceSize=surfaceSize;
-buf.Initialized=true;}private void RenderScreenGraphic(ScreenDef screen,IMyTextSurface surface){ScreenBuffer buf;if(!_screenBuffers.TryGetValue(screen,out buf)){
+buf.Initialized=true;}private bool RenderScreenGraphic(ScreenDef screen,IMyTextSurface surface){ScreenBuffer buf;if(!_screenBuffers.TryGetValue(screen,out buf)){
 buf=new ScreenBuffer();_screenBuffers[screen]=buf;}if(!buf.Initialized||buf.LastSurfaceSize!=surface.SurfaceSize){BuildGraphicBuffer(screen,surface,buf);}bool dirty=false;
 bool alertPhase=(_tickCounter%16)<8;for(int i=0;i<buf.Slots.Count;i++){var slot=buf.Slots[i];var line=slot.Line;double value;bool hasErr=false;try{value=ResolveFieldValue(line.BindName,line.Field);
 }catch{hasErr=true;value=0.0;}if(hasErr){if(slot.LastValue!= -99999.0||(slot.ValSpriteIndex>=0&&buf.Sprites[slot.ValSpriteIndex].Data!="ERR")){dirty=true;slot.LastValue= -99999.0;
@@ -221,7 +238,7 @@ if(valueChanged||isRedAlert||dt!=slot.LastText){slot.LastText=dt;dirty=true;Colo
 if(txtCol==Color.Red&&alertPhase)txtCol=new Color(255,75,75);var valSprite=buf.Sprites[slot.ValSpriteIndex];valSprite.Data=dt ?? FormatDisplayValue(value,line);
 valSprite.Color=txtCol;buf.Sprites[slot.ValSpriteIndex]=valSprite;}}if(slot.HasDynamicLabel&&(valueChanged||isRedAlert)){dirty=true;var lblSprite=buf.Sprites[slot.LabelSpriteIndex];
 string pctStr=GetPercentString(value);string rawVal=FormatDisplayValue(value,line);lblSprite.Data=line.Label.Replace("{percent}",pctStr).Replace("{val}",rawVal);
-buf.Sprites[slot.LabelSpriteIndex]=lblSprite;}}if(dirty){using(var frame=surface.DrawFrame()){frame.AddRange(buf.Sprites);}}}private void RenderScreenAscii(ScreenDef screen,IMyTextSurface surface){
+buf.Sprites[slot.LabelSpriteIndex]=lblSprite;}}if(dirty){using(var frame=surface.DrawFrame()){frame.AddRange(buf.Sprites);}}return dirty;}private bool RenderScreenAscii(ScreenDef screen,IMyTextSurface surface){
 surface.FontSize=screen.FontSize;var contentLines=new List<KeyValuePair<string,string>>();foreach(var line in screen.Lines){double value=0.0;string text;string color=null;
 try{value=ResolveFieldValue(line.BindName,line.Field);}catch(Exception ex){contentLines.Add(new KeyValuePair<string,string>($"{line.Label}: [UNRESOLVED]","red"));
 continue;}string valStr=FormatDisplayValue(value,line);if(line.Kind==LineKind.Bar){double fillVal=(line.Field=="percent"||line.Field=="pct")? value : ResolvePercentForBind(line.BindName);
@@ -235,11 +252,11 @@ if(isMachinery){char[]spinChars=new[]{'|','/','-','\\'};char sc=spinChars[Math.A
 color=value>0 ? "green" : "gray";}else{text=Layout.RenderFlowText(line.Label,value,_tickCounter);color=line.FlatColor ??(value>55.0 ? "green" :(value<45.0 ? "red" : "cyan"));
 }}else{text=$"{line.Label}: {valStr}";color=line.ColorRules!=null ? Layout.ResolveConditionalColor(line.ColorRules,value): null;}contentLines.Add(new KeyValuePair<string,string>(text,color));
 }var borderedRaw=Layout.RenderBorderedWindow(new List<string>(contentLines.ConvertAll(t=>t.Key)),width: screen.Width);string signature=string.Join("\n",borderedRaw);
-string prevSig;if(_lastSignature.TryGetValue(screen,out prevSig)&&prevSig==signature)return;_lastSignature[screen]=signature;using(var frame=surface.DrawFrame()){
+string prevSig;if(_lastSignature.TryGetValue(screen,out prevSig)&&prevSig==signature)return false;_lastSignature[screen]=signature;using(var frame=surface.DrawFrame()){
 float y=4f;float lineHeight=APPROX_LINE_HEIGHT_PER_FONTSIZE*screen.FontSize;try{var measured=surface.MeasureStringInPixels(new StringBuilder("A"),"Monospace",screen.FontSize);
 if(measured.Y>0)lineHeight=measured.Y;}catch{}for(int i=0;i<borderedRaw.Count;i++){string colorName=null;if(i>0&&i<borderedRaw.Count-1)colorName=contentLines[i-1].Value;
 var sprite=MySprite.CreateText(borderedRaw[i],"Monospace",ResolveColor(colorName),screen.FontSize,TextAlignment.LEFT);sprite.Position=new Vector2(4f,y);frame.Add(sprite);
-y+=lineHeight;}}}private Color ResolveColor(string name){if(string.IsNullOrEmpty(name))return Color.White;Color k;if(_colorCache.TryGetValue(name,out k))return k;
+y+=lineHeight;}}return true;}private Color ResolveColor(string name){if(string.IsNullOrEmpty(name))return Color.White;Color k;if(_colorCache.TryGetValue(name,out k))return k;
 HelmColor c=HelmColor.Parse(name);k=c.IsTransparent ? Color.Transparent : new Color(c.R,c.G,c.B,c.A);_colorCache[name]=k;return k;}public enum BindKind{Block,Group,Dynamic}
 public enum Agg{None,Avg,Sum,Min,Max}public class BindDef{public string Name;public BindKind Kind;public List<string>TargetNames=new List<string>();public string TargetName{
 get{return TargetNames.Count>0 ? TargetNames[0]: "";}set{if(TargetNames.Count==0)TargetNames.Add(value);else TargetNames[0]=value;}}public Agg Aggregation=Agg.None;
@@ -383,8 +400,8 @@ current.OutputBlockName=Unquote(parts[0]);current.OutputSurfaceIndex=parts.Count
 current.Width=int.Parse(line.Substring("width:".Length).Trim());}else if(line.StartsWith("boot_msg:")||line.StartsWith("boot:")){RequireScreen(current,"boot_msg:");
 current.BootMessage=Unquote(line.Substring(line.IndexOf(':')+1).Trim());}else if(line.StartsWith("boot_stagger:")){RequireScreen(current,"boot_stagger:");current.BootStaggerTicks=int.Parse(line.Substring("boot_stagger:".Length).Trim());
 }else if(line.StartsWith("boot_duration:")){RequireScreen(current,"boot_duration:");string dStr=line.Substring("boot_duration:".Length).Trim().ToLowerInvariant();
-if(dStr.EndsWith("s"))dStr=dStr.Substring(0,dStr.Length-1).Trim();float dur;if(float.TryParse(dStr,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out dur)){
-current.BootDuration=dur;}}else if(line.StartsWith("boot_log:")){RequireScreen(current,"boot_log:");current.BootLogs.Add(Unquote(line.Substring("boot_log:".Length).Trim()));
+bool inSeconds=dStr.EndsWith("s");if(inSeconds)dStr=dStr.Substring(0,dStr.Length-1).Trim();float dur;if(float.TryParse(dStr,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out dur)){
+current.BootDuration=inSeconds ? dur : dur/60f;}}else if(line.StartsWith("boot_log:")){RequireScreen(current,"boot_log:");current.BootLogs.Add(Unquote(line.Substring("boot_log:".Length).Trim()));
 }else if(line.StartsWith("boot_gradient:")||line.StartsWith("boot_gradient(")){RequireScreen(current,"boot_gradient");string gStr=line.StartsWith("boot_gradient:")? line.Substring("boot_gradient:".Length): line.Substring("boot_gradient".Length);
 gStr=gStr.Trim();if(gStr.StartsWith("(")&&gStr.Contains(")"))gStr=ExtractParenArgs(gStr,0);current.BootGradientColors=SplitArgs(gStr).Select(s=>s.Trim()).ToArray();
 }else if(line.StartsWith("boot_color:")){RequireScreen(current,"boot_color:");current.BootColor=line.Substring("boot_color:".Length).Trim();}else if(line.StartsWith("orientation:")){
@@ -496,14 +513,14 @@ if(percent>55.0)return $"{label} {s} ▲ CHG {percent:0}%";if(percent<45.0)retur
 if(pattern==null||input==null)return false;if(pattern=="*"||pattern==input)return true;if(!pattern.Contains("*")&& !pattern.Contains("?"))return string.Equals(pattern,input,StringComparison.OrdinalIgnoreCase);
 int p=0,i=0,starIdx= -1,match=0;while(i<input.Length){if(p<pattern.Length&&(pattern[p]=='?'||char.ToLowerInvariant(pattern[p])==char.ToLowerInvariant(input[i]))){
 p++;i++;}else if(p<pattern.Length&&pattern[p]=='*'){starIdx=p;match=i;p++;}else if(starIdx!= -1){p=starIdx+1;match++;i=match;}else{return false;}}while(p<pattern.Length&&pattern[p]=='*')p++;
-return p==pattern.Length;}public static string GradientColorAt(string[]stops,double percent){if(stops==null||stops.Length==0)return "white";percent=Math.Max(0,Math.Min(100,percent));
-int idx=(int)Math.Floor(percent/100.0*stops.Length);if(idx>=stops.Length)idx=stops.Length-1;return stops[idx];}public static HelmColor GradientLerp(string[]stops,double percent){
-if(stops==null||stops.Length==0)return HelmColor.White;if(stops.Length==1)return HelmColor.Parse(stops[0]);double ratio=Math.Max(0.0,Math.Min(1.0,percent/100.0));
-double scaled=ratio*(stops.Length-1);int idx1=(int)Math.Floor(scaled);int idx2=Math.Min(stops.Length-1,idx1+1);double subRatio=scaled-idx1;HelmColor c1=HelmColor.Parse(stops[idx1]);
-HelmColor c2=HelmColor.Parse(stops[idx2]);byte r=(byte)Math.Round(c1.R+(c2.R-c1.R)*subRatio);byte g=(byte)Math.Round(c1.G+(c2.G-c1.G)*subRatio);byte b=(byte)Math.Round(c1.B+(c2.B-c1.B)*subRatio);
-return new HelmColor(r,g,b);}public static string ResolveConditionalColor(List<ColorRule>rules,double value){foreach(var rule in rules){if(rule.IsDefault)continue;
-if(EvalSimpleComparison(rule.Expr,value))return rule.Color;}var def=rules.FirstOrDefault(r=>r.IsDefault);return def!=null ? def.Color : null;}private static bool EvalSimpleComparison(string expr,double value){
-expr=expr.Trim();foreach(var op in new[]{">=","<=","==",">","<"}){if(expr.StartsWith(op)){double rhs=double.Parse(expr.Substring(op.Length).Trim(),System.Globalization.CultureInfo.InvariantCulture);
+return p==pattern.Length;}public static int BootLogCount(double p,int total){return Math.Max(0,Math.Min(total,1+(int)(Math.Max(0.0,p)*total)));}public static string GradientColorAt(string[]stops,double percent){
+if(stops==null||stops.Length==0)return "white";percent=Math.Max(0,Math.Min(100,percent));int idx=(int)Math.Floor(percent/100.0*stops.Length);if(idx>=stops.Length)idx=stops.Length-1;
+return stops[idx];}public static HelmColor GradientLerp(string[]stops,double percent){if(stops==null||stops.Length==0)return HelmColor.White;if(stops.Length==1)return HelmColor.Parse(stops[0]);
+double ratio=Math.Max(0.0,Math.Min(1.0,percent/100.0));double scaled=ratio*(stops.Length-1);int idx1=(int)Math.Floor(scaled);int idx2=Math.Min(stops.Length-1,idx1+1);
+double subRatio=scaled-idx1;HelmColor c1=HelmColor.Parse(stops[idx1]);HelmColor c2=HelmColor.Parse(stops[idx2]);byte r=(byte)Math.Round(c1.R+(c2.R-c1.R)*subRatio);
+byte g=(byte)Math.Round(c1.G+(c2.G-c1.G)*subRatio);byte b=(byte)Math.Round(c1.B+(c2.B-c1.B)*subRatio);return new HelmColor(r,g,b);}public static string ResolveConditionalColor(List<ColorRule>rules,double value){
+foreach(var rule in rules){if(rule.IsDefault)continue;if(EvalSimpleComparison(rule.Expr,value))return rule.Color;}var def=rules.FirstOrDefault(r=>r.IsDefault);return def!=null ? def.Color : null;
+}private static bool EvalSimpleComparison(string expr,double value){expr=expr.Trim();foreach(var op in new[]{">=","<=","==",">","<"}){if(expr.StartsWith(op)){double rhs=double.Parse(expr.Substring(op.Length).Trim(),System.Globalization.CultureInfo.InvariantCulture);
 switch(op){case ">=": return value>=rhs;case "<=": return value<=rhs;case "==": return Math.Abs(value-rhs)<1e-9;case ">": return value>rhs;case "<": return value<rhs;
 }}}throw new FormatException($"unsupported comparison expression: '{expr}'");}public static List<string>RenderBorderedWindow(List<string>contentLines,int width){
 var outLines=new List<string>();outLines.Add("+"+new string('-',width+2)+"+");foreach(var line in contentLines){string trimmed=line.Length>width ? line.Substring(0,width): line;

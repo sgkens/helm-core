@@ -207,6 +207,19 @@ line: ""O2""  bar(o2_$screen.percent) flat(cyan)
         Check(cfgTmpl.Screens[1].Name == "Pod Beta", "screen 1 name = Pod Beta");
         Check(cfgTmpl.Screens[1].OutputBlockName == "Pod Beta LCD", "screen 1 output = Pod Beta LCD");
 
+        // --- boot_duration units: "s" is seconds, a bare number is ticks, 0 disables ---
+        Check(Math.Abs(HelmParser.Parse("@screen a\nboot_duration: 180").Screens[0].BootDuration - 3.0f) < 0.01f, "boot_duration: 180 is 180 ticks = 3 s");
+        Check(Math.Abs(HelmParser.Parse("@screen a\nboot_duration: 2s").Screens[0].BootDuration - 2.0f) < 0.01f, "boot_duration: 2s is 2 s");
+        Check(HelmParser.Parse("@screen a\nboot_duration: 0").Screens[0].BootDuration == 0f, "boot_duration: 0 disables the boot");
+
+        // --- Boot log reveal ---
+        Check(Layout.BootLogCount(0.0, 5) == 1, "boot: first log shown as soon as the boot starts");
+        Check(Layout.BootLogCount(0.5, 5) == 3, "boot: half way shows 3 of 5 logs");
+        Check(Layout.BootLogCount(0.999, 5) == 5, "boot: all logs shown at the end");
+        Check(Layout.BootLogCount(2.0, 5) == 5, "boot: never more logs than exist");
+        Check(Layout.BootLogCount(-1.0, 5) == 1, "boot: negative progress is clamped");
+        Check(Layout.BootLogCount(0.5, 0) == 0, "boot: no logs, none shown");
+
         // --- Nested templates: a template body may call another template ---
         string nestedSample = @"
 @template leaf($screen)
