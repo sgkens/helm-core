@@ -90,7 +90,8 @@ A screen is drawn in layers: the screen background, then a card behind each pane
 | `bg: <color>` | `@screen` | Solid screen background. `transparent` draws none, so the game's own screen colour (black) shows through |
 | `bg_gradient(<color>, <color>, ...)` | `@screen` | Vertical gradient, top to bottom, drawn as 16 bands. Replaces `bg:` |
 | `bg: <color>` | after an `@panel` line | Background of that panel only. Use different colours for a deliberate two-tone screen |
-| `panel_bg: <color>` or `none` | `@screen` | The card behind every panel that has no `bg:` of its own. `none` draws no card |
+| `screen_bg: <color>` | `@screen` | The background of the whole screen, wherever the line is written. Same as `bg:` before the first `@panel` |
+| `panel_bg: <color>` | `@screen` | A card behind every panel that has no `bg:` of its own. Off by default, so the screen is one colour. Use an `r,g,b,a` colour for a translucent card |
 | `bg: color(<bind>.<field> <op> N : <color>, ..., default: <color>)` | `@screen` or after an `@panel` line | Background that follows a value, like the colour rules of `text()` lines. `bg: color(batt.percent < 25 : #7f1d1d, batt.percent < 60 : #78350f, default: #14532d)` |
 | `flash: <bind>.<field> <op> N` | `@screen` or after an `@panel` line | Flashes that background to `alert_bg` while the comparison is true, for example `flash: batt.percent < 15` |
 | `bg_gradient_dir: vertical` or `horizontal` | `@screen` or after an `@panel` line | Direction of `bg_gradient(...)` (default vertical). A gradient can also be given to a single panel |
@@ -98,12 +99,12 @@ A screen is drawn in layers: the screen background, then a card behind each pane
 | `bg_texture_color: <color>` | `@screen` | Tint of the texture (default white at 24/255 opacity) |
 | `alert_bg: <color>` or `none` | `@screen` | Colour the background flashes to while the red alert is on (default `#5b0f0f`). `none` turns the flash off for this screen |
 
-Colours are `#rrggbb`, a name, or `r,g,b,a` with an alpha from 0 to 255, so a background or card can be translucent.
+Colours are `#rrggbb`, a name, or `r,g,b,a` with an alpha from 0 to 255, so a background or card can be translucent. Without `panel_bg:` or a panel `bg:`, nothing is drawn behind a panel and the screen background shows through as one colour.
 
-- **The default card** is white at about 2% opacity, so it lifts whatever is behind it, a solid colour, a gradient or a transparent screen, instead of adding a second colour. Before this, every multi-panel screen drew a fixed near-black card, which showed as a different colour behind each panel on a coloured background.
+- **Where you write `bg:` matters.** Before the first `@panel` it colours the whole screen. After an `@panel` line it colours that panel only. If you put `bg:` at the bottom of a screen block, only the last panel gets the colour and the rest of the screen keeps the default one: half one colour, half another. The block's output pane and console show a note when only some panels of a screen have their own `bg:`. `screen_bg: <color>` sets the whole screen from anywhere in the block, so it is the safe choice.
 - **Red alert:** `alert red` flashes every screen's background between `bg` and `alert_bg` (half a cycle each, about every second and a half at the fast rate) until `alert off`. Gauges whose colour is red also flash, as before.
 - **Values:** `bg: color(...)` and `flash:` read a block field on every redraw, so a panel can turn red as a value falls. `flash:` uses the same `alert_period:` as the red alert.
-- The `background_lab` preset shows a gradient (vertical and horizontal), two deliberate tones, a see-through screen, an alert background, a panel that follows a value, a panel that flashes and a texture. `helmv.ps1` draws the card backgrounds (solid, per-panel, value-driven, a vertical gradient across each card and the default card) and, with `-RedAlert`, the alert flash. It does not draw horizontal gradients, textures or the gutters between cards.
+- The `background_lab` preset shows a gradient (vertical and horizontal), two deliberate tones, a see-through screen, an alert background, a panel that follows a value, a panel that flashes and a texture. `helmv.ps1` draws the card backgrounds (solid, per-panel, value-driven, a vertical gradient across each card and `panel_bg:`) and, with `-RedAlert`, the alert flash. It does not draw horizontal gradients, textures or the gutters between cards.
 
 ### Item Amounts (Cargo and Reactor Contents)
 

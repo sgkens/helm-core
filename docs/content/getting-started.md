@@ -149,6 +149,7 @@ Configuration errors (a misspelled directive, a bad number) are listed the same 
 | `output block '...' not found` | No block on your ship has a name containing the `output:` text (a docked ship's blocks are ignored) | Rename the block or fix the `output:` text; use a name that only one block contains |
 | A cockpit shows nothing on one screen | Wrong surface number | Cockpit surfaces are numbered from 0; try `output: "Cockpit", 1` |
 | Gauges show `ERR` | An `@bind` name matches no block | Check the block or group name, or run `scan` to see which binds matched nothing |
+| Half the screen is one colour and half another | `bg:` was written after an `@panel` line, so it colours that panel only (the console shows a `?` note) | Use `screen_bg: <color>`, or put `bg:` before the first `@panel` |
 | Layout edits take a moment to appear | The script re-reads Custom Data on its next run, about two seconds later | Run the block with argument `reload` to apply them at once |
 | Check Code reports errors | The editor still contains part of the old script | Select everything in the editor and replace it with `HelmCombined.min.cs` |
 
