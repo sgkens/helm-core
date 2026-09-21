@@ -266,6 +266,25 @@ static class ScopeTest {
     mBat.Invs = savedInvs;
     timeField.SetValue(prog, 0.0);
 
+    // probe: a test pattern on the block's own screen and on every screen, with the corner squares exactly at the viewport corners.
+    prog.Main("probe", UpdateType.Terminal);
+    var pbOff = new VRageMath.Vector2((pb.TextureSize.X - pb.SurfaceSize.X) / 2f, (pb.TextureSize.Y - pb.SurfaceSize.Y) / 2f);
+    Func<VRageMath.Vector2, bool> squareAt = p => pb.Last.Any(sp => sp.Data == "SquareSimple" && sp.Size.HasValue && sp.Size.Value.X == 32f && Math.Abs(sp.Position.Value.X - p.X) < 0.5f && Math.Abs(sp.Position.Value.Y - p.Y) < 0.5f);
+    Check(squareAt(new VRageMath.Vector2(pbOff.X + 16f, pbOff.Y + 16f)) && squareAt(new VRageMath.Vector2(pbOff.X + pb.SurfaceSize.X - 16f, pbOff.Y + pb.SurfaceSize.Y - 16f)), "probe: coloured corner squares sit exactly at the viewport corners of the block's screen");
+    Check(pb.Last.Any(sp => sp.Data == "SURFACE 512x320") && pb.Last.Any(sp => sp.Data != null && sp.Data.StartsWith("TEXTURE ")), "probe: the surface and texture sizes are printed");
+    Check(pb.Last.Count(sp => sp.Data == "SquareSimple" && sp.Color.Value.R == 150) == 4, "probe: a gray frame marks the texture edges");
+    // starter: fills an empty Custom Data with a layout that parses, and never overwrites one that has content.
+    var me2 = new FBlock { Ship = mine, CustomName = "Programmable Block", CustomData = "" };
+    var gts2 = new FGts(); gts2.All.Add(me2);
+    MyGridProgram.BootstrapMe = me2; MyGridProgram.BootstrapGts = gts2;
+    var prog2 = new Program();
+    prog2.Main("starter", UpdateType.Terminal);
+    Check(me2.CustomData.Contains("@screen Demo") && me2.CustomData.Contains("@bind batt"), "starter: an empty Custom Data receives the sample layout");
+    Check(((ParsedConfig)Dump.Get(prog2, "_config")).Screens.Count == 1 && ((ParsedConfig)Dump.Get(prog2, "_config")).Errors.Count == 0, "starter: the sample layout parses with one screen and no errors");
+    me2.CustomData = "# keep me\n";
+    prog2.Main("starter", UpdateType.Terminal);
+    Check(me2.CustomData == "# keep me\n", "starter: a Custom Data that has content is never overwritten");
+
     Console.WriteLine(fails == 0 ? "ALL PASS" : fails + " FAILED");
     return fails;
   }
