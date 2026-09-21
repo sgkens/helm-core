@@ -62,6 +62,10 @@
         {
             public List<MySprite> Sprites = new List<MySprite>();
             public List<LineSlot> Slots = new List<LineSlot>();
+            public int BgIndex = -1;        // first background sprite (one, or one per gradient band)
+            public Color[] BgColors;        // their normal colours
+            public Color AlertCol;          // colour they flash to while the red alert is on
+            public bool AlertShown;
             public Vector2 LastSurfaceSize;
             public bool Initialized = false;
         }
@@ -1417,7 +1421,29 @@
                 if (hCol.IsTransparent) drawBg = false;
                 else bgCol = new Color(hCol.R, hCol.G, hCol.B, hCol.A);
             }
-            if (drawBg) AddQuad(buf, viewportOffset + (surfaceSize / 2f), surfaceSize - new Vector2(4f, 4f), bgCol);
+            buf.BgIndex = -1;
+            buf.AlertShown = false;
+            buf.AlertCol = ResolveColor(screen.AlertBg ?? "#5b0f0f");
+            if (screen.BgGradient != null && screen.BgGradient.Length > 1)
+            {
+                // Vertical gradient as 16 bands of the surface.
+                int bands = 16;
+                float bandH = (surfaceSize.Y - 4f) / bands;
+                buf.BgIndex = buf.Sprites.Count;
+                buf.BgColors = new Color[bands];
+                for (int i = 0; i < bands; i++)
+                {
+                    HelmColor gc = Layout.GradientLerp(screen.BgGradient, 100.0 * i / (bands - 1));
+                    buf.BgColors[i] = new Color(gc.R, gc.G, gc.B);
+                    AddQuad(buf, new Vector2(viewportOffset.X + surfaceSize.X / 2f, viewportOffset.Y + 2f + bandH * (i + 0.5f)), new Vector2(surfaceSize.X - 4f, bandH + 1f), buf.BgColors[i]);
+                }
+            }
+            else if (drawBg)
+            {
+                buf.BgIndex = buf.Sprites.Count;
+                buf.BgColors = new[] { bgCol };
+                AddQuad(buf, viewportOffset + (surfaceSize / 2f), surfaceSize - new Vector2(4f, 4f), bgCol);
+            }
 
             if (!screen.Border.Equals("none", StringComparison.OrdinalIgnoreCase))
             {
@@ -1461,7 +1487,11 @@
                 }
                 else if (screen.GridCols > 1 || screen.GridRows > 1)
                 {
-                    AddQuad(buf, new Vector2(pLeft + pWidth / 2f, pTop + pHeight / 2f), new Vector2(pWidth, pHeight), new Color(14, 18, 24));
+                    // The default card is a faint white overlay, so it lifts any background (solid, gradient or
+                    // transparent) instead of painting a second colour over it. panel_bg: sets a colour or "none".
+                    Color card = string.IsNullOrEmpty(screen.PanelBg) ? new Color(255, 255, 255, 6) : ResolveColor(screen.PanelBg);
+                    if (card.A > 0)
+                        AddQuad(buf, new Vector2(pLeft + pWidth / 2f, pTop + pHeight / 2f), new Vector2(pWidth, pHeight), card);
                 }
 
                 string font = panel.Font ?? screen.Font ?? "Monospace";
@@ -1707,6 +1737,20 @@
 
             bool dirty = false;
             bool alertPhase = (_tickCounter % 16) < 8;
+
+            // Red alert (run argument "alert red"): the background flashes to alert_bg. alert_bg: none turns it off.
+            bool wantAlert = _globalRedAlert && alertPhase && buf.AlertCol.A > 0;
+            if (buf.BgIndex >= 0 && wantAlert != buf.AlertShown)
+            {
+                buf.AlertShown = wantAlert;
+                for (int i = 0; i < buf.BgColors.Length; i++)
+                {
+                    var bg = buf.Sprites[buf.BgIndex + i];
+                    bg.Color = wantAlert ? buf.AlertCol : buf.BgColors[i];
+                    buf.Sprites[buf.BgIndex + i] = bg;
+                }
+                dirty = true;
+            }
 
             for (int i = 0; i < buf.Slots.Count; i++)
             {
@@ -2341,6 +2385,9 @@
         public string BootMessage;
         public int BootStaggerTicks = 10;
         public int BootBatch = 1; // screens that power on together
+        public string PanelBg;    // colour of the default card behind panels of a multi-panel screen; "none" for no card (default: a faint white overlay)
+        public string[] BgGradient; // vertical background gradient stops, top to bottom (overrides bg:)
+        public string AlertBg;    // background colour flashed while the red alert is on; "none" to disable
         public string Banner;     // name of a @banner shown full screen instead of panels
         public string BootLogo;   // name of a @banner drawn instead of the default boot emblem
         public float BootDuration = 2.5f; // Seconds
@@ -2703,11 +2750,22 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     else if (line.StartsWith("boot_gradient:") || line.StartsWith("boot_gradient(") || line.StartsWith("banner_gradient:") || line.StartsWith("banner_gradient("))
                     {
                         RequireScreen(current, "boot_gradient");
-                        int gi = line.IndexOfAny(new[] { ':', '(' });
-                        string gStr = line.Substring(line[gi] == ':' ? gi + 1 : gi);
-                        gStr = gStr.Trim();
-                        if (gStr.StartsWith("(") && gStr.Contains(")")) gStr = ExtractParenArgs(gStr, 0);
-                        current.BootGradientColors = SplitArgs(gStr).Select(s => s.Trim()).ToArray();
+                        current.BootGradientColors = ParseStops(line);
+                    }
+                    else if (line.StartsWith("bg_gradient:") || line.StartsWith("bg_gradient("))
+                    {
+                        RequireScreen(current, "bg_gradient");
+                        current.BgGradient = ParseStops(line);
+                    }
+                    else if (line.StartsWith("panel_bg:"))
+                    {
+                        RequireScreen(current, "panel_bg:");
+                        current.PanelBg = line.Substring("panel_bg:".Length).Trim();
+                    }
+                    else if (line.StartsWith("alert_bg:"))
+                    {
+                        RequireScreen(current, "alert_bg:");
+                        current.AlertBg = line.Substring("alert_bg:".Length).Trim();
                     }
                     else if (line.StartsWith("boot_color:") || line.StartsWith("banner_color:"))
                     {
@@ -2877,6 +2935,15 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
             string val = s.Substring(idx + key.Length).Trim();
             int sp = val.IndexOf(' ');
             return sp >= 0 ? val.Substring(0, sp) : val;
+        }
+
+        // Colour stops of "name(a, b, c)" or "name: a, b, c".
+        private static string[] ParseStops(string line)
+        {
+            int gi = line.IndexOfAny(new[] { ':', '(' });
+            string g = line.Substring(line[gi] == ':' ? gi + 1 : gi).Trim();
+            if (g.StartsWith("(") && g.Contains(")")) g = ExtractParenArgs(g, 0);
+            return SplitArgs(g).Select(s => s.Trim()).ToArray();
         }
 
         private static List<string> PreprocessTemplates(string customData, List<string> errors, Dictionary<string, List<string>> banners)

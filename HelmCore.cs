@@ -185,6 +185,9 @@ namespace HelmCore
         public string BootMessage;
         public int BootStaggerTicks = 10;
         public int BootBatch = 1; // screens that power on together
+        public string PanelBg;    // colour of the default card behind panels of a multi-panel screen; "none" for no card (default: a faint white overlay)
+        public string[] BgGradient; // vertical background gradient stops, top to bottom (overrides bg:)
+        public string AlertBg;    // background colour flashed while the red alert is on; "none" to disable
         public string Banner;     // name of a @banner shown full screen instead of panels
         public string BootLogo;   // name of a @banner drawn instead of the default boot emblem
         public float BootDuration = 2.5f; // Seconds
@@ -580,11 +583,22 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     else if (line.StartsWith("boot_gradient:") || line.StartsWith("boot_gradient(") || line.StartsWith("banner_gradient:") || line.StartsWith("banner_gradient("))
                     {
                         RequireScreen(current, "boot_gradient");
-                        int gi = line.IndexOfAny(new[] { ':', '(' });
-                        string gStr = line.Substring(line[gi] == ':' ? gi + 1 : gi);
-                        gStr = gStr.Trim();
-                        if (gStr.StartsWith("(") && gStr.Contains(")")) gStr = ExtractParenArgs(gStr, 0);
-                        current.BootGradientColors = SplitArgs(gStr).Select(s => s.Trim()).ToArray();
+                        current.BootGradientColors = ParseStops(line);
+                    }
+                    else if (line.StartsWith("bg_gradient:") || line.StartsWith("bg_gradient("))
+                    {
+                        RequireScreen(current, "bg_gradient");
+                        current.BgGradient = ParseStops(line);
+                    }
+                    else if (line.StartsWith("panel_bg:"))
+                    {
+                        RequireScreen(current, "panel_bg:");
+                        current.PanelBg = line.Substring("panel_bg:".Length).Trim();
+                    }
+                    else if (line.StartsWith("alert_bg:"))
+                    {
+                        RequireScreen(current, "alert_bg:");
+                        current.AlertBg = line.Substring("alert_bg:".Length).Trim();
                     }
                     else if (line.StartsWith("boot_color:") || line.StartsWith("banner_color:"))
                     {
@@ -754,6 +768,15 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
             string val = s.Substring(idx + key.Length).Trim();
             int sp = val.IndexOf(' ');
             return sp >= 0 ? val.Substring(0, sp) : val;
+        }
+
+        // Colour stops of "name(a, b, c)" or "name: a, b, c".
+        private static string[] ParseStops(string line)
+        {
+            int gi = line.IndexOfAny(new[] { ':', '(' });
+            string g = line.Substring(line[gi] == ':' ? gi + 1 : gi).Trim();
+            if (g.StartsWith("(") && g.Contains(")")) g = ExtractParenArgs(g, 0);
+            return SplitArgs(g).Select(s => s.Trim()).ToArray();
         }
 
         private static List<string> PreprocessTemplates(string customData, List<string> errors, Dictionary<string, List<string>> banners)

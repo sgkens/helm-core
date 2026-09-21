@@ -216,6 +216,14 @@ line: ""O2""  bar(o2_$screen.percent) flat(cyan)
         Check(HelmParser.Parse("@screen a").Screens[0].BootBatch == 1, "boot_batch defaults to 1");
         Check(HelmParser.Parse("@screen a\nboot_batch: 0").Screens[0].BootBatch == 1, "boot_batch below 1 is clamped to 1");
 
+        // --- Backgrounds ---
+        var cfgBg = HelmParser.Parse("@screen a\noutput: \"x\", 0\nbg_gradient(#000000, #ffffff)\npanel_bg: none\nalert_bg: #7f1d1d\n@panel p at(0, 0, 1, 1) title: \"T\"\nbg: #123456\n");
+        Check(cfgBg.Errors.Count == 0, "background directives parse without errors: " + string.Join(" | ", cfgBg.Errors));
+        Check(cfgBg.Screens[0].BgGradient != null && cfgBg.Screens[0].BgGradient.Length == 2 && cfgBg.Screens[0].BgGradient[1] == "#ffffff", "bg_gradient(...) parsed into two stops");
+        Check(cfgBg.Screens[0].PanelBg == "none" && cfgBg.Screens[0].AlertBg == "#7f1d1d", "panel_bg: and alert_bg: parsed");
+        Check(cfgBg.Screens[0].Panels[0].Background == "#123456" && cfgBg.Screens[0].Background == null, "bg: after @panel sets the panel background, not the screen's");
+        Check(HelmParser.Parse("@screen a\nbg_gradient: red, blue, green\n").Screens[0].BgGradient.Length == 3, "bg_gradient: with a colon parses three stops");
+
         // --- max(N): item amounts as a percentage ---
         var cfgMax = HelmParser.Parse("@bind g = group(\"Guns\", agg: sum)\n@screen a\noutput: \"x\", 0\n@panel p at(0, 0, 1, 1) title: \"T\"\nline: \"AMMO\" bar(g.ammo:NATO_25x184mm) max(1200) flat(cyan)\nline: \"PLAIN\" bar(g.percent) flat(cyan)\n");
         Check(cfgMax.Errors.Count == 0, "max(N) parses without errors: " + string.Join(" | ", cfgMax.Errors));

@@ -1,320 +1,326 @@
-﻿fy r;string fJ=null;Dictionary<string,List<IMyTerminalBlock>>bX=new Dictionary<string,List<IMyTerminalBlock>>();Dictionary<string,bool>d0=new Dictionary<string,bool>();
-Dictionary<string,aJ>cS=new Dictionary<string,aJ>();Dictionary<string,Color>i0=new Dictionary<string,Color>();List<IMyTerminalBlock>a5=new List<IMyTerminalBlock>();
-bool dY;int fH;string dZ="";StringBuilder cV=new StringBuilder();readonly Dictionary<string,double>am=new Dictionary<string,double>(StringComparer.OrdinalIgnoreCase);
-readonly Dictionary<string,string>d_=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);IMyBroadcastListener cT;bool bV=false;
-Dictionary<z,IMyTextSurface>bY=new Dictionary<z,IMyTextSurface>();Dictionary<z,string>bW=new Dictionary<z,string>();
-static readonly string[]iI=new string[101];static Program(){for(int es=0;es<=100;es++){iI[es]=es+"%";}}static string iw(double p4){int dc=(int)Math.Round(p4);
-if(dc<0)dc=0;else if(dc>100)dc=100;return iI[dc];}class a2{public List<MySprite>l=new List<MySprite>();public List<cL>dV=new List<cL>();
-public Vector2 iC;public bool iB=false;}class cL{public bq iE;public int S= -1;public int a4= -1;public int ft= -1;
-public bool ix=false;public List<int>U=new List<int>();public float[]dW=new float[8];public float cz;public float dK;
-public float bK;public float cy;public double dT= -99999.0;public string iD;public float K= -1f;}Dictionary<z,a2>d2=new Dictionary<z,a2>();
-int i2=0;double fL=0;double b_=0;int cU=0;Dictionary<z,double>aN=new Dictionary<z,double>();int bZ=0;
-const string mD="0.11.0";IMyTextSurface a6;bool fG=true;double fF=0;string i1="";string fK="";int d1=0,fI=0;
-List<KeyValuePair<string,int>>bU=new List<KeyValuePair<string,int>>();const double mV=120;const float ma=22f;public Program(){
-Runtime.UpdateFrequency=UpdateFrequency.Update10;try{cT=IGC.RegisterBroadcastListener("HELM");cT.SetMessageCallback("HELM_IGC");
-}catch{}fz();iO();iA();}public void Main(string je,UpdateType p0){double jT=Runtime.TimeSinceLastRun.TotalSeconds;b_+=jT;
-if((p0&UpdateType.IGC)!=0||je=="HELM_IGC"){mT();}string lc=(je ?? "").Trim();string ai=lc.ToLowerInvariant();if(ai=="reload"){
-fz();}else if(ai=="refresh"){fA();}else if(ai=="boot"){iO();}else if(ai=="console on"||ai=="console off"){fG=ai=="console on";
-iA();fF=0;}else if(ai=="scan"||ai=="diagnose"||ai=="test"){nd();return;}else if(ai.StartsWith("set ")){string eU=lc.Substring(4).Trim();
-int jW=eU.IndexOf('=');int pE=eU.IndexOf(' ');int hO=jW>0 ? jW : pE;if(hO>0){string ku=eU.Substring(0,hO).Trim();string lY=eU.Substring(hO+1).Trim();id($"{ku}={lY}");
-Echo($"[HELM] Set dynamic variable '{ku}' = {lY}");}return;}else if(ai.StartsWith("alert")){string dG=ai.Length>5 ? ai.Substring(5).Trim(): "toggle";if(dG=="toggle")bV= !bV;
-else bV=dG=="red"||dG=="on"||dG=="1"||dG=="true";Echo($"[HELM] Red alert state: {bV}");return;}else if(Me.CustomData!=fJ){
-fz();}bZ++;fL+=jT;if(fL>=mV){fL=0;fA();}if(r==null||r.O.Count==0){
-iW();im();Echo("HELM: no valid @screen configured. Check Custom Data.");return;}var hJ=r.O[i2%r.O.Count];
-i2++;fK=hJ.aZ;bool fP=aN.Count>0;if(fP)m2();if(!aN.ContainsKey(hJ)&&m6(hJ))fP=true;cU=fP ? 0 : cU+1;
-Runtime.UpdateFrequency=cU<=r.O.Count+1 ? UpdateFrequency.Update10 : UpdateFrequency.Update100;iW();im();d1=Runtime.CurrentInstructionCount;
-if(d1>fI)fI=d1;}void im(){if(dZ.Length>0)Echo(dZ);if(cV.Length>0)Echo(cV.ToString());}List<IMyTerminalBlock>dJ(){
-if(!dY){a5.Clear();GridTerminalSystem.GetBlocks(a5);int pn=a5.Count;a5.RemoveAll(nu=> !nu.IsSameConstructAs(Me));fH=pn-a5.Count;
-dY=true;}return a5;}IMyTerminalBlock ir(string kP){var fW=GridTerminalSystem.GetBlockWithName(kP);if(fW==null||fW.IsSameConstructAs(Me))return fW;
-var fR=dJ();for(int et=0;et<fR.Count;et++)if(fR[et].CustomName.IndexOf(kP,StringComparison.OrdinalIgnoreCase)>=0)return fR[et];return null;}void mk(string kQ,List<IMyTerminalBlock>de){
-var j9=GridTerminalSystem.GetBlockGroupWithName(kQ);if(j9==null)return;int jn=de.Count;var dD=new List<IMyTerminalBlock>();j9.GetBlocks(dD);ic(dD,de);
-if(de.Count>jn)return;var kk=new List<IMyBlockGroup>();GridTerminalSystem.GetBlockGroups(kk);foreach(var l7 in kk){if(l7.Name.IndexOf(kQ,StringComparison.OrdinalIgnoreCase)<0)continue;
-dD.Clear();l7.GetBlocks(dD);ic(dD,de);if(de.Count>jn)return;}}void ic(List<IMyTerminalBlock>oc,List<IMyTerminalBlock>ks){foreach(var fX in oc)if(fX.IsSameConstructAs(Me)&& !ks.Contains(fX))ks.Add(fX);
-}void fz(){fJ=Me.CustomData;r=iz.mM(fJ);dZ="";if(r.ax.Count>0){var ll=new StringBuilder("HELM config errors:\n");
-foreach(var nZ in r.ax)ll.AppendLine(" - "+nZ);dZ=ll.ToString();}cS.Clear();foreach(var fY in r.bo)if(!cS.ContainsKey(fY.N))cS[fY.N]=fY;
-d2.Clear();bW.Clear();aN.Clear();fA();}void mT(){try{while(cT!=null&&cT.HasPendingMessage){
-var kM=cT.AcceptMessage();if(kM.Data is string){id((string)kM.Data);}}}catch{}}void id(string k5){
-if(string.IsNullOrEmpty(k5))return;var k2=k5.Split(';');for(int gG=0;gG<k2.Length;gG++){var ds=k2[gG].Trim();if(ds.Length==0)continue;int c3=ds.IndexOf('=');
-if(c3<0)c3=ds.IndexOf(':');if(c3>0){string cc=ds.Substring(0,c3).Trim();string aI=ds.Substring(c3+1).Trim();if(cc.Equals("alert",StringComparison.OrdinalIgnoreCase)){
-bV=aI.Equals("red",StringComparison.OrdinalIgnoreCase)||aI=="1"||aI.Equals("true",StringComparison.OrdinalIgnoreCase)||aI.Equals("on",StringComparison.OrdinalIgnoreCase);
-}else{double kT;d_.Remove(cc);if(double.TryParse(aI,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out kT)){
-am[cc]=kT;}else if(aI.Equals("true",StringComparison.OrdinalIgnoreCase)||aI.Equals("on",StringComparison.OrdinalIgnoreCase)){am[cc]=100.0;
-}else if(aI.Equals("false",StringComparison.OrdinalIgnoreCase)||aI.Equals("off",StringComparison.OrdinalIgnoreCase)){am[cc]=0.0;}else{d_[cc]=aI;
-}}}}}void ab(int pN,string pU){bU.Add(new KeyValuePair<string,int>(pU,pN));}static string iV(string hB,int kO){return hB.Length>kO ? hB.Substring(0,kO): hB;
-}void iA(){var ht=Me as IMyTextSurfaceProvider;if(ht==null||ht.SurfaceCount<1)return;a6=ht.GetSurface(0);a6.ContentType=fG ? ContentType.SCRIPT : ContentType.NONE;
-a6.Script="";}void iW(){if(b_>=fF){fF=b_+(cU>r.O.Count+1 ? 5.0 : 1.0);mi();if(fG&&a6!=null)mr();
-}Echo(i1);}void mi(){bU.Clear();int f6=0,jq=0;foreach(var jg in r.bo){List<IMyTerminalBlock>g0;if(jg.aX==av.cF){
-f6++;continue;}if(bX.TryGetValue(jg.N,out g0)){jq+=g0.Count;if(g0.Count>0)f6++;}}int jX=r.ax.Count;ab(0,"HELM-[Kernel-(v"+mD+")]");
-ab(4,"------------------------------");ab(1,"krn-cfg");ab(2," screens "+r.O.Count+"  binds "+f6+"/"+r.bo.Count+"  errors "+jX);
-ab(2," alert "+(bV ? "RED" : "off")+"  blocks "+jq+"  docked-ignored "+fH);if(jX>0)ab(3," ! "+iV(r.ax[0],40));
-ab(1,"cfg-dsp");int pB=0;foreach(var hC in r.O){if(++pB>10){ab(2," +"+(r.O.Count-10)+" more");break;}IMyTextSurface hP;string lu="--",hT="no block";
-if(bY.TryGetValue(hC,out hP)){lu=hP.SurfaceSize.X.ToString("0")+"x"+hP.SurfaceSize.Y.ToString("0");hT=aN.ContainsKey(hC)? "boot" : "live";
-}ab(hT=="no block" ? 3 : 2," "+iV(hC.aZ,14).PadRight(14)+" "+lu.PadRight(9)+" "+hT);}ab(1,"perf");ab(2," tick "+bZ+"  "+Runtime.LastRunTimeMs.ToString("0.000")+" ms");
-ab(2," instr "+d1+"  peak "+fI+"  max "+Runtime.MaxInstructionCount);ab(2," rate "+Runtime.UpdateFrequency+"  idle "+cU+"  up "+(int)b_+"s");
-if(fK.Length>0)ab(2," last "+fK);var lm=new StringBuilder();foreach(var oy in bU)lm.AppendLine(oy.Key);i1=lm.ToString();}static Color mn(int pO){
-switch(pO){case 0: return new Color(232,121,249);case 1: return new Color(192,38,211);case 3: return new Color(255,80,255);case 4: return new Color(71,85,105);
-}return new Color(170,180,195);}void mr(){Vector2 bC=a6.SurfaceSize;Vector2 g8=(a6.TextureSize-bC)/2f;int gd=30;foreach(var oz in bU)gd=Math.Max(gd,oz.Key.Length);
-Vector2 gc=a6.MeasureStringInPixels(new StringBuilder("M"),"Monospace",1f);float ln=Math.Min(1f,Math.Min(bC.X*0.94f/(gd*gc.X),bC.Y*0.94f/(bU.Count*gc.Y)));
-float qa=g8.X+bC.X*0.03f;float l8=g8.Y+bC.Y*0.03f;var hQ=new List<MySprite>();hQ.Add(new MySprite{Type=SpriteType.TEXTURE,Data="SquareSimple",Position=g8+bC/2f,Size=bC,Color=new Color(12,12,16)}
-);foreach(var kz in bU){ct(hQ,kz.Key,mn(kz.Value),qa,l8,ln);l8+=gc.Y*ln;}using(var n7=a6.DrawFrame()){n7.AddRange(hQ);}}static readonly List<string>mh=new List<string>{
+﻿fI s;string fT=null;Dictionary<string,List<IMyTerminalBlock>>bZ=new Dictionary<string,List<IMyTerminalBlock>>();Dictionary<string,bool>d6=new Dictionary<string,bool>();
+Dictionary<string,aL>cV=new Dictionary<string,aL>();Dictionary<string,Color>ji=new Dictionary<string,Color>();List<IMyTerminalBlock>a7=new List<IMyTerminalBlock>();
+bool d3;int fR;string d4="";StringBuilder cY=new StringBuilder();readonly Dictionary<string,double>an=new Dictionary<string,double>(StringComparer.OrdinalIgnoreCase);
+readonly Dictionary<string,string>d5=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);IMyBroadcastListener cW;bool bx=false;
+Dictionary<z,IMyTextSurface>b_=new Dictionary<z,IMyTextSurface>();Dictionary<z,string>bY=new Dictionary<z,string>();
+static readonly string[]iZ=new string[101];static Program(){for(int ez=0;ez<=100;ez++){iZ[ez]=ez+"%";}}static string iM(double qm){int dh=(int)Math.Round(qm);
+if(dh<0)dh=0;else if(dh>100)dh=100;return iZ[dh];}class a4{public List<MySprite>k=new List<MySprite>();public List<cO>d0=new List<cO>();
+public int bN= -1;public Color[]bM;public Color fs;public bool ft;public Vector2 iT;public bool iS=false;}class cO{
+public bs iV;public int U= -1;public int a6= -1;public int fC= -1;public bool iO=false;public List<int>W=new List<int>();
+public float[]d1=new float[8];public float cC;public float dP;public float bL;public float cB;public double dZ= -99999.0;
+public string iU;public float M= -1f;}Dictionary<z,a4>d8=new Dictionary<z,a4>();int jk=0;
+double fV=0;double b1=0;int cX=0;Dictionary<z,double>aR=new Dictionary<z,double>();int b0=0;const string mV="0.11.0";
+IMyTextSurface a8;bool fQ=true;double fP=0;string jj="";string fU="";int d7=0,fS=0;List<KeyValuePair<string,int>>bX=new List<KeyValuePair<string,int>>();
+const double nc=120;const float mt=22f;public Program(){Runtime.UpdateFrequency=UpdateFrequency.Update10;try{cW=IGC.RegisterBroadcastListener("HELM");
+cW.SetMessageCallback("HELM_IGC");}catch{}fJ();i5();iR();}public void Main(string jv,UpdateType qi){
+double kb=Runtime.TimeSinceLastRun.TotalSeconds;b1+=kb;if((qi&UpdateType.IGC)!=0||jv=="HELM_IGC"){na();}string lv=(jv ?? "").Trim();
+string aj=lv.ToLowerInvariant();if(aj=="reload"){fJ();}else if(aj=="refresh"){fK();}else if(aj=="boot"){i5();}else if(aj=="console on"||aj=="console off"){
+fQ=aj=="console on";iR();fP=0;}else if(aj=="scan"||aj=="diagnose"||aj=="test"){nv();return;}else if(aj.StartsWith("set ")){
+string e0=lv.Substring(4).Trim();int ke=e0.IndexOf('=');int pW=e0.IndexOf(' ');int h1=ke>0 ? ke : pW;if(h1>0){string kN=e0.Substring(0,h1).Trim();
+string mg=e0.Substring(h1+1).Trim();iw($"{kN}={mg}");Echo($"[HELM] Set dynamic variable '{kN}' = {mg}");}return;}else if(aj.StartsWith("alert")){
+string dL=aj.Length>5 ? aj.Substring(5).Trim(): "toggle";if(dL=="toggle")bx= !bx;else bx=dL=="red"||dL=="on"||dL=="1"||dL=="true";
+Echo($"[HELM] Red alert state: {bx}");return;}else if(Me.CustomData!=fT){fJ();}b0++;fV+=kb;if(fV>=nc){
+fV=0;fK();}if(s==null||s.R.Count==0){jd();iE();Echo("HELM: no valid @screen configured. Check Custom Data.");
+return;}var hX=s.R[jk%s.R.Count];jk++;fU=hX.a1;bool fZ=aR.Count>0;if(fZ)nk();
+if(!aR.ContainsKey(hX)&&no(hX))fZ=true;cX=fZ ? 0 : cX+1;Runtime.UpdateFrequency=cX<=s.R.Count+1 ? UpdateFrequency.Update10 : UpdateFrequency.Update100;
+jd();iE();d7=Runtime.CurrentInstructionCount;if(d7>fS)fS=d7;}void iE(){if(d4.Length>0)Echo(d4);
+if(cY.Length>0)Echo(cY.ToString());}List<IMyTerminalBlock>dO(){if(!d3){a7.Clear();GridTerminalSystem.GetBlocks(a7);int pF=a7.Count;
+a7.RemoveAll(nM=> !nM.IsSameConstructAs(Me));fR=pF-a7.Count;d3=true;}return a7;}IMyTerminalBlock iI(string k7){
+var f6=GridTerminalSystem.GetBlockWithName(k7);if(f6==null||f6.IsSameConstructAs(Me))return f6;var f1=dO();for(int eA=0;eA<f1.Count;eA++)if(f1[eA].CustomName.IndexOf(k7,StringComparison.OrdinalIgnoreCase)>=0)return f1[eA];
+return null;}void mD(string k8,List<IMyTerminalBlock>dj){var ks=GridTerminalSystem.GetBlockGroupWithName(k8);if(ks==null)return;int jF=dj.Count;
+var dI=new List<IMyTerminalBlock>();ks.GetBlocks(dI);iu(dI,dj);if(dj.Count>jF)return;var kD=new List<IMyBlockGroup>();GridTerminalSystem.GetBlockGroups(kD);
+foreach(var mq in kD){if(mq.Name.IndexOf(k8,StringComparison.OrdinalIgnoreCase)<0)continue;dI.Clear();mq.GetBlocks(dI);iu(dI,dj);if(dj.Count>jF)return;
+}}void iu(List<IMyTerminalBlock>ow,List<IMyTerminalBlock>kL){foreach(var f7 in ow)if(f7.IsSameConstructAs(Me)&& !kL.Contains(f7))kL.Add(f7);}void fJ(){
+fT=Me.CustomData;s=iQ.m3(fT);d4="";if(s.ay.Count>0){var lE=new StringBuilder("HELM config errors:\n");
+foreach(var og in s.ay)lE.AppendLine(" - "+og);d4=lE.ToString();}cV.Clear();foreach(var f8 in s.bq)if(!cV.ContainsKey(f8.P))cV[f8.P]=f8;
+d8.Clear();bY.Clear();aR.Clear();fK();}void na(){try{while(cW!=null&&cW.HasPendingMessage){
+var k4=cW.AcceptMessage();if(k4.Data is string){iw((string)k4.Data);}}}catch{}}void iw(string lo){
+if(string.IsNullOrEmpty(lo))return;var ll=lo.Split(';');for(int gT=0;gT<ll.Length;gT++){var dx=ll[gT].Trim();if(dx.Length==0)continue;int c6=dx.IndexOf('=');
+if(c6<0)c6=dx.IndexOf(':');if(c6>0){string cf=dx.Substring(0,c6).Trim();string aJ=dx.Substring(c6+1).Trim();if(cf.Equals("alert",StringComparison.OrdinalIgnoreCase)){
+bx=aJ.Equals("red",StringComparison.OrdinalIgnoreCase)||aJ=="1"||aJ.Equals("true",StringComparison.OrdinalIgnoreCase)||aJ.Equals("on",StringComparison.OrdinalIgnoreCase);
+}else{double lb;d5.Remove(cf);if(double.TryParse(aJ,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out lb)){
+an[cf]=lb;}else if(aJ.Equals("true",StringComparison.OrdinalIgnoreCase)||aJ.Equals("on",StringComparison.OrdinalIgnoreCase)){an[cf]=100.0;
+}else if(aJ.Equals("false",StringComparison.OrdinalIgnoreCase)||aJ.Equals("off",StringComparison.OrdinalIgnoreCase)){an[cf]=0.0;}else{d5[cf]=aJ;
+}}}}}void ac(int p4,string qb){bX.Add(new KeyValuePair<string,int>(qb,p4));}static string jc(string hP,int k6){return hP.Length>k6 ? hP.Substring(0,k6): hP;
+}void iR(){var hH=Me as IMyTextSurfaceProvider;if(hH==null||hH.SurfaceCount<1)return;a8=hH.GetSurface(0);a8.ContentType=fQ ? ContentType.SCRIPT : ContentType.NONE;
+a8.Script="";}void jd(){if(b1>=fP){fP=b1+(cX>s.R.Count+1 ? 5.0 : 1.0);mB();if(fQ&&a8!=null)mK();
+}Echo(jj);}void mB(){bX.Clear();int gi=0,jI=0;foreach(var jx in s.bq){List<IMyTerminalBlock>hd;if(jx.a_==aw.cI){
+gi++;continue;}if(bZ.TryGetValue(jx.P,out hd)){jI+=hd.Count;if(hd.Count>0)gi++;}}int kf=s.ay.Count;ac(0,"HELM-[Kernel-(v"+mV+")]");
+ac(4,"------------------------------");ac(1,"krn-cfg");ac(2," screens "+s.R.Count+"  binds "+gi+"/"+s.bq.Count+"  errors "+kf);
+ac(2," alert "+(bx ? "RED" : "off")+"  blocks "+jI+"  docked-ignored "+fR);if(kf>0)ac(3," ! "+jc(s.ay[0],40));
+ac(1,"cfg-dsp");int pT=0;foreach(var hQ in s.R){if(++pT>10){ac(2," +"+(s.R.Count-10)+" more");break;}IMyTextSurface h2;string lN="--",h6="no block";
+if(b_.TryGetValue(hQ,out h2)){lN=h2.SurfaceSize.X.ToString("0")+"x"+h2.SurfaceSize.Y.ToString("0");h6=aR.ContainsKey(hQ)? "boot" : "live";
+}ac(h6=="no block" ? 3 : 2," "+jc(hQ.a1,14).PadRight(14)+" "+lN.PadRight(9)+" "+h6);}ac(1,"perf");ac(2," tick "+b0+"  "+Runtime.LastRunTimeMs.ToString("0.000")+" ms");
+ac(2," instr "+d7+"  peak "+fS+"  max "+Runtime.MaxInstructionCount);ac(2," rate "+Runtime.UpdateFrequency+"  idle "+cX+"  up "+(int)b1+"s");
+if(fU.Length>0)ac(2," last "+fU);var lF=new StringBuilder();foreach(var oQ in bX)lF.AppendLine(oQ.Key);jj=lF.ToString();}static Color mG(int p5){
+switch(p5){case 0: return new Color(232,121,249);case 1: return new Color(192,38,211);case 3: return new Color(255,80,255);case 4: return new Color(71,85,105);
+}return new Color(170,180,195);}void mK(){Vector2 bE=a8.SurfaceSize;Vector2 hm=(a8.TextureSize-bE)/2f;int gp=30;foreach(var oR in bX)gp=Math.Max(gp,oR.Key.Length);
+Vector2 go=a8.MeasureStringInPixels(new StringBuilder("M"),"Monospace",1f);float lG=Math.Min(1f,Math.Min(bE.X*0.94f/(gp*go.X),bE.Y*0.94f/(bX.Count*go.Y)));
+float qs=hm.X+bE.X*0.03f;float mr=hm.Y+bE.Y*0.03f;var h3=new List<MySprite>();h3.Add(new MySprite{Type=SpriteType.TEXTURE,Data="SquareSimple",Position=hm+bE/2f,Size=bE,Color=new Color(12,12,16)}
+);foreach(var kS in bX){cw(h3,kS.Key,mG(kS.Value),qs,mr,lG);mr+=go.Y*lG;}using(var oq=a8.DrawFrame()){oq.AddRange(h3);}}static readonly List<string>mA=new List<string>{
 "        ZZ     ZZ","     ZZ ZZ     ZZ ZZ","   ZZVZ ZZ     ZZ ZVZZ","  ZZZZZ ZZZZZZZZZ ZZZZZ"," ZVZ    ZZ     ZZ    ZVZ"," ZGZ    ZZ     ZZ    ZGZ"," ZVVZ   ZZ     ZZ   ZVVZ","  ZVVZ ZZ       ZZ ZUVZ","   ZZZ Z         Z ZZZ","     ZZZZZZZ ZZZZZZZ","        ZZZZ ZZZZ"}
-;void iO(){aN.Clear();if(r==null)return;for(int eu=0;eu<r.O.Count;eu++){var eX=r.O[eu];if(eX.fn>0f)aN[eX]=b_+(eu/Math.Max(1,eX.ie))*eX.ii/60.0;
-}}void m2(){List<z>c2=null;int oi=(aN.Count+3)/4,oq=0;foreach(var eC in aN){double hf=(b_-eC.Value)/eC.Key.fn;if(hf<0)continue;
-if(hf>=1.0){if(c2==null)c2=new List<z>();c2.Add(eC.Key);continue;}if((oq++ +bZ)%oi==0)mq(eC.Key,hf);}if(c2==null)return;foreach(var hD in c2){
-aN.Remove(hD);d2.Remove(hD);bW.Remove(hD);}}static void ct(List<MySprite>pF,string pV,Color nM,float qb,float qd,float py){
-var lI=MySprite.CreateText(pV,"Monospace",nM,py,TextAlignment.LEFT);lI.Position=new Vector2(qb,qd);pF.Add(lI);}static void ib(List<MySprite>pG,List<string>d6,z e_,float qc,float qe,float pz,float oK){
-string[]pL=e_.dL!=null&&e_.dL.Length>0 ? e_.dL : new[]{e_.ig};for(int c8=0;c8<d6.Count;
-c8++){j f7=E.mA(pL,d6.Count>1 ? 100.0*c8/(d6.Count-1): 0.0);ct(pG,d6[c8],new Color(f7.a0,f7.aW,f7.aS),qc,qe+c8*oK,pz);}}bool m0(z ck,IMyTextSurface e6){
-List<string>cX;if(bW.ContainsKey(ck)|| !r.cw.TryGetValue(ck.bn,out cX))return false;bW[ck]="banner";Vector2 bD=e6.SurfaceSize;
-Vector2 g9=(e6.TextureSize-bD)/2f;int ee=1;foreach(var oA in cX)ee=Math.Max(ee,oA.Length);Vector2 c0=e6.MeasureStringInPixels(new StringBuilder("M"),"Monospace",1f);
-float eZ=Math.Min(bD.X*0.94f/(ee*c0.X),bD.Y*0.94f/(cX.Count*c0.Y));var hR=new List<MySprite>();hR.Add(new MySprite{Type=SpriteType.TEXTURE,Data="SquareSimple",Position=g9+bD/2f,Size=bD,Color=string.IsNullOrEmpty(ck.bm)? new Color(10,12,16): V(ck.bm)}
-);ib(hR,cX,ck,g9.X+(bD.X-ee*c0.X*eZ)/2f,g9.Y+(bD.Y-cX.Count*c0.Y*eZ)/2f,eZ,c0.Y*eZ);using(var n8=e6.DrawFrame()){n8.AddRange(hR);
-}return true;}void mq(z cl,double kY){IMyTextSurface dB;if(!bY.TryGetValue(cl,out dB))return;Vector2 bj=dB.SurfaceSize;
-Vector2 ha=(dB.TextureSize-bj)/2f;var di=cl.my();string kN=cl.ih ?? "HELM TELEMETRY KERNEL ONLINE";bool g5=bj.Y>=200f;
-List<string>b0;if(cl.bp==null|| !r.cw.TryGetValue(cl.bp,out b0))b0=mh;int b5=kN.Length+3;foreach(var oB in di)b5=Math.Max(b5,oB.Length+5);
-if(g5)foreach(var oC in b0)b5=Math.Max(b5,oC.Length);int lf=(g5 ? b0.Count+1 : 0)+2+di.Count;Vector2 b4=dB.MeasureStringInPixels(new StringBuilder("M"),"Monospace",1f);
-float bg=Math.Min(1f,Math.Min(bj.X*0.94f/(b5*b4.X),bj.Y*0.94f/(lf*b4.Y)));float fk=ha.X+(bj.X-b5*b4.X*bg)/2f;float bH=ha.Y+(bj.Y-lf*b4.Y*bg)/2f;
-float eF=b4.Y*bg;var cn=new List<MySprite>();cn.Add(new MySprite{Type=SpriteType.TEXTURE,Data="SquareSimple",Position=ha+bj/2f,Size=bj,Color=new Color(10,12,16)}
-);if(g5){ib(cn,b0,cl,fk,bH,bg,eF);bH+=(b0.Count+1)*eF;}ct(cn,">> "+kN,new Color(34,197,94),fk,bH,bg);bH+=eF*2f;int pC=E.mg(kY,di.Count);
-for(int ev=0;ev<pC;ev++){bool kV=ev==di.Count-1&&kY>=0.8;ct(cn,kV ? "[OK]" : "[..]",kV ? new Color(34,197,94): new Color(56,189,248),fk,bH,bg);ct(cn,di[ev],new Color(203,213,225),fk+5f*b4.X*bg,bH,bg);
-bH+=eF;}using(var n9=dB.DrawFrame()){n9.AddRange(cn);}}void fA(){bX.Clear();bY.Clear();d0.Clear();
-cV.Clear();dY=false;if(r==null)return;foreach(var _ in r.bo){var ar=new List<IMyTerminalBlock>();if(_.aX==av.cF){
-string gT= !string.IsNullOrEmpty(_.aL)? _.aL : _.N;if(!am.ContainsKey(gT)){am[gT]=_.dP;if(_.fq!=null)d_[gT]=_.fq;
-}bX[_.N]=ar;continue;}var lL=_.aq.Count>0 ? _.aq : new List<string>{_.iR};foreach(var bF in lL){
-if(string.IsNullOrEmpty(bF))continue;bool kt=bF.Contains("*")||bF.Contains("?");if(_.aX==av.fs||kt){var gC=new List<IMyTerminalBlock>();
-mk(bF,gC);if(gC.Count>0){foreach(var kg in gC){if(!ar.Contains(kg))ar.Add(kg);}}else{var i9=dJ();
-for(int fZ=0;fZ<i9.Count;fZ++){var fc=i9[fZ];if(kt ? E.mI(bF,fc.CustomName): string.Equals(bF,fc.CustomName,StringComparison.OrdinalIgnoreCase)){
-if(!ar.Contains(fc))ar.Add(fc);}}}}else{var f1=ir(bF);if(f1!=null&& !ar.Contains(f1))ar.Add(f1);}}if(ar.Count==0){
-nb(_,lL,ar);if(ar.Count>0)d0[_.N]=true;}bX[_.N]=ar;}foreach(var aQ in r.O){
-if(string.IsNullOrEmpty(aQ.a_))continue;var hd=ir(aQ.a_);if(hd==null){cV.AppendLine($"HELM: output block '{aQ.a_}' not found");
-continue;}IMyTextSurface bE=null;var hu=hd as IMyTextSurfaceProvider;var jN=hd as IMyTextSurface;if(hu!=null&&aQ.br<hu.SurfaceCount){
-bE=hu.GetSurface(aQ.br);}else if(jN!=null&&aQ.br==0){bE=jN;}if(bE==null){cV.AppendLine($"HELM: output block '{aQ.a_}' has no surface index {aQ.br}");
-continue;}bE.ContentType=ContentType.SCRIPT;bE.Script="";bE.ScriptBackgroundColor=Color.Black;bY[aQ]=bE;}a5.Clear();
-}static readonly string[]iq={"batt,power,pwr","reactor,nuke","solar","wind","tank,hydro,hydrogen,o2,oxygen","vent,air,press","cargo,container,store,inv","jump,drive","thrust,engine","susp,wheel,brake","door,gate,airlock","connect","asm,assembler,fab,prod","refin,smelt,furnace","drill,mine,bore","weld","grind","o2h2,gen,generator","turret,gun,cannon,weapon,defense","proj,blueprint","gyro","grav,gravity","gear,magplate,landing","ant,comm,radio","beacon","light,spot","piston","rotor,hinge","warhead","sensor","camera","parachute","tcb,customturret"}
-;static bool mw(int os,IMyTerminalBlock o){switch(os){case 0: return o is IMyBatteryBlock;case 1: return o is IMyReactor;case 2: return o is IMySolarPanel;
-case 3: return o is IMyWindTurbine;case 4: return o is IMyGasTank;case 5: return o is IMyAirVent;case 6: return o is IMyCargoContainer;case 7: return o is IMyJumpDrive;
-case 8: return o is IMyThrust;case 9: return o is IMyMotorSuspension;case 10: return o is IMyDoor;case 11: return o is IMyShipConnector;case 12: return o is IMyAssembler;
-case 13: return o is IMyRefinery;case 14: return o is IMyShipDrill;case 15: return o is IMyShipWelder;case 16: return o is IMyShipGrinder;case 17: return o is IMyGasGenerator;
-case 18: return o is IMyLargeTurretBase;case 19: return o is IMyProjector;case 20: return o is IMyGyro;case 21: return o is IMyGravityGeneratorBase;case 22: return o is IMyLandingGear;
-case 23: return o is IMyRadioAntenna;case 24: return o is IMyBeacon;case 25: return o is IMyLightingBlock;case 26: return o is IMyPistonBase;case 27: return o is IMyMotorStator;
-case 28: return o is IMyWarhead;case 29: return o is IMySensorBlock;case 30: return o is IMyCameraBlock;case 31: return o is IMyParachute;case 32: return o is IMyTurretControlBlock;
-}return false;}void nb(aJ nF,List<string>pS,List<IMyTerminalBlock>f2){string ol=(nF.N+" "+string.Join(" ",pS)).ToLowerInvariant();
-var gW=new List<int>();for(int eB=0;eB<iq.Length;eB++){foreach(var p9 in iq[eB].Split(','))if(ol.Contains(p9)){gW.Add(eB);break;}}if(gW.Count==0)return;
-var i8=dJ();var kW=new List<IMyTerminalBlock>();for(int gH=0;gH<i8.Count;gH++){var f_=i8[gH];foreach(int ot in gW){if(mw(ot,f_)){(f_.CubeGrid==Me.CubeGrid ? f2 : kW).Add(f_);
-break;}}}if(f2.Count==0)f2.AddRange(kW);}void nd(){Echo("=== HELM SELF-DIAGNOSTIC AUDIT ===");if(r==null||r.O.Count==0){
-Echo("[WARN] No active @screen configured in Custom Data.");return;}Echo($"Configuration: {r.O.Count} screens, {r.bo.Count} binds");dY=false;
-Echo($"Blocks: {dJ().Count} on this construct; {fH} on docked ships (ignored)");a5.Clear();Echo("--- BIND RESOLUTION ---");foreach(var aa in r.bo){
-if(aa.aX==av.cF){string gU= !string.IsNullOrEmpty(aa.aL)? aa.aL : aa.N;double p1=am.ContainsKey(gU)? am[gU]: aa.dP;
-Echo($"[OK] @bind {aa.N} (dynamic variable '{gU}' = {p1})");continue;}List<IMyTerminalBlock>f3;if(bX.TryGetValue(aa.N,out f3)){if(f3.Count>0){
-string n4=d0.ContainsKey(aa.N)&&d0[aa.N]? " [fallback: typed match]" : "";Echo($"[OK] @bind {aa.N} ({f3.Count} blocks matched{n4})");
-}else{string pT=string.Join(", ",aa.aq.Count>0 ? aa.aq : new List<string>{aa.iR});Echo($"[WARN] @bind {aa.N} -> 0 blocks matched \"{pT}\"");
-}}else{Echo($"[ERR] @bind {aa.N} -> unresolved");}}if(am.Count>0){Echo($"--- DYNAMIC VARIABLES ({am.Count}) ---");foreach(var kB in am)Echo($"[VAR] {kB.Key} = {kB.Value}");
-}Echo("--- SURFACE OUTPUT AUDIT ---");foreach(var aR in r.O){IMyTextSurface lE;if(bY.TryGetValue(aR,out lE)){var lv=lE.SurfaceSize;
-var pJ=E.mm(aR);Echo($"[OK] Screen \"{aR.aZ}\" [{aR.bs}] -> {aR.a_} [#{aR.br}] ({lv.X:0}x{lv.Y:0} px, {pJ.P} sprites)");
-}else{Echo($"[ERR] Screen \"{aR.aZ}\" -> Missing block \"{aR.a_}\" [#{aR.br}]");}}Echo("--- PERFORMANCE STATUS ---");
-Echo($"Instruction Usage: {Runtime.CurrentInstructionCount}/{Runtime.MaxInstructionCount} | Allocs: 0-byte GC");Echo("=== DIAGNOSTIC AUDIT COMPLETE ===");}double nc(IMyTerminalBlock p){
-if(p==null)return 0.0;var d8=p as IMyBatteryBlock;if(d8!=null)return d8.MaxStoredPower>0 ?(d8.CurrentStoredPower/d8.MaxStoredPower)*100.0 : 0.0;
-var eA=p as IMyJumpDrive;if(eA!=null)return eA.MaxStoredPower>0 ?(eA.CurrentStoredPower/eA.MaxStoredPower)*100.0 : 0.0;var lK=p as IMyGasTank;
-if(lK!=null)return lK.FilledRatio*100.0;var l4=p as IMyAirVent;if(l4!=null)return l4.GetOxygenLevel()*100.0;var jv=p as IMyCargoContainer;if(jv!=null){
-var ey=jv.GetInventory();if(ey!=null&&ey.MaxVolume.RawValue>0)return(double)ey.CurrentVolume.RawValue/ey.MaxVolume.RawValue*100.0;return 0.0;}var eT=p as IMyReactor;
-if(eT!=null)return eT.MaxOutput>0 ?(eT.CurrentOutput/eT.MaxOutput)*100.0 : 0.0;var e0=p as IMySolarPanel;if(e0!=null)return e0.MaxOutput>0 ?(e0.CurrentOutput/e0.MaxOutput)*100.0 : 0.0;
-var fj=p as IMyWindTurbine;if(fj!=null)return fj.MaxOutput>0 ?(fj.CurrentOutput/fj.MaxOutput)*100.0 : 0.0;var jO=p as IMyDoor;if(jO!=null)return(double)jO.OpenRatio*100.0;
-var ff=p as IMyThrust;if(ff!=null)return ff.MaxEffectiveThrust>0 ?(ff.CurrentThrust/ff.MaxEffectiveThrust)*100.0 : 0.0;var h_=p as IMyMotorSuspension;
-if(h_!=null)return h_.Brake ? 100.0 :(h_.Friction*100.0);var gg=p as IMyShipConnector;if(gg!=null)return gg.Status==MyShipConnectorStatus.Connected ? 100.0 :(gg.Status==MyShipConnectorStatus.Connectable ? 50.0 : 0.0);
-var la=p as IMyProductionBlock;if(la!=null)return la.IsProducing ? 100.0 : 0.0;var jS=p as IMyShipDrill;if(jS!=null)return jS.Enabled ? 100.0 : 0.0;
-var lT=p as IMyShipToolBase;if(lT!=null)return lT.Enabled ? 100.0 : 0.0;var gz=p as IMyGasGenerator;if(gz!=null)return gz.AutoRefill ? 100.0 :(gz.Enabled ? 50.0 : 0.0);
-var fg=p as IMyLargeTurretBase;if(fg!=null)return fg.IsShooting ? 100.0 :(fg.HasTarget ? 50.0 :(fg.Enabled ? 10.0 : 0.0));var du=p as IMyProjector;
-if(du!=null)return du.TotalBlocks>0 ?((double)(du.TotalBlocks-du.RemainingBlocks)/du.TotalBlocks)*100.0 : 0.0;var gF=p as IMyGyro;if(gF!=null)return gF.GyroOverride ? 100.0 :(gF.Enabled ? 50.0 : 0.0);
-var ki=p as IMyGravityGeneratorBase;if(ki!=null)return Math.Min(100.0,Math.Abs(ki.GravityAcceleration)/9.81*100.0);var gy=p as IMyLandingGear;if(gy!=null)return gy.IsLocked ? 100.0 :(gy.LockMode==LandingGearMode.ReadyToLock ? 50.0 : 0.0);
-var ja=p as IMyRadioAntenna;if(ja!=null)return(ja.Radius/50000.0)*100.0;var jl=p as IMyBeacon;if(jl!=null)return(jl.Radius/50000.0)*100.0;
-var kI=p as IMyLightingBlock;if(kI!=null)return kI.Intensity*10.0;var eR=p as IMyPistonBase;if(eR!=null)return eR.HighestPosition>0 ?(eR.CurrentPosition/eR.HighestPosition)*100.0 : 0.0;
-var ld=p as IMyMotorStator;if(ld!=null)return Math.Min(100.0,Math.Abs(ld.Angle)/6.28318*100.0);var l6=p as IMyWarhead;if(l6!=null)return l6.IsArmed ? 100.0 : 0.0;
-var hN=p as IMySensorBlock;if(hN!=null)return!hN.LastDetectedEntity.IsEmpty()? 100.0 :(hN.Enabled ? 25.0 : 0.0);var ga=p as IMyCameraBlock;
-if(ga!=null)return ga.IsActive ? 100.0 :(ga.Enabled ? 50.0 : 0.0);var jB=p as IMyParachute;if(jB!=null)return(double)jB.OpenRatio*100.0;
-var fe=p as IMyTurretControlBlock;if(fe!=null)return fe.HasTarget ? 100.0 :(fe.IsUnderControl ? 50.0 :(fe.Enabled ? 10.0 : 0.0));var j7=p as IMyFunctionalBlock;
-if(j7!=null)return j7.Enabled ? 100.0 : 0.0;return 0.0;}static double mF(IMyTerminalBlock jh,string gs){int ju=gs.IndexOf(':');string gV=gs.Substring(0,ju).ToLowerInvariant();
-var p_=new MyItemType("MyObjectBuilder_"+(gV=="ammo" ? "AmmoMagazine" : char.ToUpper(gV[0])+gV.Substring(1)),gs.Substring(ju+1));double lD=0;for(int gI=0;
-gI<jh.InventoryCount;gI++)lD+=(double)jh.GetInventory(gI).GetItemAmount(p_);return lD;}double iK(IMyTerminalBlock q,string j_){if(q==null)return 0.0;
-string a=j_.ToLowerInvariant();if(a=="percent"||a=="pct")return nc(q);if(a.IndexOf(':')>0)return mF(q,j_);var a8=q as IMyBatteryBlock;
-if(a8!=null){if(a=="current"||a=="stored"||a=="val"||a=="value"||a=="raw")return a8.CurrentStoredPower;if(a=="max"||a=="capacity")return a8.MaxStoredPower;
-if(a=="output")return a8.CurrentOutput;if(a=="maxoutput")return a8.MaxOutput;if(a=="input")return a8.CurrentInput;if(a=="maxinput")return a8.MaxInput;
-return a8.CurrentStoredPower;}var gS=q as IMyJumpDrive;if(gS!=null){if(a=="max"||a=="capacity")return gS.MaxStoredPower;return gS.CurrentStoredPower;
-}var e9=q as IMyGasTank;if(e9!=null){if(a=="max"||a=="capacity")return e9.Capacity;return e9.FilledRatio*e9.Capacity;}var l5=q as IMyAirVent;
-if(l5!=null){if(a=="max"||a=="capacity")return 100.0;return l5.GetOxygenLevel()*100.0;}var jw=q as IMyCargoContainer;if(jw!=null){var ez=jw.GetInventory();
-if(ez!=null){if(a=="mass")return(double)ez.CurrentMass;if(a=="max"||a=="capacity")return(double)ez.MaxVolume;return(double)ez.CurrentVolume;}return 0.0;}var hv=q as IMyPowerProducer;
-if(hv!=null){if(a=="max"||a=="capacity")return hv.MaxOutput;return hv.CurrentOutput;}var jP=q as IMyDoor;if(jP!=null){if(a=="max")return 1.0;return(double)jP.OpenRatio;
-}var h3=q as IMyThrust;if(h3!=null){if(a=="max"||a=="capacity")return h3.MaxEffectiveThrust;return h3.CurrentThrust;}var h0=q as IMyMotorSuspension;
-if(h0!=null){if(a=="brake")return h0.Brake ? 1.0 : 0.0;return h0.Friction*100.0;}var jH=q as IMyShipConnector;if(jH!=null){return jH.Status==MyShipConnectorStatus.Connected ? 1.0 : 0.0;
-}var hs=q as IMyProductionBlock;if(hs!=null){if(a=="producing"||a=="active"||a=="running"||a=="state")return hs.IsProducing ? 1.0 : 0.0;if(a=="queue")return hs.IsQueueEmpty ? 0.0 : 1.0;
-}var fV=q as IMyAssembler;if(fV!=null){if(a=="disassembling")return fV.Mode==MyAssemblerMode.Disassembly ? 1.0 : 0.0;if(a=="repeating"||a=="loop")return fV.Repeating ? 1.0 : 0.0;
-}var gA=q as IMyGasGenerator;if(gA!=null){if(a=="autorefill")return gA.AutoRefill ? 1.0 : 0.0;if(a=="active")return gA.Enabled ? 1.0 : 0.0;}var fh=q as IMyLargeTurretBase;
-if(fh!=null){if(a=="shooting")return fh.IsShooting ? 1.0 : 0.0;if(a=="target"||a=="hastarget")return fh.HasTarget ? 1.0 : 0.0;if(a=="range")return fh.Range;
-}var ci=q as IMyProjector;if(ci!=null){if(a=="built")return ci.TotalBlocks-ci.RemainingBlocks;if(a=="remaining")return ci.RemainingBlocks;if(a=="total")return ci.TotalBlocks;
-if(a=="projecting")return ci.IsProjecting ? 1.0 : 0.0;}var b9=q as IMyGyro;if(b9!=null){if(a=="override")return b9.GyroOverride ? 1.0 : 0.0;if(a=="pitch")return b9.Pitch;
-if(a=="yaw")return b9.Yaw;if(a=="roll")return b9.Roll;if(a=="power")return b9.GyroPower*100.0;}var kj=q as IMyGravityGeneratorBase;if(kj!=null){if(a=="g"||a=="accel")return kj.GravityAcceleration;
-}var kh=q as IMyLandingGear;if(kh!=null){if(a=="locked")return kh.IsLocked ? 1.0 : 0.0;}var jb=q as IMyRadioAntenna;if(jb!=null){if(a=="radius"||a=="range")return jb.Radius;
-}var jm=q as IMyBeacon;if(jm!=null){if(a=="radius"||a=="range")return jm.Radius;}var g3=q as IMyLightingBlock;if(g3!=null){if(a=="intensity")return g3.Intensity;
-if(a=="radius")return g3.Radius;}var eS=q as IMyPistonBase;if(eS!=null){if(a=="pos"||a=="position"||a=="extension")return eS.CurrentPosition;
-if(a=="velocity")return eS.Velocity;if(a=="max")return eS.HighestPosition;}var dz=q as IMyMotorStator;if(dz!=null){if(a=="angle"||a=="deg")return dz.Angle*180.0/Math.PI;
-if(a=="rad")return dz.Angle;if(a=="velocity"||a=="rpm")return dz.TargetVelocityRPM;if(a=="locked")return dz.RotorLock ? 1.0 : 0.0;}var ia=q as IMyWarhead;
-if(ia!=null){if(a=="armed")return ia.IsArmed ? 1.0 : 0.0;if(a=="countdown")return ia.DetonationTime;}var ls=q as IMySensorBlock;if(ls!=null){
-if(a=="detected")return!ls.LastDetectedEntity.IsEmpty()? 1.0 : 0.0;}var gb=q as IMyCameraBlock;if(gb!=null){if(a=="range")return gb.AvailableScanRange;
-if(a=="active")return gb.IsActive ? 1.0 : 0.0;}var jC=q as IMyParachute;if(jC!=null){if(a=="open"||a=="openratio")return(double)jC.OpenRatio;}var cq=q as IMyTurretControlBlock;
-if(cq!=null){if(a=="target"||a=="hastarget")return cq.HasTarget ? 1.0 : 0.0;if(a=="azimuth")return cq.AzimuthRotor!=null ? cq.AzimuthRotor.Angle*180.0/Math.PI : 0.0;
-if(a=="elevation")return cq.ElevationRotor!=null ? cq.ElevationRotor.Angle*180.0/Math.PI : 0.0;}var j8=q as IMyFunctionalBlock;if(j8!=null){return j8.Enabled ? 1.0 : 0.0;
-}return 0.0;}double fB(string cY,string j0){aJ a9;cS.TryGetValue(cY,out a9);if(a9!=null&&a9.aX==av.cF){
-string ou= !string.IsNullOrEmpty(a9.aL)? a9.aL : cY;double jI;if(am.TryGetValue(ou,out jI))return jI;return a9.dP;
-}double jU;if(am.TryGetValue(cY,out jU))return jU;List<IMyTerminalBlock>cZ;if(!bX.TryGetValue(cY,out cZ)||cZ.Count==0)throw new InvalidOperationException($"HELM: bind '{cY}' resolved to zero blocks — check the name/typo");
-if(cZ.Count==1)return iK(cZ[0],j0);var l3=new List<double>();foreach(var nv in cZ)l3.Add(iK(nv,j0));return mc.mb(a9!=null ? a9.cu : ak.fl,l3);
-}double fC(string nG){return fB(nG,"percent");}static string aV(double l0,bq ce){if(ce==null||(string.IsNullOrEmpty(ce.cR)&&string.IsNullOrEmpty(ce.cG)&&ce.G=="percent")){
-return iw(l0);}return E.mx(l0,ce.cR,ce.cG);}bool m6(z cm){IMyTextSurface e7;if(!bY.TryGetValue(cm,out e7))return false;
-if(cm.bn!=null)return m0(cm,e7);if(cm.cA.Equals("ascii",StringComparison.OrdinalIgnoreCase)){return m7(cm,e7);
-}return m8(cm,e7);}static void v(a2 nL,Vector2 o9,Vector2 pD,Color nN,float pp=0f,string nW="SquareSimple"){nL.l.Add(new MySprite{
-Type=SpriteType.TEXTURE,Data=nW,Position=o9,Size=pD,Color=nN,RotationOrScale=pp});}void mj(z s,IMyTextSurface lF,a2 h){
-h.l.Clear();h.dV.Clear();Vector2 R=lF.SurfaceSize;Vector2 pX=lF.TextureSize;Vector2 bG=(pX-R)/2f;
-float eK=Math.Max(4f,R.X*0.02f);float dr=Math.Max(4f,R.Y*0.02f);if(s.bs=="compact"||(s.bs=="auto"&&R.Y<=260f&&R.Y>150f)){
-eK=4f;dr=4f;}else if(s.bs=="corner"||(s.bs=="auto"&&R.Y<=150f)){eK=2f;dr=2f;}float lV=R.X-(eK*2f);
-Color jp=new Color(10,12,16);bool jR=true;if(!string.IsNullOrEmpty(s.bm)){var c7=j.bR(s.bm);if(c7.cJ)jR=false;
-else jp=new Color(c7.a0,c7.aW,c7.aS,c7.dI);}if(jR)v(h,bG+(R/2f),R-new Vector2(4f,4f),jp);if(!s.cA.Equals("none",StringComparison.OrdinalIgnoreCase)){
-Color jr=s.aK!=null&&s.aK.Length>0 ? V(s.aK[0]): V(s.dN ?? "40, 60, 85");
-Color nK=s.aK!=null&&s.aK.Length>1 ? V(s.aK[s.aK.Length-1]): jr;
-v(h,new Vector2(bG.X+R.X/2f,bG.Y+dr*0.5f),new Vector2(lV,2f),jr);v(h,new Vector2(bG.X+R.X/2f,bG.Y+R.Y-(dr*0.5f)),new Vector2(lV,2f),nK);
-}var hi=s.ay;if(hi.Count==0){hi=new List<al>{new al{cM="main",cC=0,cN=0,cO=s.bP,cP=s.bQ,aM=s.fv}
-};}float kl=8f;foreach(var M in hi){var eJ=E.ml(M.cC,M.cN,M.cO,M.cP,s.bP,s.bQ,R.X,R.Y,eK,dr,kl,kl);
-float aB=bG.X+eJ.iZ;float dq=bG.Y+eJ.i_;float aC=eJ.iY;float dp=eJ.iy;if(!string.IsNullOrEmpty(M.cv)){
-var dn=j.bR(M.cv);if(!dn.cJ)v(h,new Vector2(aB+aC/2f,dq+dp/2f),new Vector2(aC,dp),new Color(dn.a0,dn.aW,dn.aS,dn.dI));
-}else if(s.bP>1||s.bQ>1){v(h,new Vector2(aB+aC/2f,dq+dp/2f),new Vector2(aC,dp),new Color(14,18,24));}string gx=M.it ?? s.iu ?? "Monospace";
-float nE=E.mz(s.bs,R.X,R.Y,s.bN);float at=M.iv ?? nE;float er=0f;
-if(!string.IsNullOrEmpty(M.bu)){er=20f*at;var fQ=TextAlignment.LEFT;float h4=aB+4f;string i4=M.fD ?? s.iT ?? "left";
-if(i4.Equals("center",StringComparison.OrdinalIgnoreCase)){fQ=TextAlignment.CENTER;h4=aB+(aC/2f);}else if(i4.Equals("right",StringComparison.OrdinalIgnoreCase)){
-fQ=TextAlignment.RIGHT;h4=aB+aC-4f;}string lN=M.fE ?? s.iU;Color pY= !string.IsNullOrEmpty(lN)? V(lN): V(M.fo ?? s.dN ?? "white");
-var lS=MySprite.CreateText(M.bu,gx,pY,at*0.9f,fQ);lS.Position=new Vector2(h4,dq+2f);h.l.Add(lS);
-string[]f0=M.fp ?? s.aK;Color nY=f0!=null&&f0.Length>0 ? V(f0[0]): V(M.fo ?? s.dN ?? "40, 60, 85");
-v(h,new Vector2(aB+aC/2f,dq+er-2f),new Vector2(aC-8f,1f),nY);}int oP=Math.Max(1,M.aM.Count);float o0=dp-er-8f;
-float hz=o0/oP;float ex=6f;for(int ew=0;ew<M.aM.Count;ew++){var u=M.aM[ew];var J=new cL{iE=u};float pq=dq+er+4f+(ew*hz);
-float C=pq+(hz/2f);float lP=C-(11f*at);J.ft=h.l.Count;J.ix=u.L!=null&&(u.L.Contains("{val}")||u.L.Contains("{percent}"));
-var kE=MySprite.CreateText(u.L,gx,Color.White,at,TextAlignment.LEFT);kE.Position=new Vector2(aB+ex,lP);h.l.Add(kE);
-float oI=Math.Max(24f*at,(u.L.Length+1)*12f*at);float p8=(!string.IsNullOrEmpty(u.cR)|| !string.IsNullOrEmpty(u.cG))? 64f*at : 52f*at;
-if(u.e!=d.iS){float B=aB+ex+oI;float nD=aB+aC-ex-p8;float A=Math.Max(16f,nD-B);
-float H=Math.Max(u.e==d.bt ? 8f : 4f,Math.Min((u.e==d.bt ? 20f : 16f)*at,hz*(u.e==d.bt ? 0.55f : 0.45f)));
-J.cz=B;J.dK=A;J.bK=H;J.cy=C;if(u.e==d.cx){v(h,new Vector2(B+(A/2f),C),new Vector2(A,H),new Color(25,30,38));
-J.S=h.l.Count;v(h,new Vector2(B,C),new Vector2(0f,H),V(u.ag));}else if(u.e==d.cK){
-int hL=10;float ka=2f;float hM=Math.Max(2f,(A-(ka*(hL-1)))/hL);for(int hE=0;hE<hL;hE++){J.U.Add(h.l.Count);
-v(h,new Vector2(B+hE*(hM+ka)+(hM/2f),C),new Vector2(hM,H),new Color(22,26,32));}}else if(u.e==d.bt){v(h,new Vector2(B+(A/2f),C),new Vector2(A,H),new Color(20,24,30));
-int hr=8;float kb=2f;float ge=Math.Max(2f,(A-(kb*(hr-1)))/hr);for(int hg=0;hg<hr;hg++){J.U.Add(h.l.Count);
-v(h,new Vector2(B+hg*(ge+kb)+(ge/2f),C),new Vector2(ge,2f),V(u.ag));}}else if(u.e==d.cI){v(h,new Vector2(B+(A/2f),C),new Vector2(A,H),new Color(20,24,30));
-int hU=10;float kc=2f;float hV=Math.Max(2f,(A-(kc*(hU-1)))/hU);for(int hF=0;hF<hU;hF++){J.U.Add(h.l.Count);
-v(h,new Vector2(B+hF*(hV+kc)+(hV/2f),C),new Vector2(hV,H),new Color(24,28,36),0.523599f);}}else if(u.e==d.cB){
-int fT=10;float kd=2f;float fU=Math.Max(2f,(A-(kd*(fT-1)))/fT);for(int hG=0;hG<fT;hG++){J.U.Add(h.l.Count);
-v(h,new Vector2(B+hG*(fU+kd)+(fU/2f),C),new Vector2(fU,H),new Color(24,28,36),1.570796f,"Triangle");}}else if(u.e==d.cE){
-int gj=12;float ke=2f;float gl=Math.Max(2f,(A-(ke*(gj-1)))/gj);float jQ=Math.Min(gl,H);for(int hH=0;hH<gj;hH++){J.U.Add(h.l.Count);
-v(h,new Vector2(B+hH*(gl+ke)+(gl/2f),C),new Vector2(jQ,jQ),new Color(24,28,36),0f,"Circle");}}else if(u.e==d.bJ){
-v(h,new Vector2(B+(A/2f),C),new Vector2(A,H),new Color(25,30,38));J.S=h.l.Count;v(h,new Vector2(B+(A/2f),C),new Vector2(0f,H),V(u.ag));
-v(h,new Vector2(B+(A/2f),C),new Vector2(2f,H+4f),new Color(80,110,150));}else if(u.e==d.bT){v(h,new Vector2(B+(A/2f),C),new Vector2(A,H),new Color(20,24,30));
-J.S=h.l.Count;float gX=Math.Max(4f,H);v(h,new Vector2(B+gX*0.5f,C),new Vector2(gX,gX),new Color(40,50,65),0f,"Circle");
-}else if(u.e==d.bL){float b1=Math.Max(6f,Math.Min(H,14f*at));v(h,new Vector2(B+b1*0.5f,C),new Vector2(b1,b1),new Color(28,34,46));
-J.S=h.l.Count;v(h,new Vector2(B+b1*0.5f,C),new Vector2(b1*0.6f,b1*0.6f),new Color(40,50,65));}else if(u.e==d.bS){
-v(h,new Vector2(B+(A/2f),C),new Vector2(A,H),new Color(18,22,30));J.S=h.l.Count;float hp=Math.Max(4f,H*0.7f);
-v(h,new Vector2(B+hp+2f,C),new Vector2(hp,hp),new Color(34,197,94),0f,"Circle");}else if(u.e==d.bI){int ho=8;
-float kf=2f;float hq=Math.Max(2f,(A-(kf*(ho-1)))/ho);for(int hh=0;hh<ho;hh++){J.U.Add(h.l.Count);v(h,new Vector2(B+hh*(hq+kf)+(hq/2f),C),new Vector2(hq,H),new Color(24,28,36));
-}}else if(u.e==d.bM){v(h,new Vector2(B+(A/2f),C),new Vector2(A,H),new Color(20,24,30));J.S=h.l.Count;
-float kq=Math.Max(4f,H);v(h,new Vector2(B+(A/2f),C),new Vector2(kq,kq),V(u.ag),0f,"Triangle");}}var lZ=MySprite.CreateText("---",gx,Color.White,at,TextAlignment.RIGHT);
-lZ.Position=new Vector2(aB+aC-ex,lP);J.a4=h.l.Count;h.l.Add(lZ);h.dV.Add(J);}}h.iC=R;
-h.iB=true;}static void az(a2 js,cL lw,string pW,Color nO){var h8=js.l[lw.a4];h8.Data=pW;h8.Color=nO;js.l[lw.a4]=h8;
-}static void iN(a2 jt,cL lx,Color nP){var jY=jt.l[lx.S];jY.Color=nP;jt.l[lx.S]=jY;}bool m8(z hK,IMyTextSurface hX){
-a2 n;if(!d2.TryGetValue(hK,out n)){n=new a2();d2[hK]=n;}if(!n.iB||n.iC!=hX.SurfaceSize){
-mj(hK,hX,n);}bool I=false;bool i7=(bZ%16)<8;for(int gJ=0;gJ<n.dV.Count;gJ++){var b=n.dV[gJ];var k=b.iE;
-double x;bool kn=false;try{x=fB(k.aT,k.G);}catch{kn=true;x=0.0;}if(kn){if(b.dT!= -99999.0||(b.a4>=0&&n.l[b.a4].Data!="ERR")){
-I=true;b.dT= -99999.0;if(b.a4>=0){var hI=n.l[b.a4];hI.Data="ERR";hI.Color=Color.Red;n.l[b.a4]=hI;
-}}continue;}double aD=x;if(k.aY>0)x=Math.Min(100.0,aD/k.aY*100.0);string nR=k.cH ? E.dR(k.bO,x): k.ag;
-Color T=V(nR);bool aO=(T==Color.Red);if(aO&&i7){T=new Color(255,75,75);I=true;}bool au=Math.Abs(aD-b.dT)>0.1;
-if(au)b.dT=aD;if(k.e==d.cx){double j1=(k.aY>0||k.G=="percent"||k.G=="pct")? x : fC(k.aT);
-if(b.K<0f)b.K=(float)j1;float fa=(float)j1;if(Math.Abs(b.K-fa)>0.05f){b.K+=(fa-b.K)*0.35f;
-I=true;}else if(b.K!=fa){b.K=fa;I=true;}if(au)I=true;if(I){float o2=(float)Math.Max(0.0,Math.Min(1.0,b.K/100.0));
-float j3=b.dK*o2;var el=n.l[b.S];el.Size=new Vector2(j3,b.bK);el.Position=new Vector2(b.cz+(j3/2f),b.cy);
-el.Color=T;n.l[b.S]=el;az(n,b,aV(aD,k),T);}}else if(k.e==d.cK||k.e==d.cI||k.e==d.cB||k.e==d.cE){
-if(au||aO){I=true;double n5=(k.aY>0||k.G=="percent"||k.G=="pct")? x : fC(k.aT);int lq=b.U.Count;
-for(int dA=0;dA<lq;dA++){bool oR=n5>=((dA+0.4)/(double)lq*100.0);Color pA=oR ? T : new Color(24,28,36);var lr=n.l[b.U[dA]];
-lr.Color=pA;n.l[b.U[dA]]=lr;}az(n,b,aV(aD,k),T);}}else if(k.e==d.bt){
-if(au||aO){I=true;for(int eq=0;eq<7;eq++)b.dW[eq]=b.dW[eq+1];b.dW[7]=(float)x;int o8=b.U.Count;
-for(int dk=0;dk<o8;dk++){float ok=b.dW[dk];float oj=Math.Max(0.06f,Math.Min(1f,ok/100f));float jE=b.bK*oj;float nQ=b.cy+(b.bK/2f)-(jE/2f);
-var b6=n.l[b.U[dk]];b6.Size=new Vector2(b6.Size.Value.X,jE);b6.Position=new Vector2(b6.Position.Value.X,nQ);
-b6.Color=T;n.l[b.U[dk]]=b6;}az(n,b,aV(aD,k),T);}}else if(k.e==d.bJ){
-if(b.K<0f)b.K=(float)x;float fb=(float)x;if(Math.Abs(b.K-fb)>0.05f){b.K+=(fb-b.K)*0.35f;
-I=true;}else if(b.K!=fb){b.K=fb;I=true;}if(I||au){float km=b.dK*0.5f;float jz=b.cz+km;
-float jM=(float)Math.Max(-1.0,Math.Min(1.0,(b.K-50.0)/50.0));float gv=Math.Abs(jM)*km;float n6=(jM>=0)?(jz+gv*0.5f):(jz-gv*0.5f);
-var em=n.l[b.S];em.Size=new Vector2(gv,b.bK);em.Position=new Vector2(n6,b.cy);em.Color=T;
-n.l[b.S]=em;az(n,b,aV(aD,k),T);}}else if(k.e==d.bT){if(au||aO){
-I=true;bool gR=x>=50.0;float ky=Math.Max(4f,b.bK);float ox=gR ?(b.cz+b.dK-ky*0.5f):(b.cz+ky*0.5f);
-Color kx=gR ?(T!=Color.White ? T : new Color(34,197,94)): new Color(60,70,85);var gt=n.l[b.S];gt.Position=new Vector2(ox,b.cy);
-gt.Color=kx;n.l[b.S]=gt;az(n,b,gR ? "ON" : "OFF",kx);}}else if(k.e==d.bL){if(au||aO){
-I=true;bool gQ=x>=50.0;Color jA=gQ ?(T!=Color.White ? T : new Color(56,189,248)): new Color(30,36,48);iN(n,b,jA);
-az(n,b,gQ ? "ACTIVE" : "READY",gQ ? jA : new Color(148,163,184));}}else if(k.e==d.bS){if(au||aO){
-I=true;string pK=x>=75.0 ? "ONLINE" :(x>=25.0 ? "STBY" : "OFFLINE");Color lB=x>=75.0 ? new Color(34,197,94):(x>=25.0 ? new Color(234,179,8): new Color(239,68,68));
-iN(n,b,lB);az(n,b,pK,lB);}}else if(k.e==d.bI){if(au||aO){I=true;int k6=b.U.Count;
-for(int dl=0;dl<k6;dl++){bool oS=x>=((dl+0.5)/(double)k6*100.0);Color o6=oS ? T : new Color(24,28,36);var k7=n.l[b.U[dl]];
-k7.Color=o6;n.l[b.U[dl]]=k7;}az(n,b,aV(aD,k),T);}}else if(k.e==d.bM){
-I=true;float eW;Color c6;string en;bool oo=(k.G=="producing"||k.G=="active"||k.G=="running"||k.G=="state"||(x<=1.0&&k.G!="percent"));
-if(oo){if(x>0.0){b.K=(b.K+0.3927f)%6.28318f;eW=b.K;c6=new Color(34,197,94);en="RUN";}else{eW=0f;
-c6=new Color(148,163,184);en="IDLE";}}else{eW=(x>55.0)? 0f :((x<45.0)? 3.14159f : 1.57079f);c6=(x>55.0)? new Color(34,197,94):((x<45.0)? new Color(239,68,68): new Color(148,163,184));
-en=(x>55.0)? "CHG" :((x<45.0)? "DSC" : "STBY");}var gu=n.l[b.S];gu.RotationOrScale=eW;gu.Color=c6;
-n.l[b.S]=gu;az(n,b,en,c6);}else{string ej;aJ fd;cS.TryGetValue(k.aT,out fd);d_.TryGetValue(fd!=null&&fd.aL!=null ? fd.aL : k.aT,out ej);
-if(au||aO||ej!=b.iD){b.iD=ej;I=true;Color h5=k.aU!=null ? V(E.iL(k.aU,x)): Color.White;
-if(h5==Color.Red&&i7)h5=new Color(255,75,75);az(n,b,ej ?? aV(aD,k),h5);}}if(b.ix&&(au||aO)){
-I=true;var kG=n.l[b.ft];string o3=iw(x);string pm=aV(aD,k);kG.Data=k.L.Replace("{percent}",o3).Replace("{val}",pm);
-n.l[b.ft]=kG;}}if(I){using(var oa=hX.DrawFrame()){oa.AddRange(n.l);}}return I;}bool m7(z bh,IMyTextSurface hY){
-hY.FontSize=bh.bN;var ef=new List<KeyValuePair<string,string>>();foreach(var i in bh.fv){double D=0.0;string aH;string aA=null;
-try{D=fB(i.aT,i.G);}catch(Exception qf){ef.Add(new KeyValuePair<string,string>($"{i.L}: [UNRESOLVED]","red"));
-continue;}double lb=D;if(i.aY>0)D=Math.Min(100.0,lb/i.aY*100.0);string l_=aV(lb,i);if(i.e==d.cx){double j2=(i.aY>0||i.G=="percent"||i.G=="pct")? D : fC(i.aT);
-aH=E.m1(i.L,j2,10,l_);aA=i.cH ? E.dR(i.bO,j2): i.ag;}else if(i.e==d.bJ){
-aH=E.m_(i.L,D,10);aA=i.cH ? E.dR(i.bO,D): i.ag;}else if(i.e==d.bT){
-aH=E.na(i.L,D);aA=i.ag ??(D>=50.0 ? "green" : "gray");}else if(i.e==d.bL){aH=E.m4(i.L,D);
-aA=i.ag ??(D>=50.0 ? "cyan" : "gray");}else if(i.e==d.bS){aH=E.m9(i.L,D);aA=i.ag ??(D>=75.0 ? "lime" :(D>=25.0 ? "yellow" : "red"));
-}else if(i.e==d.bI){aH=E.mZ(i.L,D,8);aA=i.cH ? E.dR(i.bO,D):(i.ag ?? "yellow");
-}else if(i.e==d.bM){bool op=(i.G=="producing"||i.G=="active"||i.G=="running"||i.G=="state"||(D<=1.0&&i.G!="percent"));
-if(op){char[]pI=new[]{'|','/','-','\\'};char px=pI[Math.Abs(bZ)%4];aH=D>0 ? $"{i.L} [{px}] RUN" : $"{i.L} [==] IDLE";
-aA=D>0 ? "green" : "gray";}else{aH=E.m5(i.L,D,bZ);aA=i.ag ??(D>55.0 ? "green" :(D<45.0 ? "red" : "cyan"));
-}}else{aH=$"{i.L}: {l_}";aA=i.aU!=null ? E.iL(i.aU,D): null;}ef.Add(new KeyValuePair<string,string>(aH,aA));
-}var ec=E.m3(new List<string>(ef.ConvertAll(pR=>pR.Key)),cs: bh.iX);string lt=string.Join("\n",ec);
-string k9;if(bW.TryGetValue(bh,out k9)&&k9==lt)return false;bW[bh]=lt;using(var ob=hY.DrawFrame()){
-float l9=4f;float kJ=ma*bh.bN;try{var kL=hY.MeasureStringInPixels(new StringBuilder("A"),"Monospace",bh.bN);
-if(kL.Y>0)kJ=kL.Y;}catch{}for(int ca=0;ca<ec.Count;ca++){string jG=null;if(ca>0&&ca<ec.Count-1)jG=ef[ca-1].Value;
-var lA=MySprite.CreateText(ec[ca],"Monospace",V(jG),bh.bN,TextAlignment.LEFT);lA.Position=new Vector2(4f,l9);ob.Add(lA);
-l9+=kJ;}}return true;}Color V(string eH){if(string.IsNullOrEmpty(eH))return Color.White;Color df;if(i0.TryGetValue(eH,out df))return df;
-j c_=j.bR(eH);df=c_.cJ ? Color.Transparent : new Color(c_.a0,c_.aW,c_.aS,c_.dI);i0[eH]=df;return df;}public enum av{me,fs,cF}
-public enum ak{mJ,fl,iQ,iG,iF}public class aJ{public string N;public av aX;public List<string>aq=new List<string>();public string iR{
-get{return aq.Count>0 ? aq[0]: "";}set{if(aq.Count==0)aq.Add(value);else aq[0]=value;}}public ak cu=ak.mJ;
-public double dP=0.0;public string fq;public string aL;}public enum d{iS,cx,cK,bt,cI,cB,cE,bJ,bT,bL,bS,bI,bM}
-public class cD{public string ip;public string dO;public bool dS;}public class bq{public d e;public string L;public string aT;
-public string G;public bool cH;public string[]bO;public string ag;public List<cD>aU;public string il="right";
-public string cR;public string cG;public double aY;}public struct j{public byte a0,aW,aS,dI;public bool cJ;public j(byte pe,byte od,byte nw,byte nj=255){
-a0=pe;aW=od;aS=nw;dI=nj;cJ=false;}public static readonly j nh=new j(0,0,0,0){cJ=true};public static readonly j dX=new j(255,255,255);
-public static readonly j md=new j(0,0,0);public static readonly j mW=new j(255,0,0);public static readonly j mC=new j(0,255,0);
-public static readonly j mG=new j(50,205,50);public static readonly j ni=new j(255,255,0);public static readonly j mK=new j(255,140,0);
-public static readonly j mo=new j(0,255,255);public static readonly j mf=new j(0,120,255);public static readonly j mH=new j(255,0,255);
-public static readonly j mU=new j(128,0,128);public static readonly j mB=new j(128,128,128);public static readonly j mp=new j(60,60,60);
-public static j bR(string aG){if(string.IsNullOrWhiteSpace(aG))return dX;aG=aG.Trim();if(aG.Equals("transparent",StringComparison.OrdinalIgnoreCase)||aG.Equals("none",StringComparison.OrdinalIgnoreCase))return nh;
-if(aG.StartsWith("#")){string bc=aG.Substring(1).Trim();if(bc.Length==6){byte pf=Convert.ToByte(bc.Substring(0,2),16);byte oe=Convert.ToByte(bc.Substring(2,2),16);
-byte nx=Convert.ToByte(bc.Substring(4,2),16);return new j(pf,oe,nx);}if(bc.Length==3){byte pg=Convert.ToByte(new string(bc[0],2),16);byte of=Convert.ToByte(new string(bc[1],2),16);
-byte ny=Convert.ToByte(new string(bc[2],2),16);return new j(pg,of,ny);}}if(aG.Contains(",")){var ch=aG.Split(',');if(ch.Length>=3){byte ph=(byte)Math.Max(0,Math.Min(255,int.Parse(ch[0].Trim())));
-byte og=(byte)Math.Max(0,Math.Min(255,int.Parse(ch[1].Trim())));byte nz=(byte)Math.Max(0,Math.Min(255,int.Parse(ch[2].Trim())));byte nk=ch.Length>3 ?(byte)Math.Max(0,Math.Min(255,int.Parse(ch[3].Trim()))):(byte)255;
-return new j(ph,og,nz,nk);}}switch(aG.ToLowerInvariant()){case "red": return mW;case "green": return mC;case "lime": return mG;case "yellow": return ni;
-case "orange": return mK;case "cyan": return mo;case "blue": return mf;case "magenta": return mH;case "purple": return mU;case "white": return dX;
-case "black": return md;case "gray": case "grey": return mB;case "darkgray": case "darkgrey": return mp;default: return dX;}}}public class al{
-public string cM="default";public int cC=0;public int cN=0;public int cO=1;public int cP=1;public string bu;public string fD="left";public string fE;
-public string ij;public string it;public float? iv;public string cv;public string fo;public string[]fp;public string iH="horizontal";
-public List<bq>aM=new List<bq>();}public class z{public string aZ;public string bs="standard";public string cA="graphic";public string dN;
-public string[]aK;public string iT="left";public string iU;public string iu="Monospace";public string bm;public string ih;
-public int ii=10;public int ie=1;public string bn;public string bp;public float fn=2.5f;public string ig="cyan";
-public string[]dL;public List<string>dM=new List<string>();public List<string>my(){if(dM!=null&&dM.Count>0)return dM;
-return new List<string>{"helm-core initializing...","seeking compliant surface displays...","uploading firmware...","awaiting compliance...","helm-core online -- BOOT // SUCCESS"}
-;}public float bN=1.0f;public int mX=100;public int bP=1;public int bQ=1;public int iX=30;public string a_;public int br=0;
-public List<al>ay=new List<al>();public List<bq>fv{get{if(ay.Count==0)ay.Add(new al{cM="main"});return ay[0].aM;}
-}}public class a3{public string fw;public List<string>dU=new List<string>();public Dictionary<string,string>fr=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
-public List<string>fm=new List<string>();}public class fy{public List<aJ>bo=new List<aJ>();public List<z>O=new List<z>();
-public List<string>ax=new List<string>();public Dictionary<string,List<string>>cw=new Dictionary<string,List<string>>(StringComparer.OrdinalIgnoreCase);
-}public static class iz{static readonly Dictionary<string,a3>ik=new Dictionary<string,a3>(StringComparer.OrdinalIgnoreCase);
-static iz(){mY();}static void mY(){a1("fighter_hud",new[]{"$screen=\"Cockpit Display\"","$surf=0","$pwr=\"Main Batteries\"","$h2=\"Hydrogen Tanks\"","$cargo=\"Cargo Containers\""}
+;void i5(){aR.Clear();if(s==null)return;for(int eB=0;eB<s.R.Count;eB++){var e3=s.R[eB];if(e3.fw>0f)aR[e3]=b1+(eB/Math.Max(1,e3.ix))*e3.iA/60.0;
+}}void nk(){List<z>c5=null;int oC=(aR.Count+3)/4,oJ=0;foreach(var eJ in aR){double ht=(b1-eJ.Value)/eJ.Key.fw;if(ht<0)continue;
+if(ht>=1.0){if(c5==null)c5=new List<z>();c5.Add(eJ.Key);continue;}if((oJ++ +b0)%oC==0)mJ(eJ.Key,ht);}if(c5==null)return;foreach(var hR in c5){
+aR.Remove(hR);d8.Remove(hR);bY.Remove(hR);}}static void cw(List<MySprite>pX,string qc,Color n3,float qt,float qv,float pQ){
+var l0=MySprite.CreateText(qc,"Monospace",n3,pQ,TextAlignment.LEFT);l0.Position=new Vector2(qt,qv);pX.Add(l0);}static void it(List<MySprite>pY,List<string>ec,z e6,float qu,float qw,float pR,float o1){
+string[]p2=e6.dR!=null&&e6.dR.Length>0 ? e6.dR : new[]{e6.iy};for(int dc=0;dc<ec.Count;
+dc++){j gj=E.iN(p2,ec.Count>1 ? 100.0*dc/(ec.Count-1): 0.0);cw(pY,ec[dc],new Color(gj.aQ,gj.aO,gj.aK),qu,qw+dc*o1,pR);}}bool ni(z cn,IMyTextSurface fd){
+List<string>c_;if(bY.ContainsKey(cn)|| !s.cz.TryGetValue(cn.bp,out c_))return false;bY[cn]="banner";Vector2 bF=fd.SurfaceSize;
+Vector2 hn=(fd.TextureSize-bF)/2f;int el=1;foreach(var oS in c_)el=Math.Max(el,oS.Length);Vector2 c3=fd.MeasureStringInPixels(new StringBuilder("M"),"Monospace",1f);
+float e5=Math.Min(bF.X*0.94f/(el*c3.X),bF.Y*0.94f/(c_.Count*c3.Y));var h4=new List<MySprite>();h4.Add(new MySprite{Type=SpriteType.TEXTURE,Data="SquareSimple",Position=hn+bF/2f,Size=bF,Color=string.IsNullOrEmpty(cn.bo)? new Color(10,12,16): Q(cn.bo)}
+);it(h4,c_,cn,hn.X+(bF.X-el*c3.X*e5)/2f,hn.Y+(bF.Y-c_.Count*c3.Y*e5)/2f,e5,c3.Y*e5);using(var os=fd.DrawFrame()){os.AddRange(h4);
+}return true;}void mJ(z co,double lg){IMyTextSurface dG;if(!b_.TryGetValue(co,out dG))return;Vector2 bl=dG.SurfaceSize;
+Vector2 ho=(dG.TextureSize-bl)/2f;var dn=co.mR();string k5=co.iz ?? "HELM TELEMETRY KERNEL ONLINE";bool hj=bl.Y>=200f;
+List<string>b2;if(co.br==null|| !s.cz.TryGetValue(co.br,out b2))b2=mA;int b7=k5.Length+3;foreach(var oT in dn)b7=Math.Max(b7,oT.Length+5);
+if(hj)foreach(var oU in b2)b7=Math.Max(b7,oU.Length);int ly=(hj ? b2.Count+1 : 0)+2+dn.Count;Vector2 b6=dG.MeasureStringInPixels(new StringBuilder("M"),"Monospace",1f);
+float bi=Math.Min(1f,Math.Min(bl.X*0.94f/(b7*b6.X),bl.Y*0.94f/(ly*b6.Y)));float fr=ho.X+(bl.X-b7*b6.X*bi)/2f;float bI=ho.Y+(bl.Y-ly*b6.Y*bi)/2f;
+float eM=b6.Y*bi;var cq=new List<MySprite>();cq.Add(new MySprite{Type=SpriteType.TEXTURE,Data="SquareSimple",Position=ho+bl/2f,Size=bl,Color=new Color(10,12,16)}
+);if(hj){it(cq,b2,co,fr,bI,bi,eM);bI+=(b2.Count+1)*eM;}cw(cq,">> "+k5,new Color(34,197,94),fr,bI,bi);bI+=eM*2f;int pU=E.mz(lg,dn.Count);
+for(int eC=0;eC<pU;eC++){bool ld=eC==dn.Count-1&&lg>=0.8;cw(cq,ld ? "[OK]" : "[..]",ld ? new Color(34,197,94): new Color(56,189,248),fr,bI,bi);cw(cq,dn[eC],new Color(203,213,225),fr+5f*b6.X*bi,bI,bi);
+bI+=eM;}using(var ot=dG.DrawFrame()){ot.AddRange(cq);}}void fK(){bZ.Clear();b_.Clear();d6.Clear();
+cY.Clear();d3=false;if(s==null)return;foreach(var aa in s.bq){var at=new List<IMyTerminalBlock>();if(aa.a_==aw.cI){
+string g5= !string.IsNullOrEmpty(aa.aN)? aa.aN : aa.P;if(!an.ContainsKey(g5)){an[g5]=aa.dV;if(aa.fz!=null)d5[g5]=aa.fz;
+}bZ[aa.P]=at;continue;}var l3=aa.ar.Count>0 ? aa.ar : new List<string>{aa.i8};foreach(var bH in l3){
+if(string.IsNullOrEmpty(bH))continue;bool kM=bH.Contains("*")||bH.Contains("?");if(aa.a_==aw.fB||kM){var gP=new List<IMyTerminalBlock>();
+mD(bH,gP);if(gP.Count>0){foreach(var kz in gP){if(!at.Contains(kz))at.Add(kz);}}else{var jq=dO();
+for(int f9=0;f9<jq.Count;f9++){var fj=jq[f9];if(kM ? E.m_(bH,fj.CustomName): string.Equals(bH,fj.CustomName,StringComparison.OrdinalIgnoreCase)){
+if(!at.Contains(fj))at.Add(fj);}}}}else{var gd=iI(bH);if(gd!=null&& !at.Contains(gd))at.Add(gd);}}if(at.Count==0){
+nt(aa,l3,at);if(at.Count>0)d6[aa.P]=true;}bZ[aa.P]=at;}foreach(var aU in s.R){
+if(string.IsNullOrEmpty(aU.a2))continue;var hr=iI(aU.a2);if(hr==null){cY.AppendLine($"HELM: output block '{aU.a2}' not found");
+continue;}IMyTextSurface bG=null;var hI=hr as IMyTextSurfaceProvider;var j5=hr as IMyTextSurface;if(hI!=null&&aU.bt<hI.SurfaceCount){
+bG=hI.GetSurface(aU.bt);}else if(j5!=null&&aU.bt==0){bG=j5;}if(bG==null){cY.AppendLine($"HELM: output block '{aU.a2}' has no surface index {aU.bt}");
+continue;}bG.ContentType=ContentType.SCRIPT;bG.Script="";bG.ScriptBackgroundColor=Color.Black;b_[aU]=bG;}a7.Clear();
+}static readonly string[]iH={"batt,power,pwr","reactor,nuke","solar","wind","tank,hydro,hydrogen,o2,oxygen","vent,air,press","cargo,container,store,inv","jump,drive","thrust,engine","susp,wheel,brake","door,gate,airlock","connect","asm,assembler,fab,prod","refin,smelt,furnace","drill,mine,bore","weld","grind","o2h2,gen,generator","turret,gun,cannon,weapon,defense","proj,blueprint","gyro","grav,gravity","gear,magplate,landing","ant,comm,radio","beacon","light,spot","piston","rotor,hinge","warhead","sensor","camera","parachute","tcb,customturret"}
+;static bool mP(int oK,IMyTerminalBlock p){switch(oK){case 0: return p is IMyBatteryBlock;case 1: return p is IMyReactor;case 2: return p is IMySolarPanel;
+case 3: return p is IMyWindTurbine;case 4: return p is IMyGasTank;case 5: return p is IMyAirVent;case 6: return p is IMyCargoContainer;case 7: return p is IMyJumpDrive;
+case 8: return p is IMyThrust;case 9: return p is IMyMotorSuspension;case 10: return p is IMyDoor;case 11: return p is IMyShipConnector;case 12: return p is IMyAssembler;
+case 13: return p is IMyRefinery;case 14: return p is IMyShipDrill;case 15: return p is IMyShipWelder;case 16: return p is IMyShipGrinder;case 17: return p is IMyGasGenerator;
+case 18: return p is IMyLargeTurretBase;case 19: return p is IMyProjector;case 20: return p is IMyGyro;case 21: return p is IMyGravityGeneratorBase;case 22: return p is IMyLandingGear;
+case 23: return p is IMyRadioAntenna;case 24: return p is IMyBeacon;case 25: return p is IMyLightingBlock;case 26: return p is IMyPistonBase;case 27: return p is IMyMotorStator;
+case 28: return p is IMyWarhead;case 29: return p is IMySensorBlock;case 30: return p is IMyCameraBlock;case 31: return p is IMyParachute;case 32: return p is IMyTurretControlBlock;
+}return false;}void nt(aL nX,List<string>p9,List<IMyTerminalBlock>ge){string oF=(nX.P+" "+string.Join(" ",p9)).ToLowerInvariant();
+var g8=new List<int>();for(int eI=0;eI<iH.Length;eI++){foreach(var qr in iH[eI].Split(','))if(oF.Contains(qr)){g8.Add(eI);break;}}if(g8.Count==0)return;
+var jp=dO();var le=new List<IMyTerminalBlock>();for(int gU=0;gU<jp.Count;gU++){var ga=jp[gU];foreach(int oL in g8){if(mP(oL,ga)){(ga.CubeGrid==Me.CubeGrid ? ge : le).Add(ga);
+break;}}}if(ge.Count==0)ge.AddRange(le);}void nv(){Echo("=== HELM SELF-DIAGNOSTIC AUDIT ===");if(s==null||s.R.Count==0){
+Echo("[WARN] No active @screen configured in Custom Data.");return;}Echo($"Configuration: {s.R.Count} screens, {s.bq.Count} binds");d3=false;
+Echo($"Blocks: {dO().Count} on this construct; {fR} on docked ships (ignored)");a7.Clear();Echo("--- BIND RESOLUTION ---");foreach(var ab in s.bq){
+if(ab.a_==aw.cI){string g6= !string.IsNullOrEmpty(ab.aN)? ab.aN : ab.P;double qj=an.ContainsKey(g6)? an[g6]: ab.dV;
+Echo($"[OK] @bind {ab.P} (dynamic variable '{g6}' = {qj})");continue;}List<IMyTerminalBlock>gf;if(bZ.TryGetValue(ab.P,out gf)){if(gf.Count>0){
+string om=d6.ContainsKey(ab.P)&&d6[ab.P]? " [fallback: typed match]" : "";Echo($"[OK] @bind {ab.P} ({gf.Count} blocks matched{om})");
+}else{string qa=string.Join(", ",ab.ar.Count>0 ? ab.ar : new List<string>{ab.i8});Echo($"[WARN] @bind {ab.P} -> 0 blocks matched \"{qa}\"");
+}}else{Echo($"[ERR] @bind {ab.P} -> unresolved");}}if(an.Count>0){Echo($"--- DYNAMIC VARIABLES ({an.Count}) ---");foreach(var kU in an)Echo($"[VAR] {kU.Key} = {kU.Value}");
+}Echo("--- SURFACE OUTPUT AUDIT ---");foreach(var aV in s.R){IMyTextSurface lX;if(b_.TryGetValue(aV,out lX)){var lO=lX.SurfaceSize;
+var p0=E.mF(aV);Echo($"[OK] Screen \"{aV.a1}\" [{aV.bu}] -> {aV.a2} [#{aV.bt}] ({lO.X:0}x{lO.Y:0} px, {p0.S} sprites)");
+}else{Echo($"[ERR] Screen \"{aV.a1}\" -> Missing block \"{aV.a2}\" [#{aV.bt}]");}}Echo("--- PERFORMANCE STATUS ---");
+Echo($"Instruction Usage: {Runtime.CurrentInstructionCount}/{Runtime.MaxInstructionCount} | Allocs: 0-byte GC");Echo("=== DIAGNOSTIC AUDIT COMPLETE ===");}double nu(IMyTerminalBlock q){
+if(q==null)return 0.0;var ef=q as IMyBatteryBlock;if(ef!=null)return ef.MaxStoredPower>0 ?(ef.CurrentStoredPower/ef.MaxStoredPower)*100.0 : 0.0;
+var eH=q as IMyJumpDrive;if(eH!=null)return eH.MaxStoredPower>0 ?(eH.CurrentStoredPower/eH.MaxStoredPower)*100.0 : 0.0;var l2=q as IMyGasTank;
+if(l2!=null)return l2.FilledRatio*100.0;var mn=q as IMyAirVent;if(mn!=null)return mn.GetOxygenLevel()*100.0;var jO=q as IMyCargoContainer;if(jO!=null){
+var eF=jO.GetInventory();if(eF!=null&&eF.MaxVolume.RawValue>0)return(double)eF.CurrentVolume.RawValue/eF.MaxVolume.RawValue*100.0;return 0.0;}var e_=q as IMyReactor;
+if(e_!=null)return e_.MaxOutput>0 ?(e_.CurrentOutput/e_.MaxOutput)*100.0 : 0.0;var e7=q as IMySolarPanel;if(e7!=null)return e7.MaxOutput>0 ?(e7.CurrentOutput/e7.MaxOutput)*100.0 : 0.0;
+var fq=q as IMyWindTurbine;if(fq!=null)return fq.MaxOutput>0 ?(fq.CurrentOutput/fq.MaxOutput)*100.0 : 0.0;var j6=q as IMyDoor;if(j6!=null)return(double)j6.OpenRatio*100.0;
+var fm=q as IMyThrust;if(fm!=null)return fm.MaxEffectiveThrust>0 ?(fm.CurrentThrust/fm.MaxEffectiveThrust)*100.0 : 0.0;var id=q as IMyMotorSuspension;
+if(id!=null)return id.Brake ? 100.0 :(id.Friction*100.0);var gs=q as IMyShipConnector;if(gs!=null)return gs.Status==MyShipConnectorStatus.Connected ? 100.0 :(gs.Status==MyShipConnectorStatus.Connectable ? 50.0 : 0.0);
+var lt=q as IMyProductionBlock;if(lt!=null)return lt.IsProducing ? 100.0 : 0.0;var ka=q as IMyShipDrill;if(ka!=null)return ka.Enabled ? 100.0 : 0.0;
+var mb=q as IMyShipToolBase;if(mb!=null)return mb.Enabled ? 100.0 : 0.0;var gM=q as IMyGasGenerator;if(gM!=null)return gM.AutoRefill ? 100.0 :(gM.Enabled ? 50.0 : 0.0);
+var fn=q as IMyLargeTurretBase;if(fn!=null)return fn.IsShooting ? 100.0 :(fn.HasTarget ? 50.0 :(fn.Enabled ? 10.0 : 0.0));var dz=q as IMyProjector;
+if(dz!=null)return dz.TotalBlocks>0 ?((double)(dz.TotalBlocks-dz.RemainingBlocks)/dz.TotalBlocks)*100.0 : 0.0;var gS=q as IMyGyro;if(gS!=null)return gS.GyroOverride ? 100.0 :(gS.Enabled ? 50.0 : 0.0);
+var kB=q as IMyGravityGeneratorBase;if(kB!=null)return Math.Min(100.0,Math.Abs(kB.GravityAcceleration)/9.81*100.0);var gL=q as IMyLandingGear;if(gL!=null)return gL.IsLocked ? 100.0 :(gL.LockMode==LandingGearMode.ReadyToLock ? 50.0 : 0.0);
+var jr=q as IMyRadioAntenna;if(jr!=null)return(jr.Radius/50000.0)*100.0;var jD=q as IMyBeacon;if(jD!=null)return(jD.Radius/50000.0)*100.0;
+var k0=q as IMyLightingBlock;if(k0!=null)return k0.Intensity*10.0;var eY=q as IMyPistonBase;if(eY!=null)return eY.HighestPosition>0 ?(eY.CurrentPosition/eY.HighestPosition)*100.0 : 0.0;
+var lw=q as IMyMotorStator;if(lw!=null)return Math.Min(100.0,Math.Abs(lw.Angle)/6.28318*100.0);var mp=q as IMyWarhead;if(mp!=null)return mp.IsArmed ? 100.0 : 0.0;
+var h0=q as IMySensorBlock;if(h0!=null)return!h0.LastDetectedEntity.IsEmpty()? 100.0 :(h0.Enabled ? 25.0 : 0.0);var gm=q as IMyCameraBlock;
+if(gm!=null)return gm.IsActive ? 100.0 :(gm.Enabled ? 50.0 : 0.0);var jU=q as IMyParachute;if(jU!=null)return(double)jU.OpenRatio*100.0;
+var fl=q as IMyTurretControlBlock;if(fl!=null)return fl.HasTarget ? 100.0 :(fl.IsUnderControl ? 50.0 :(fl.Enabled ? 10.0 : 0.0));var kq=q as IMyFunctionalBlock;
+if(kq!=null)return kq.Enabled ? 100.0 : 0.0;return 0.0;}static double mX(IMyTerminalBlock jy,string gE){int jM=gE.IndexOf(':');string g7=gE.Substring(0,jM).ToLowerInvariant();
+var qh=new MyItemType("MyObjectBuilder_"+(g7=="ammo" ? "AmmoMagazine" : char.ToUpper(g7[0])+g7.Substring(1)),gE.Substring(jM+1));double lW=0;for(int gV=0;
+gV<jy.InventoryCount;gV++)lW+=(double)jy.GetInventory(gV).GetItemAmount(qh);return lW;}double i1(IMyTerminalBlock r,string ki){if(r==null)return 0.0;
+string a=ki.ToLowerInvariant();if(a=="percent"||a=="pct")return nu(r);if(a.IndexOf(':')>0)return mX(r,ki);var ba=r as IMyBatteryBlock;
+if(ba!=null){if(a=="current"||a=="stored"||a=="val"||a=="value"||a=="raw")return ba.CurrentStoredPower;if(a=="max"||a=="capacity")return ba.MaxStoredPower;
+if(a=="output")return ba.CurrentOutput;if(a=="maxoutput")return ba.MaxOutput;if(a=="input")return ba.CurrentInput;if(a=="maxinput")return ba.MaxInput;
+return ba.CurrentStoredPower;}var g4=r as IMyJumpDrive;if(g4!=null){if(a=="max"||a=="capacity")return g4.MaxStoredPower;return g4.CurrentStoredPower;
+}var fg=r as IMyGasTank;if(fg!=null){if(a=="max"||a=="capacity")return fg.Capacity;return fg.FilledRatio*fg.Capacity;}var mo=r as IMyAirVent;
+if(mo!=null){if(a=="max"||a=="capacity")return 100.0;return mo.GetOxygenLevel()*100.0;}var jP=r as IMyCargoContainer;if(jP!=null){var eG=jP.GetInventory();
+if(eG!=null){if(a=="mass")return(double)eG.CurrentMass;if(a=="max"||a=="capacity")return(double)eG.MaxVolume;return(double)eG.CurrentVolume;}return 0.0;}var hJ=r as IMyPowerProducer;
+if(hJ!=null){if(a=="max"||a=="capacity")return hJ.MaxOutput;return hJ.CurrentOutput;}var j7=r as IMyDoor;if(j7!=null){if(a=="max")return 1.0;return(double)j7.OpenRatio;
+}var ii=r as IMyThrust;if(ii!=null){if(a=="max"||a=="capacity")return ii.MaxEffectiveThrust;return ii.CurrentThrust;}var ie=r as IMyMotorSuspension;
+if(ie!=null){if(a=="brake")return ie.Brake ? 1.0 : 0.0;return ie.Friction*100.0;}var j_=r as IMyShipConnector;if(j_!=null){return j_.Status==MyShipConnectorStatus.Connected ? 1.0 : 0.0;
+}var hG=r as IMyProductionBlock;if(hG!=null){if(a=="producing"||a=="active"||a=="running"||a=="state")return hG.IsProducing ? 1.0 : 0.0;if(a=="queue")return hG.IsQueueEmpty ? 0.0 : 1.0;
+}var f5=r as IMyAssembler;if(f5!=null){if(a=="disassembling")return f5.Mode==MyAssemblerMode.Disassembly ? 1.0 : 0.0;if(a=="repeating"||a=="loop")return f5.Repeating ? 1.0 : 0.0;
+}var gN=r as IMyGasGenerator;if(gN!=null){if(a=="autorefill")return gN.AutoRefill ? 1.0 : 0.0;if(a=="active")return gN.Enabled ? 1.0 : 0.0;}var fo=r as IMyLargeTurretBase;
+if(fo!=null){if(a=="shooting")return fo.IsShooting ? 1.0 : 0.0;if(a=="target"||a=="hastarget")return fo.HasTarget ? 1.0 : 0.0;if(a=="range")return fo.Range;
+}var cl=r as IMyProjector;if(cl!=null){if(a=="built")return cl.TotalBlocks-cl.RemainingBlocks;if(a=="remaining")return cl.RemainingBlocks;if(a=="total")return cl.TotalBlocks;
+if(a=="projecting")return cl.IsProjecting ? 1.0 : 0.0;}var cb=r as IMyGyro;if(cb!=null){if(a=="override")return cb.GyroOverride ? 1.0 : 0.0;if(a=="pitch")return cb.Pitch;
+if(a=="yaw")return cb.Yaw;if(a=="roll")return cb.Roll;if(a=="power")return cb.GyroPower*100.0;}var kC=r as IMyGravityGeneratorBase;if(kC!=null){if(a=="g"||a=="accel")return kC.GravityAcceleration;
+}var kA=r as IMyLandingGear;if(kA!=null){if(a=="locked")return kA.IsLocked ? 1.0 : 0.0;}var js=r as IMyRadioAntenna;if(js!=null){if(a=="radius"||a=="range")return js.Radius;
+}var jE=r as IMyBeacon;if(jE!=null){if(a=="radius"||a=="range")return jE.Radius;}var hg=r as IMyLightingBlock;if(hg!=null){if(a=="intensity")return hg.Intensity;
+if(a=="radius")return hg.Radius;}var eZ=r as IMyPistonBase;if(eZ!=null){if(a=="pos"||a=="position"||a=="extension")return eZ.CurrentPosition;
+if(a=="velocity")return eZ.Velocity;if(a=="max")return eZ.HighestPosition;}var dE=r as IMyMotorStator;if(dE!=null){if(a=="angle"||a=="deg")return dE.Angle*180.0/Math.PI;
+if(a=="rad")return dE.Angle;if(a=="velocity"||a=="rpm")return dE.TargetVelocityRPM;if(a=="locked")return dE.RotorLock ? 1.0 : 0.0;}var ir=r as IMyWarhead;
+if(ir!=null){if(a=="armed")return ir.IsArmed ? 1.0 : 0.0;if(a=="countdown")return ir.DetonationTime;}var lL=r as IMySensorBlock;if(lL!=null){
+if(a=="detected")return!lL.LastDetectedEntity.IsEmpty()? 1.0 : 0.0;}var gn=r as IMyCameraBlock;if(gn!=null){if(a=="range")return gn.AvailableScanRange;
+if(a=="active")return gn.IsActive ? 1.0 : 0.0;}var jV=r as IMyParachute;if(jV!=null){if(a=="open"||a=="openratio")return(double)jV.OpenRatio;}var ct=r as IMyTurretControlBlock;
+if(ct!=null){if(a=="target"||a=="hastarget")return ct.HasTarget ? 1.0 : 0.0;if(a=="azimuth")return ct.AzimuthRotor!=null ? ct.AzimuthRotor.Angle*180.0/Math.PI : 0.0;
+if(a=="elevation")return ct.ElevationRotor!=null ? ct.ElevationRotor.Angle*180.0/Math.PI : 0.0;}var kr=r as IMyFunctionalBlock;if(kr!=null){return kr.Enabled ? 1.0 : 0.0;
+}return 0.0;}double fL(string c0,string kj){aL bb;cV.TryGetValue(c0,out bb);if(bb!=null&&bb.a_==aw.cI){
+string oM= !string.IsNullOrEmpty(bb.aN)? bb.aN : c0;double j0;if(an.TryGetValue(oM,out j0))return j0;return bb.dV;
+}double kc;if(an.TryGetValue(c0,out kc))return kc;List<IMyTerminalBlock>c1;if(!bZ.TryGetValue(c0,out c1)||c1.Count==0)throw new InvalidOperationException($"HELM: bind '{c0}' resolved to zero blocks — check the name/typo");
+if(c1.Count==1)return i1(c1[0],kj);var mm=new List<double>();foreach(var nN in c1)mm.Add(i1(nN,kj));return mv.mu(bb!=null ? bb.cx : al.fu,mm);
+}double fM(string nY){return fL(nY,"percent");}static string aZ(double mj,bs ch){if(ch==null||(string.IsNullOrEmpty(ch.cU)&&string.IsNullOrEmpty(ch.cJ)&&ch.I=="percent")){
+return iM(mj);}return E.mQ(mj,ch.cU,ch.cJ);}bool no(z cp){IMyTextSurface fe;if(!b_.TryGetValue(cp,out fe))return false;
+if(cp.bp!=null)return ni(cp,fe);if(cp.cD.Equals("ascii",StringComparison.OrdinalIgnoreCase)){return np(cp,fe);
+}return nq(cp,fe);}static void v(a4 n2,Vector2 pr,Vector2 pV,Color n4,float pH=0f,string od="SquareSimple"){n2.k.Add(new MySprite{
+Type=SpriteType.TEXTURE,Data=od,Position=pr,Size=pV,Color=n4,RotationOrScale=pH});}void mC(z o,IMyTextSurface lY,a4 f){
+f.k.Clear();f.d0.Clear();Vector2 L=lY.SurfaceSize;Vector2 qe=lY.TextureSize;Vector2 aW=(qe-L)/2f;
+float eR=Math.Max(4f,L.X*0.02f);float dw=Math.Max(4f,L.Y*0.02f);if(o.bu=="compact"||(o.bu=="auto"&&L.Y<=260f&&L.Y>150f)){
+eR=4f;dw=4f;}else if(o.bu=="corner"||(o.bu=="auto"&&L.Y<=150f)){eR=2f;dw=2f;}float md=L.X-(eR*2f);
+Color gc=new Color(10,12,16);bool j9=true;if(!string.IsNullOrEmpty(o.bo)){var db=j.bU(o.bo);if(db.cM)j9=false;
+else gc=new Color(db.aQ,db.aO,db.aK,db.dN);}f.bN= -1;f.ft=false;f.fs=Q(o.iv ?? "#5b0f0f");if(o.dQ!=null&&o.dQ.Length>1){
+int ee=16;float jA=(L.Y-4f)/ee;f.bN=f.k.Count;f.bM=new Color[ee];for(int cc=0;cc<ee;cc++){j gK=E.iN(o.dQ,100.0*cc/(ee-1));
+f.bM[cc]=new Color(gK.aQ,gK.aO,gK.aK);v(f,new Vector2(aW.X+L.X/2f,aW.Y+2f+jA*(cc+0.5f)),new Vector2(L.X-4f,jA+1f),f.bM[cc]);
+}}else if(j9){f.bN=f.k.Count;f.bM=new[]{gc};v(f,aW+(L/2f),L-new Vector2(4f,4f),gc);}if(!o.cD.Equals("none",StringComparison.OrdinalIgnoreCase)){
+Color jJ=o.aM!=null&&o.aM.Length>0 ? Q(o.aM[0]): Q(o.dT ?? "40, 60, 85");
+Color n1=o.aM!=null&&o.aM.Length>1 ? Q(o.aM[o.aM.Length-1]): jJ;
+v(f,new Vector2(aW.X+L.X/2f,aW.Y+dw*0.5f),new Vector2(md,2f),jJ);v(f,new Vector2(aW.X+L.X/2f,aW.Y+L.Y-(dw*0.5f)),new Vector2(md,2f),n1);
+}var hw=o.az;if(hw.Count==0){hw=new List<am>{new am{cP="main",cF=0,cQ=0,cR=o.bS,cS=o.bT,aP=o.fE}
+};}float kE=8f;foreach(var O in hw){var eQ=E.mE(O.cF,O.cQ,O.cR,O.cS,o.bS,o.bT,L.X,L.Y,eR,dw,kE,kE);
+float aC=aW.X+eQ.jg;float dv=aW.Y+eQ.jh;float aD=eQ.jf;float du=eQ.iP;if(!string.IsNullOrEmpty(O.cy)){
+var dt=j.bU(O.cy);if(!dt.cM)v(f,new Vector2(aC+aD/2f,dv+du/2f),new Vector2(aD,du),new Color(dt.aQ,dt.aO,dt.aK,dt.dN));
+}else if(o.bS>1||o.bT>1){Color jN=string.IsNullOrEmpty(o.fH)? new Color(255,255,255,6): Q(o.fH);if(jN.A>0)v(f,new Vector2(aC+aD/2f,dv+du/2f),new Vector2(aD,du),jN);
+}string gJ=O.iJ ?? o.iK ?? "Monospace";float nW=E.mS(o.bu,L.X,L.Y,o.bQ);float au=O.iL ?? nW;
+float ey=0f;if(!string.IsNullOrEmpty(O.bw)){ey=20f*au;var f0=TextAlignment.LEFT;float ij=aC+4f;string jm=O.fN ?? o.ja ?? "left";
+if(jm.Equals("center",StringComparison.OrdinalIgnoreCase)){f0=TextAlignment.CENTER;ij=aC+(aD/2f);}else if(jm.Equals("right",StringComparison.OrdinalIgnoreCase)){
+f0=TextAlignment.RIGHT;ij=aC+aD-4f;}string l5=O.fO ?? o.jb;Color qf= !string.IsNullOrEmpty(l5)? Q(l5): Q(O.fx ?? o.dT ?? "white");
+var ma=MySprite.CreateText(O.bw,gJ,qf,au*0.9f,f0);ma.Position=new Vector2(ij,dv+2f);f.k.Add(ma);
+string[]gb=O.fy ?? o.aM;Color of=gb!=null&&gb.Length>0 ? Q(gb[0]): Q(O.fx ?? o.dT ?? "40, 60, 85");
+v(f,new Vector2(aC+aD/2f,dv+ey-2f),new Vector2(aD-8f,1f),of);}int o6=Math.Max(1,O.aP.Count);float pi=du-ey-8f;
+float hN=pi/o6;float eE=6f;for(int eD=0;eD<O.aP.Count;eD++){var w=O.aP[eD];var K=new cO{iV=w};float pI=dv+ey+4f+(eD*hN);
+float D=pI+(hN/2f);float l7=D-(11f*au);K.fC=f.k.Count;K.iO=w.N!=null&&(w.N.Contains("{val}")||w.N.Contains("{percent}"));
+var kX=MySprite.CreateText(w.N,gJ,Color.White,au,TextAlignment.LEFT);kX.Position=new Vector2(aC+eE,l7);f.k.Add(kX);
+float o_=Math.Max(24f*au,(w.N.Length+1)*12f*au);float qq=(!string.IsNullOrEmpty(w.cU)|| !string.IsNullOrEmpty(w.cJ))? 64f*au : 52f*au;
+if(w.g!=d.i9){float C=aC+eE+o_;float nV=aC+aD-eE-qq;float B=Math.Max(16f,nV-C);
+float J=Math.Max(w.g==d.bv ? 8f : 4f,Math.Min((w.g==d.bv ? 20f : 16f)*au,hN*(w.g==d.bv ? 0.55f : 0.45f)));
+K.cC=C;K.dP=B;K.bL=J;K.cB=D;if(w.g==d.cA){v(f,new Vector2(C+(B/2f),D),new Vector2(B,J),new Color(25,30,38));
+K.U=f.k.Count;v(f,new Vector2(C,D),new Vector2(0f,J),Q(w.ah));}else if(w.g==d.cN){
+int hZ=10;float kt=2f;float h_=Math.Max(2f,(B-(kt*(hZ-1)))/hZ);for(int hS=0;hS<hZ;hS++){K.W.Add(f.k.Count);
+v(f,new Vector2(C+hS*(h_+kt)+(h_/2f),D),new Vector2(h_,J),new Color(22,26,32));}}else if(w.g==d.bv){v(f,new Vector2(C+(B/2f),D),new Vector2(B,J),new Color(20,24,30));
+int hF=8;float ku=2f;float gq=Math.Max(2f,(B-(ku*(hF-1)))/hF);for(int hu=0;hu<hF;hu++){K.W.Add(f.k.Count);
+v(f,new Vector2(C+hu*(gq+ku)+(gq/2f),D),new Vector2(gq,2f),Q(w.ah));}}else if(w.g==d.cL){v(f,new Vector2(C+(B/2f),D),new Vector2(B,J),new Color(20,24,30));
+int h7=10;float kv=2f;float h8=Math.Max(2f,(B-(kv*(h7-1)))/h7);for(int hT=0;hT<h7;hT++){K.W.Add(f.k.Count);
+v(f,new Vector2(C+hT*(h8+kv)+(h8/2f),D),new Vector2(h8,J),new Color(24,28,36),0.523599f);}}else if(w.g==d.cE){
+int f3=10;float kw=2f;float f4=Math.Max(2f,(B-(kw*(f3-1)))/f3);for(int hU=0;hU<f3;hU++){K.W.Add(f.k.Count);
+v(f,new Vector2(C+hU*(f4+kw)+(f4/2f),D),new Vector2(f4,J),new Color(24,28,36),1.570796f,"Triangle");}}else if(w.g==d.cH){
+int gv=12;float kx=2f;float gx=Math.Max(2f,(B-(kx*(gv-1)))/gv);float j8=Math.Min(gx,J);for(int hV=0;hV<gv;hV++){K.W.Add(f.k.Count);
+v(f,new Vector2(C+hV*(gx+kx)+(gx/2f),D),new Vector2(j8,j8),new Color(24,28,36),0f,"Circle");}}else if(w.g==d.bK){
+v(f,new Vector2(C+(B/2f),D),new Vector2(B,J),new Color(25,30,38));K.U=f.k.Count;v(f,new Vector2(C+(B/2f),D),new Vector2(0f,J),Q(w.ah));
+v(f,new Vector2(C+(B/2f),D),new Vector2(2f,J+4f),new Color(80,110,150));}else if(w.g==d.bW){v(f,new Vector2(C+(B/2f),D),new Vector2(B,J),new Color(20,24,30));
+K.U=f.k.Count;float g9=Math.Max(4f,J);v(f,new Vector2(C+g9*0.5f,D),new Vector2(g9,g9),new Color(40,50,65),0f,"Circle");
+}else if(w.g==d.bO){float b3=Math.Max(6f,Math.Min(J,14f*au));v(f,new Vector2(C+b3*0.5f,D),new Vector2(b3,b3),new Color(28,34,46));
+K.U=f.k.Count;v(f,new Vector2(C+b3*0.5f,D),new Vector2(b3*0.6f,b3*0.6f),new Color(40,50,65));}else if(w.g==d.bV){
+v(f,new Vector2(C+(B/2f),D),new Vector2(B,J),new Color(18,22,30));K.U=f.k.Count;float hD=Math.Max(4f,J*0.7f);
+v(f,new Vector2(C+hD+2f,D),new Vector2(hD,hD),new Color(34,197,94),0f,"Circle");}else if(w.g==d.bJ){int hC=8;
+float ky=2f;float hE=Math.Max(2f,(B-(ky*(hC-1)))/hC);for(int hv=0;hv<hC;hv++){K.W.Add(f.k.Count);v(f,new Vector2(C+hv*(hE+ky)+(hE/2f),D),new Vector2(hE,J),new Color(24,28,36));
+}}else if(w.g==d.bP){v(f,new Vector2(C+(B/2f),D),new Vector2(B,J),new Color(20,24,30));K.U=f.k.Count;
+float kJ=Math.Max(4f,J);v(f,new Vector2(C+(B/2f),D),new Vector2(kJ,kJ),Q(w.ah),0f,"Triangle");}}var mh=MySprite.CreateText("---",gJ,Color.White,au,TextAlignment.RIGHT);
+mh.Position=new Vector2(aC+aD-eE,l7);K.a6=f.k.Count;f.k.Add(mh);f.d0.Add(K);}}f.iT=L;
+f.iS=true;}static void aA(a4 jK,cO lP,string qd,Color n5){var io=jK.k[lP.a6];io.Data=qd;io.Color=n5;jK.k[lP.a6]=io;
+}static void i4(a4 jL,cO lQ,Color n6){var kg=jL.k[lQ.U];kg.Color=n6;jL.k[lQ.U]=kg;}bool nq(z hY,IMyTextSurface ia){
+a4 i;if(!d8.TryGetValue(hY,out i)){i=new a4();d8[hY]=i;}if(!i.iS||i.iT!=ia.SurfaceSize){
+mC(hY,ia,i);}bool G=false;bool f_=(b0%16)<8;bool iq=bx&&f_&&i.fs.A>0;if(i.bN>=0&&iq!=i.ft){
+i.ft=iq;for(int dd=0;dd<i.bM.Length;dd++){var jG=i.k[i.bN+dd];jG.Color=iq ? i.fs : i.bM[dd];i.k[i.bN+dd]=jG;
+}G=true;}for(int gW=0;gW<i.d0.Count;gW++){var b=i.d0[gW];var m=b.iV;double y;bool kG=false;try{y=fL(m.aX,m.I);
+}catch{kG=true;y=0.0;}if(kG){if(b.dZ!= -99999.0||(b.a6>=0&&i.k[b.a6].Data!="ERR")){G=true;b.dZ= -99999.0;
+if(b.a6>=0){var hW=i.k[b.a6];hW.Data="ERR";hW.Color=Color.Red;i.k[b.a6]=hW;}}continue;}double aE=y;
+if(m.a0>0)y=Math.Min(100.0,aE/m.a0*100.0);string n8=m.cK ? E.dX(m.bR,y): m.ah;Color V=Q(n8);
+bool aS=(V==Color.Red);if(aS&&f_){V=new Color(255,75,75);G=true;}bool av=Math.Abs(aE-b.dZ)>0.1;if(av)b.dZ=aE;
+if(m.g==d.cA){double kk=(m.a0>0||m.I=="percent"||m.I=="pct")? y : fM(m.aX);if(b.M<0f)b.M=(float)kk;
+float fh=(float)kk;if(Math.Abs(b.M-fh)>0.05f){b.M+=(fh-b.M)*0.35f;G=true;}else if(b.M!=fh){
+b.M=fh;G=true;}if(av)G=true;if(G){float pk=(float)Math.Max(0.0,Math.Min(1.0,b.M/100.0));float km=b.dP*pk;
+var es=i.k[b.U];es.Size=new Vector2(km,b.bL);es.Position=new Vector2(b.cC+(km/2f),b.cB);
+es.Color=V;i.k[b.U]=es;aA(i,b,aZ(aE,m),V);}}else if(m.g==d.cN||m.g==d.cL||m.g==d.cE||m.g==d.cH){
+if(av||aS){G=true;double oo=(m.a0>0||m.I=="percent"||m.I=="pct")? y : fM(m.aX);int lJ=b.W.Count;
+for(int dF=0;dF<lJ;dF++){bool o8=oo>=((dF+0.4)/(double)lJ*100.0);Color pS=o8 ? V : new Color(24,28,36);var lK=i.k[b.W[dF]];
+lK.Color=pS;i.k[b.W[dF]]=lK;}aA(i,b,aZ(aE,m),V);}}else if(m.g==d.bv){
+if(av||aS){G=true;for(int ex=0;ex<7;ex++)b.d1[ex]=b.d1[ex+1];b.d1[7]=(float)y;int pq=b.W.Count;
+for(int dq=0;dq<pq;dq++){float oE=b.d1[dq];float oD=Math.Max(0.06f,Math.Min(1f,oE/100f));float jX=b.bL*oD;float n7=b.cB+(b.bL/2f)-(jX/2f);
+var b8=i.k[b.W[dq]];b8.Size=new Vector2(b8.Size.Value.X,jX);b8.Position=new Vector2(b8.Position.Value.X,n7);
+b8.Color=V;i.k[b.W[dq]]=b8;}aA(i,b,aZ(aE,m),V);}}else if(m.g==d.bK){
+if(b.M<0f)b.M=(float)y;float fi=(float)y;if(Math.Abs(b.M-fi)>0.05f){b.M+=(fi-b.M)*0.35f;
+G=true;}else if(b.M!=fi){b.M=fi;G=true;}if(G||av){float kF=b.dP*0.5f;float jS=b.cC+kF;
+float j4=(float)Math.Max(-1.0,Math.Min(1.0,(b.M-50.0)/50.0));float gH=Math.Abs(j4)*kF;float op=(j4>=0)?(jS+gH*0.5f):(jS-gH*0.5f);
+var et=i.k[b.U];et.Size=new Vector2(gH,b.bL);et.Position=new Vector2(op,b.cB);et.Color=V;
+i.k[b.U]=et;aA(i,b,aZ(aE,m),V);}}else if(m.g==d.bW){if(av||aS){
+G=true;bool g3=y>=50.0;float kR=Math.Max(4f,b.bL);float oP=g3 ?(b.cC+b.dP-kR*0.5f):(b.cC+kR*0.5f);
+Color kQ=g3 ?(V!=Color.White ? V : new Color(34,197,94)): new Color(60,70,85);var gF=i.k[b.U];gF.Position=new Vector2(oP,b.cB);
+gF.Color=kQ;i.k[b.U]=gF;aA(i,b,g3 ? "ON" : "OFF",kQ);}}else if(m.g==d.bO){if(av||aS){
+G=true;bool g2=y>=50.0;Color jT=g2 ?(V!=Color.White ? V : new Color(56,189,248)): new Color(30,36,48);i4(i,b,jT);
+aA(i,b,g2 ? "ACTIVE" : "READY",g2 ? jT : new Color(148,163,184));}}else if(m.g==d.bV){if(av||aS){
+G=true;string p1=y>=75.0 ? "ONLINE" :(y>=25.0 ? "STBY" : "OFFLINE");Color lU=y>=75.0 ? new Color(34,197,94):(y>=25.0 ? new Color(234,179,8): new Color(239,68,68));
+i4(i,b,lU);aA(i,b,p1,lU);}}else if(m.g==d.bJ){if(av||aS){G=true;int lp=b.W.Count;
+for(int dr=0;dr<lp;dr++){bool o9=y>=((dr+0.5)/(double)lp*100.0);Color po=o9 ? V : new Color(24,28,36);var lq=i.k[b.W[dr]];
+lq.Color=po;i.k[b.W[dr]]=lq;}aA(i,b,aZ(aE,m),V);}}else if(m.g==d.bP){
+G=true;float e2;Color c9;string eu;bool oH=(m.I=="producing"||m.I=="active"||m.I=="running"||m.I=="state"||(y<=1.0&&m.I!="percent"));
+if(oH){if(y>0.0){b.M=(b.M+0.3927f)%6.28318f;e2=b.M;c9=new Color(34,197,94);eu="RUN";}else{e2=0f;
+c9=new Color(148,163,184);eu="IDLE";}}else{e2=(y>55.0)? 0f :((y<45.0)? 3.14159f : 1.57079f);c9=(y>55.0)? new Color(34,197,94):((y<45.0)? new Color(239,68,68): new Color(148,163,184));
+eu=(y>55.0)? "CHG" :((y<45.0)? "DSC" : "STBY");}var gG=i.k[b.U];gG.RotationOrScale=e2;gG.Color=c9;
+i.k[b.U]=gG;aA(i,b,eu,c9);}else{string eq;aL fk;cV.TryGetValue(m.aX,out fk);d5.TryGetValue(fk!=null&&fk.aN!=null ? fk.aN : m.aX,out eq);
+if(av||aS||eq!=b.iU){b.iU=eq;G=true;Color ik=m.aY!=null ? Q(E.i2(m.aY,y)): Color.White;
+if(ik==Color.Red&&f_)ik=new Color(255,75,75);aA(i,b,eq ?? aZ(aE,m),ik);}}if(b.iO&&(av||aS)){
+G=true;var kZ=i.k[b.fC];string pl=iM(y);string pE=aZ(aE,m);kZ.Data=m.N.Replace("{percent}",pl).Replace("{val}",pE);
+i.k[b.fC]=kZ;}}if(G){using(var ou=ia.DrawFrame()){ou.AddRange(i.k);}}return G;}bool np(z bj,IMyTextSurface ib){
+ib.FontSize=bj.bQ;var em=new List<KeyValuePair<string,string>>();foreach(var l in bj.fE){double F=0.0;string aI;string aB=null;
+try{F=fL(l.aX,l.I);}catch(Exception qx){em.Add(new KeyValuePair<string,string>($"{l.N}: [UNRESOLVED]","red"));
+continue;}double lu=F;if(l.a0>0)F=Math.Min(100.0,lu/l.a0*100.0);string mi=aZ(lu,l);if(l.g==d.cA){double kl=(l.a0>0||l.I=="percent"||l.I=="pct")? F : fM(l.aX);
+aI=E.nj(l.N,kl,10,mi);aB=l.cK ? E.dX(l.bR,kl): l.ah;}else if(l.g==d.bK){
+aI=E.nh(l.N,F,10);aB=l.cK ? E.dX(l.bR,F): l.ah;}else if(l.g==d.bW){
+aI=E.ns(l.N,F);aB=l.ah ??(F>=50.0 ? "green" : "gray");}else if(l.g==d.bO){aI=E.nm(l.N,F);
+aB=l.ah ??(F>=50.0 ? "cyan" : "gray");}else if(l.g==d.bV){aI=E.nr(l.N,F);aB=l.ah ??(F>=75.0 ? "lime" :(F>=25.0 ? "yellow" : "red"));
+}else if(l.g==d.bJ){aI=E.ng(l.N,F,8);aB=l.cK ? E.dX(l.bR,F):(l.ah ?? "yellow");
+}else if(l.g==d.bP){bool oI=(l.I=="producing"||l.I=="active"||l.I=="running"||l.I=="state"||(F<=1.0&&l.I!="percent"));
+if(oI){char[]p_=new[]{'|','/','-','\\'};char pP=p_[Math.Abs(b0)%4];aI=F>0 ? $"{l.N} [{pP}] RUN" : $"{l.N} [==] IDLE";
+aB=F>0 ? "green" : "gray";}else{aI=E.nn(l.N,F,b0);aB=l.ah ??(F>55.0 ? "green" :(F<45.0 ? "red" : "cyan"));
+}}else{aI=$"{l.N}: {mi}";aB=l.aY!=null ? E.i2(l.aY,F): null;}em.Add(new KeyValuePair<string,string>(aI,aB));
+}var ej=E.nl(new List<string>(em.ConvertAll(p8=>p8.Key)),cv: bj.je);string lM=string.Join("\n",ej);
+string ls;if(bY.TryGetValue(bj,out ls)&&ls==lM)return false;bY[bj]=lM;using(var ov=ib.DrawFrame()){
+float ms=4f;float k1=mt*bj.bQ;try{var k3=ib.MeasureStringInPixels(new StringBuilder("A"),"Monospace",bj.bQ);
+if(k3.Y>0)k1=k3.Y;}catch{}for(int cd=0;cd<ej.Count;cd++){string jZ=null;if(cd>0&&cd<ej.Count-1)jZ=em[cd-1].Value;
+var lT=MySprite.CreateText(ej[cd],"Monospace",Q(jZ),bj.bQ,TextAlignment.LEFT);lT.Position=new Vector2(4f,ms);ov.Add(lT);
+ms+=k1;}}return true;}Color Q(string eO){if(string.IsNullOrEmpty(eO))return Color.White;Color dk;if(ji.TryGetValue(eO,out dk))return dk;
+j c2=j.bU(eO);dk=c2.cM ? Color.Transparent : new Color(c2.aQ,c2.aO,c2.aK,c2.dN);ji[eO]=dk;return dk;}public enum aw{mx,fB,cI}
+public enum al{m0,fu,i7,iX,iW}public class aL{public string P;public aw a_;public List<string>ar=new List<string>();public string i8{
+get{return ar.Count>0 ? ar[0]: "";}set{if(ar.Count==0)ar.Add(value);else ar[0]=value;}}public al cx=al.m0;
+public double dV=0.0;public string fz;public string aN;}public enum d{i9,cA,cN,bv,cL,cE,cH,bK,bW,bO,bV,bJ,bP}
+public class cG{public string iG;public string dU;public bool dY;}public class bs{public d g;public string N;public string aX;
+public string I;public bool cK;public string[]bR;public string ah;public List<cG>aY;public string iD="right";
+public string cU;public string cJ;public double a0;}public struct j{public byte aQ,aO,aK,dN;public bool cM;public j(byte pw,byte ox,byte nO,byte nB=255){
+aQ=pw;aO=ox;aK=nO;dN=nB;cM=false;}public static readonly j nz=new j(0,0,0,0){cM=true};public static readonly j d2=new j(255,255,255);
+public static readonly j mw=new j(0,0,0);public static readonly j nd=new j(255,0,0);public static readonly j mU=new j(0,255,0);
+public static readonly j mY=new j(50,205,50);public static readonly j nA=new j(255,255,0);public static readonly j m1=new j(255,140,0);
+public static readonly j mH=new j(0,255,255);public static readonly j my=new j(0,120,255);public static readonly j mZ=new j(255,0,255);
+public static readonly j nb=new j(128,0,128);public static readonly j mT=new j(128,128,128);public static readonly j mI=new j(60,60,60);
+public static j bU(string aH){if(string.IsNullOrWhiteSpace(aH))return d2;aH=aH.Trim();if(aH.Equals("transparent",StringComparison.OrdinalIgnoreCase)||aH.Equals("none",StringComparison.OrdinalIgnoreCase))return nz;
+if(aH.StartsWith("#")){string be=aH.Substring(1).Trim();if(be.Length==6){byte px=Convert.ToByte(be.Substring(0,2),16);byte oy=Convert.ToByte(be.Substring(2,2),16);
+byte nP=Convert.ToByte(be.Substring(4,2),16);return new j(px,oy,nP);}if(be.Length==3){byte py=Convert.ToByte(new string(be[0],2),16);byte oz=Convert.ToByte(new string(be[1],2),16);
+byte nQ=Convert.ToByte(new string(be[2],2),16);return new j(py,oz,nQ);}}if(aH.Contains(",")){var ck=aH.Split(',');if(ck.Length>=3){byte pz=(byte)Math.Max(0,Math.Min(255,int.Parse(ck[0].Trim())));
+byte oA=(byte)Math.Max(0,Math.Min(255,int.Parse(ck[1].Trim())));byte nR=(byte)Math.Max(0,Math.Min(255,int.Parse(ck[2].Trim())));byte nC=ck.Length>3 ?(byte)Math.Max(0,Math.Min(255,int.Parse(ck[3].Trim()))):(byte)255;
+return new j(pz,oA,nR,nC);}}switch(aH.ToLowerInvariant()){case "red": return nd;case "green": return mU;case "lime": return mY;case "yellow": return nA;
+case "orange": return m1;case "cyan": return mH;case "blue": return my;case "magenta": return mZ;case "purple": return nb;case "white": return d2;
+case "black": return mw;case "gray": case "grey": return mT;case "darkgray": case "darkgrey": return mI;default: return d2;}}}public class am{
+public string cP="default";public int cF=0;public int cQ=0;public int cR=1;public int cS=1;public string bw;public string fN="left";public string fO;
+public string iB;public string iJ;public float? iL;public string cy;public string fx;public string[]fy;public string iY="horizontal";
+public List<bs>aP=new List<bs>();}public class z{public string a1;public string bu="standard";public string cD="graphic";public string dT;
+public string[]aM;public string ja="left";public string jb;public string iK="Monospace";public string bo;public string iz;
+public int iA=10;public int ix=1;public string fH;public string[]dQ;public string iv;public string bp;public string br;
+public float fw=2.5f;public string iy="cyan";public string[]dR;public List<string>dS=new List<string>();public List<string>mR(){
+if(dS!=null&&dS.Count>0)return dS;return new List<string>{"helm-core initializing...","seeking compliant surface displays...","uploading firmware...","awaiting compliance...","helm-core online -- BOOT // SUCCESS"}
+;}public float bQ=1.0f;public int ne=100;public int bS=1;public int bT=1;public int je=30;public string a2;public int bt=0;
+public List<am>az=new List<am>();public List<bs>fE{get{if(az.Count==0)az.Add(new am{cP="main"});return az[0].aP;}
+}}public class a5{public string fF;public List<string>d_=new List<string>();public Dictionary<string,string>fA=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
+public List<string>fv=new List<string>();}public class fI{public List<aL>bq=new List<aL>();public List<z>R=new List<z>();
+public List<string>ay=new List<string>();public Dictionary<string,List<string>>cz=new Dictionary<string,List<string>>(StringComparer.OrdinalIgnoreCase);
+}public static class iQ{static readonly Dictionary<string,a5>iC=new Dictionary<string,a5>(StringComparer.OrdinalIgnoreCase);
+static iQ(){nf();}static void nf(){a3("fighter_hud",new[]{"$screen=\"Cockpit Display\"","$surf=0","$pwr=\"Main Batteries\"","$h2=\"Hydrogen Tanks\"","$cargo=\"Cargo Containers\""}
 ,@"@bind pwr_$screen=group(""$pwr"",agg:avg)
 @bind h2_$screen=group(""$h2"",agg:avg)
 @bind crg_$screen=group(""$cargo"",agg:sum)
@@ -325,7 +331,7 @@ layout:grid(2,1)
 line:""PWR"" bar(pwr_$screen.percent)
 line:""H2"" bar(h2_$screen.percent)
 @panel hold at(1,0,1,1) title:""STORES""
-line:""CARGO"" led(crg_$screen.percent)");a1("reactor_matrix",new[]{"$screen=\"Reactor LCD\"","$surf=0","$reactors=\"Reactors\"","$batteries=\"Batteries\""}
+line:""CARGO"" led(crg_$screen.percent)");a3("reactor_matrix",new[]{"$screen=\"Reactor LCD\"","$surf=0","$reactors=\"Reactors\"","$batteries=\"Batteries\""}
 ,@"@bind rct_$screen=group(""$reactors"",agg:avg)
 @bind bat_$screen=group(""$batteries"",agg:avg)
 @screen $screen
@@ -334,7 +340,7 @@ layout:grid(1,2)
 @panel core at(0,0,1,1) title:""REACTORS""
 line:""CORE"" bar(rct_$screen.percent)
 @panel grid at(0,1,1,1) title:""BATTERIES""
-line:""BANK"" led(bat_$screen.percent)");a1("bridge_status",new[]{"$screen=\"Bridge LCD\"","$surf=0","$power=\"Batteries\"","$o2=\"Air Vents\"","$cargo=\"Cargo\"","$jump=\"Jump Drives\""}
+line:""BANK"" led(bat_$screen.percent)");a3("bridge_status",new[]{"$screen=\"Bridge LCD\"","$surf=0","$power=\"Batteries\"","$o2=\"Air Vents\"","$cargo=\"Cargo\"","$jump=\"Jump Drives\""}
 ,@"@bind pwr_$screen=group(""$power"",agg:avg)
 @bind o2_$screen=group(""$o2"",agg:avg)
 @bind crg_$screen=group(""$cargo"",agg:sum)
@@ -349,7 +355,7 @@ line:""O2"" bar(o2_$screen.percent)
 @panel nav at(1,0,1,1) title:""NAVIGATION""
 line:""JUMP"" bar(jmp_$screen.percent)
 @panel store at(1,1,1,1) title:""LOGISTICS""
-line:""CARGO"" led(crg_$screen.percent)");a1("mining_ops",new[]{"$screen=\"Drill LCD\"","$surf=0","$cargo=\"Cargo Containers\"","$drills=\"Drills\""}
+line:""CARGO"" led(crg_$screen.percent)");a3("mining_ops",new[]{"$screen=\"Drill LCD\"","$surf=0","$cargo=\"Cargo Containers\"","$drills=\"Drills\""}
 ,@"@bind crg_$screen=group(""$cargo"",agg:sum)
 @bind drl_$screen=group(""$drills"",agg:avg)
 @screen $screen
@@ -358,7 +364,7 @@ layout:grid(1,2)
 @panel ore at(0,0,1,1) title:""ORE STORAGE""
 line:""CARGO"" bar(crg_$screen.percent)
 @panel drill at(0,1,1,1) title:""DRILL STATUS""
-line:""DRILL"" led(drl_$screen.percent)");a1("airlock",new[]{"$screen=\"Airlock LCD\"","$surf=0","$vent=\"Airlock Vent\"","$outer=\"Outer Door\"","$inner=\"Inner Door\""}
+line:""DRILL"" led(drl_$screen.percent)");a3("airlock",new[]{"$screen=\"Airlock LCD\"","$surf=0","$vent=\"Airlock Vent\"","$outer=\"Outer Door\"","$inner=\"Inner Door\""}
 ,@"@bind vent_$screen=airvent(""$vent"")
 @bind outer_$screen=block(""$outer"")
 @bind inner_$screen=block(""$inner"")
@@ -369,7 +375,7 @@ layout:grid(1,2)
 line:""PRESS"" bar(vent_$screen.percent)
 @panel doors at(0,1,1,1) title:""SECURITY AIRLOCK""
 line:""OUTER"" led(outer_$screen.percent)
-line:""INNER"" led(inner_$screen.percent)");a1("rover",new[]{"$screen=\"Rover Cockpit\"","$surf=0","$power=\"Rover Batteries\"","$susp=\"Suspension Wheels\"","$cargo=\"Rover Cargo\"","$h2=\"Hydrogen Engine\""}
+line:""INNER"" led(inner_$screen.percent)");a3("rover",new[]{"$screen=\"Rover Cockpit\"","$surf=0","$power=\"Rover Batteries\"","$susp=\"Suspension Wheels\"","$cargo=\"Rover Cargo\"","$h2=\"Hydrogen Engine\""}
 ,@"@bind bat_$screen=group(""$power"",agg:avg)
 @bind susp_$screen=group(""$susp"",agg:avg)
 @bind crg_$screen=group(""$cargo"",agg:sum)
@@ -381,7 +387,7 @@ line:""BATT"" bar(bat_$screen.percent)
 @panel susp at(0,1,1,1) title:""CHASSIS""
 line:""LOAD"" bar(susp_$screen.percent)
 @panel cargo at(1,0,1,2) title:""CARGO""
-line:""HOLD"" bar(crg_$screen.percent)");a1("cargo_overview",new[]{"screen","surf=0","crg=Cargo*","ore=Ore*","ingot=Ingot*"},@"@bind crg_$screen=group(""$crg"",agg:avg)
+line:""HOLD"" bar(crg_$screen.percent)");a3("cargo_overview",new[]{"screen","surf=0","crg=Cargo*","ore=Ore*","ingot=Ingot*"},@"@bind crg_$screen=group(""$crg"",agg:avg)
 @bind ore_$screen=group(""$ore"",agg:avg)
 @bind ing_$screen=group(""$ingot"",agg:avg)
 @screen $screen
@@ -394,184 +400,187 @@ line:""INGT"" bar(ing_$screen.percent)
 @panel comps at(0,1,1,1) title:""COMPONENT STORES""
 line:""COMP"" bar(crg_$screen.percent)
 @panel ammo at(1,1,1,1) title:""ORDNANCE & AMMO""
-line:""NATO"" bar(crg_$screen.percent)");a1("battery_monolith",new[]{"screen","surf=0","batt=Battery*"},@"@bind pwr_$screen=group(""$batt"",agg:avg)
+line:""NATO"" bar(crg_$screen.percent)");a3("battery_monolith",new[]{"screen","surf=0","batt=Battery*"},@"@bind pwr_$screen=group(""$batt"",agg:avg)
 @screen $screen
 output:""$screen"",$surf
 layout:grid(1,1)
 @panel core at(0,0,1,1) title:""POWER CORE MONOLITH"" orientation:vertical
-line:""ENERGY"" bar(pwr_$screen.percent) dir:up");}public static void a1(string kR,string[]o1,string nH){var e8=new a3{fw=kR}
-;foreach(var oX in o1){var gY=oX.Split(new[]{'='},2);string kZ=fx(gY[0]);e8.dU.Add(kZ);if(gY.Length>1)e8.fr[kZ]=W(gY[1].Trim());
-}var oQ=nH.Replace("\r\n","\n").Split('\n');foreach(var oD in oQ){string lh=oD.Trim();if(lh.Length>0)e8.fm.Add(lh);}ik[kR]=e8;}static string fx(string cf){
-cf=cf.Trim();if(cf.StartsWith("$"))cf=cf.Substring(1);return cf.ToLowerInvariant();}public static fy mM(string nU){var ac=new fy();z f=null;
-al t=null;var k8=mS(nU,ac.ax,ac.cw);for(int c9=0;c9<k8.Count;c9++){string c=k8[c9].Trim();
-if(c.Length==0)continue;try{if(c.StartsWith("@bind")){ac.bo.Add(mN(c));}else if(c.StartsWith("@screen")){f=new z{aZ=c.Substring("@screen".Length).Trim()}
-;ac.O.Add(f);t=null;}else if(c.StartsWith("profile:")){y(f,"profile:");f.bs=c.Substring("profile:".Length).Trim().ToLowerInvariant();
-}else if(c.StartsWith("border:")){y(f,"border:");string ji=c.Substring("border:".Length).Trim();if(t!=null)t.ij=ji;
-else f.cA=ji;}else if(c.StartsWith("border_color:")){y(f,"border_color:");string jk=c.Substring("border_color:".Length).Trim();
-if(t!=null)t.fo=jk;else f.dN=jk;}else if(c.StartsWith("border_gradient:")||c.StartsWith("border_gradient(")){
-y(f,"border_gradient");string bw=c.StartsWith("border_gradient:")? c.Substring("border_gradient:".Length): c.Substring("border_gradient".Length);
-bw=bw.Trim();if(bw.StartsWith("(")&&bw.Contains(")"))bw=ao(bw,0);string[]lC=ap(bw).Select(pr=>pr.Trim()).ToArray();if(t!=null)t.fp=lC;
-else f.aK=lC;}else if(c.StartsWith("title_align:")){y(f,"title_align:");string lJ=c.Substring("title_align:".Length).Trim().ToLowerInvariant();
-if(t!=null)t.fD=lJ;else f.iT=lJ;}else if(c.StartsWith("title_color:")){y(f,"title_color:");string lM=c.Substring("title_color:".Length).Trim();
-if(t!=null)t.fE=lM;else f.iU=lM;}else if(c.StartsWith("font_size:")){y(f,"font_size:");float lH=float.Parse(c.Substring("font_size:".Length).Trim(),System.Globalization.CultureInfo.InvariantCulture);
-if(t!=null)t.iv=lH;else f.bN=lH;}else if(c.StartsWith("font:")){y(f,"font:");string jZ=c.Substring("font:".Length).Trim();
-if(t!=null)t.it=jZ;else f.iu=jZ;}else if(c.StartsWith("bg:")||c.StartsWith("background:")){y(f,"bg:");string jo=c.Substring(c.IndexOf(':')+1).Trim();
-if(t!=null)t.cv=jo;else f.bm=jo;}else if(c.StartsWith("layout:")){y(f,"layout:");mO(c.Substring("layout:".Length).Trim(),f);
-}else if(c.StartsWith("refresh:")){y(f,"refresh:");f.mX=int.Parse(c.Substring("refresh:".Length).Trim());}else if(c.StartsWith("output:")){
-y(f,"output:");var eN=ap(c.Substring("output:".Length).Trim());if(eN.Count==0)throw new FormatException("output: requires a target block name");
-f.a_=W(eN[0]);f.br=eN.Count>1 ? int.Parse(eN[1]): 0;}else if(c.StartsWith("width:")){y(f,"width:");
-f.iX=int.Parse(c.Substring("width:".Length).Trim());}else if(c.StartsWith("boot_msg:")||c.StartsWith("boot:")){y(f,"boot_msg:");
-f.ih=W(c.Substring(c.IndexOf(':')+1).Trim());}else if(c.StartsWith("boot_stagger:")){y(f,"boot_stagger:");f.ii=int.Parse(c.Substring("boot_stagger:".Length).Trim());
-}else if(c.StartsWith("boot_batch:")){y(f,"boot_batch:");f.ie=Math.Max(1,int.Parse(c.Substring("boot_batch:".Length).Trim()));
-}else if(c.StartsWith("boot_duration:")){y(f,"boot_duration:");string c1=c.Substring("boot_duration:".Length).Trim().ToLowerInvariant();
-bool kp=c1.EndsWith("s");if(kp)c1=c1.Substring(0,c1.Length-1).Trim();float gm;if(float.TryParse(c1,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out gm)){
-f.fn=kp ? gm : gm/60f;}}else if(c.StartsWith("boot_log:")){y(f,"boot_log:");f.dM.Add(W(c.Substring("boot_log:".Length).Trim()));
-}else if(c.StartsWith("banner:")){y(f,"banner:");f.bn=W(c.Substring("banner:".Length).Trim());}else if(c.StartsWith("boot_logo:")){
-y(f,"boot_logo:");f.bp=W(c.Substring("boot_logo:".Length).Trim());}else if(c.StartsWith("boot_gradient:")||c.StartsWith("boot_gradient(")||c.StartsWith("banner_gradient:")||c.StartsWith("banner_gradient(")){
-y(f,"boot_gradient");int gB=c.IndexOfAny(new[]{':','('});string bz=c.Substring(c[gB]==':' ? gB+1 : gB);bz=bz.Trim();if(bz.StartsWith("(")&&bz.Contains(")"))bz=ao(bz,0);
-f.dL=ap(bz).Select(ps=>ps.Trim()).ToArray();}else if(c.StartsWith("boot_color:")||c.StartsWith("banner_color:")){y(f,"boot_color:");
-f.ig=c.Substring(c.IndexOf(':')+1).Trim();}else if(c.StartsWith("orientation:")){y(f,"orientation:");string oV=c.Substring("orientation:".Length).Trim().ToLowerInvariant();
-if(t!=null)t.iH=oV;}else if(c.StartsWith("@panel")){y(f,"@panel");t=mQ(c);f.ay.Add(t);
-}else if(c.StartsWith("title:")){y(f,"title:");if(t==null){t=new al{cM="main",cC=0,cN=0,cO=f.bP,cP=f.bQ}
-;f.ay.Add(t);}t.bu=W(c.Substring("title:".Length).Trim());}else if(c.StartsWith("line:")){y(f,"line:");
-if(t==null){t=new al{cM="main",cC=0,cN=0,cO=f.bP,cP=f.bQ};f.ay.Add(t);}t.aM.Add(mP(c.Substring("line:".Length).Trim()));
-}else{ac.ax.Add($"Line {c9 + 1}: unrecognized directive: \"{c}\"");}}catch(Exception n0){ac.ax.Add($"Line {c9 + 1}: parse error ({n0.Message}) in \"{c}\"");
-}}foreach(var li in ac.O){if(string.IsNullOrEmpty(li.a_))ac.ax.Add($"@screen {li.aZ}: missing required 'output:' — a screen must declare which physical block/surface it renders to");
-}foreach(var aF in ac.O){if(aF.bn!=null&& !ac.cw.ContainsKey(aF.bn))ac.ax.Add("Screen '"+aF.aZ+"': banner '"+aF.bn+"' is not defined (@banner "+aF.bn+" ... @end)");
-if(aF.bp!=null&& !ac.cw.ContainsKey(aF.bp))ac.ax.Add("Screen '"+aF.aZ+"': boot_logo '"+aF.bp+"' is not defined (@banner "+aF.bp+" ... @end)");
-}return ac;}static void mO(string f4,z lp){int hj=f4.IndexOf('(');if(hj<0)throw new FormatException("missing '(' in layout: specification");
-string kw=f4.Substring(0,hj).Trim().ToLowerInvariant();string nn=ao(f4,hj);var fS=ap(nn);if(kw=="grid"){if(fS.Count<2)throw new FormatException("layout: grid(cols, rows) requires 2 arguments");
-lp.bP=Math.Max(1,int.Parse(fS[0]));lp.bQ=Math.Max(1,int.Parse(fS[1]));}else{throw new FormatException($"unknown layout kind '{kw}' (expected grid)");
-}}static al mQ(string oL){string dw=oL.Substring("@panel".Length).Trim();int d7=dw.IndexOf("at(",StringComparison.OrdinalIgnoreCase);if(d7<0)throw new FormatException("@panel requires an at(...) positioning clause");
-string oT=dw.Substring(0,d7).Trim();string jf=dw.Substring(d7);int k4=jf.IndexOf('(');string jd=ao(jf,k4);
-var bv=ap(jd);if(bv.Count<2)throw new FormatException("at(col, row) requires at least 2 numbers");var aP=new al{cM=oT,cC=int.Parse(bv[0]),cN=int.Parse(bv[1]),cO=bv.Count>2 ? int.Parse(bv[2]): 1,cP=bv.Count>3 ? int.Parse(bv[3]): 1}
-;int i6=d7+k4+jd.Length+1;if(i6<dw.Length){string an=dw.Substring(i6).Trim();int lR=an.IndexOf("title",StringComparison.OrdinalIgnoreCase);
-if(lR>=0){string dC=an.Substring(lR+5).Trim();if(dC.StartsWith("(")&&dC.Contains(")"))aP.bu=W(ao(dC,0));else if(dC.StartsWith(":")){
-string bx=dC.Substring(1).Trim();if(bx.StartsWith("\"")){int jV=bx.IndexOf('"',1);aP.bu=jV>0 ? bx.Substring(1,jV-1): W(bx);}else{int ly=bx.IndexOf(' ');
-aP.bu=ly>=0 ? bx.Substring(0,ly): bx;}}}string kU=dQ(an,"orientation:");if(kU!=null)aP.iH=kU.ToLowerInvariant();string i5=dQ(an,"title_align:");
-if(i5!=null)aP.fD=i5.ToLowerInvariant();string lO=dQ(an,"title_color:");if(lO!=null)aP.fE=lO;int eb=an.IndexOf("border:",StringComparison.OrdinalIgnoreCase);
-if(eb>=0&& !an.Substring(eb).StartsWith("border_gradient:",StringComparison.OrdinalIgnoreCase)&& !an.Substring(eb).StartsWith("border_color:",StringComparison.OrdinalIgnoreCase)){
-aP.ij=dQ(an.Substring(eb),"border:");}int d9=an.IndexOf("border_gradient:",StringComparison.OrdinalIgnoreCase);if(d9<0)d9=an.IndexOf("border_gradient(",StringComparison.OrdinalIgnoreCase);
-if(d9>=0){string ba=an.Substring(d9+"border_gradient".Length).Trim();if(ba.StartsWith(":"))ba=ba.Substring(1).Trim();if(ba.StartsWith("(")&&ba.Contains(")"))ba=ao(ba,0);
-aP.fp=ap(ba).Select(pt=>pt.Trim()).ToArray();}}return aP;}static string dQ(string lj,string kv){int ko=lj.IndexOf(kv,StringComparison.OrdinalIgnoreCase);
-if(ko<0)return null;string h9=lj.Substring(ko+kv.Length).Trim();int lz=h9.IndexOf(' ');return lz>=0 ? h9.Substring(0,lz): h9;}static List<string>mS(string nV,List<string>gq,Dictionary<string,List<string>>nB){
-var lW=new Dictionary<string,a3>(StringComparer.OrdinalIgnoreCase);var cj=(nV ?? "").Replace("\r\n","\n").Split('\n');var he=new List<string>();
-int cb=0;while(cb<cj.Length){string hw=cj[cb++];if(hw.TrimStart().StartsWith("@banner ",StringComparison.OrdinalIgnoreCase)){var Z=new List<string>();
-while(cb<cj.Length){string i3=cj[cb++].Replace("\t","    ").TrimEnd();if(i3.Trim().Equals("@end",StringComparison.OrdinalIgnoreCase))break;Z.Add(i3);}while(Z.Count>0&&Z[0].Length==0)Z.RemoveAt(0);
-while(Z.Count>0&&Z[Z.Count-1].Length==0)Z.RemoveAt(Z.Count-1);int gP=int.MaxValue;foreach(var fM in Z)if(fM.Length>0)gP=Math.Min(gP,fM.Length-fM.TrimStart().Length);
-for(int dg=0;dg<Z.Count;dg++)if(Z[dg].Length>0)Z[dg]=Z[dg].Substring(gP);nB[hw.TrimStart().Substring(8).Trim()]=Z;continue;}string be=iP(hw).Trim();
-if(be.Length==0)continue;if(be.StartsWith("@template")){try{var h1=mR(be);while(cb<cj.Length){string nJ=cj[cb++];string f5=iP(nJ).Trim();
-if(f5.Equals("@end",StringComparison.OrdinalIgnoreCase))break;if(f5.Length>0)h1.fm.Add(f5);}lW[h1.fw]=h1;}catch(Exception n1){
-gq.Add($"Template parse error ({n1.Message}) in \"{be}\"");}}else if(be.StartsWith("@use")){try{io(be,lW,he,gq);}
-catch(Exception n2){gq.Add($"@use error ({n2.Message}) in \"{be}\"");}}else{he.Add(be);}}return he;}static a3 mR(string oM){
-string hx=oM.Substring("@template".Length).Trim();int hk=hx.IndexOf('(');if(hk<0)throw new FormatException("missing '(' in @template header");string oU=hx.Substring(0,hk).Trim();
-string no=ao(hx,hk);var h2=new a3{fw=oU};foreach(var oY in ap(no)){var gZ=oY.Split(new[]{'='},2);string k_=fx(gZ[0]);
-h2.dU.Add(k_);if(gZ.Length>1)h2.fr[k_]=W(gZ[1].Trim());}return h2;}static void io(string oN,Dictionary<string,a3>lX,List<string>kX,List<string>n_,int jL=0){
-string eV=oN.Substring("@use".Length).Trim();int eL=eV.IndexOf('(');string g7=eL>=0 ? eV.Substring(0,eL).Trim(): eV.Trim();string np=eL>=0 ? ao(eV,eL): "";
-a3 cp=null;if(!lX.TryGetValue(g7,out cp)){if(!ik.TryGetValue(g7,out cp))throw new FormatException($"unknown template '{g7}'");
-}var ed=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);foreach(var kA in cp.fr)ed[kA.Key]=kA.Value;var jc=ap(np);for(int cW=0;
-cW<jc.Count;cW++){string d5=jc[cW];int go=d5.IndexOf('=');if(go>=0){string ov=fx(d5.Substring(0,go));string p2=W(d5.Substring(go+1).Trim());
-ed[ov]=p2;}else{if(cW<cp.dU.Count){string ow=cp.dU[cW];ed[ow]=W(d5.Trim());}}}foreach(var nI in cp.fm){string c4=nI;
-foreach(var eD in ed){c4=c4.Replace("$"+eD.Key,eD.Value).Replace("{"+eD.Key+"}",eD.Value);}if(c4.StartsWith("@use")){if(jL>3)throw new FormatException("@use nested too deep");
-io(c4,lX,kX,n_,jL+1);}else kX.Add(c4);}}static void y(z nT,string nX){
-if(nT==null)throw new FormatException($"'{nX}' used before any @screen declared");}static string iP(string aE){if(string.IsNullOrEmpty(aE))return aE;
-bool gO=false;for(int bd=0;bd<aE.Length;bd++){char f8=aE[bd];if(f8=='"'){gO= !gO;}else if(!gO){if(f8=='/'&&bd+1<aE.Length&&aE[bd+1]=='/'){return aE.Substring(0,bd);
-}if(f8=='#'){if(mE(aE,bd)){continue;}return aE.Substring(0,bd);}}}return aE;}static bool mE(string bA,int kr){int cd=0;for(int gK=kr+1;gK<bA.Length;
-gK++){char b2=bA[gK];if((b2>='0'&&b2<='9')||(b2>='a'&&b2<='f')||(b2>='A'&&b2<='F'))cd++;else break;}if(cd==3||cd==4||cd==6||cd==8){int dj=kr+1+cd;if(dj>=bA.Length||char.IsWhiteSpace(bA[dj])||bA[dj]==')'||bA[dj]==','||bA[dj]==':')return true;
-}return false;}static aJ mN(string oO){string hy=oO.Substring("@bind".Length).Trim();int gp=hy.IndexOf('=');if(gp<0)throw new FormatException("missing '=' in @bind");
-string kS=hy.Substring(0,gp).Trim();string gr=hy.Substring(gp+1).Trim();int hl=gr.IndexOf('(');if(hl<0)throw new FormatException("missing '(' in @bind target");
-string ep=gr.Substring(0,hl).Trim().ToLowerInvariant();string nq=ao(gr,hl);var a7=ap(nq);if(a7.Count==0)throw new FormatException("@bind target has no arguments");
-var ad=new aJ{N=kS};if(ep=="dynamic"||ep=="var"||ep=="mem"){ad.aX=av.cF;ad.aL=a7.Count>0 ? W(a7[0].Trim()): kS;
-for(int fN=0;fN<a7.Count;fN++){var eE=a7[fN].Split(new[]{':'},2);if(eE.Length==2&&eE[0].Trim().Equals("default",StringComparison.OrdinalIgnoreCase)){double jK;
-if(double.TryParse(eE[1].Trim(),System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out jK))ad.dP=jK;else ad.fq=W(eE[1].Trim());
-}}return ad;}ad.aX=ep=="group" ? av.fs : av.me;string d4=null;for(int d3=0;d3<a7.Count;d3++){var g_=a7[d3].Split(new[]{':'},2);if(g_.Length==2&&g_[0].Trim().Equals("agg",StringComparison.OrdinalIgnoreCase)){
-d4=g_[1].Trim().ToLowerInvariant();}else{ad.aq.Add(W(a7[d3].Trim()));}}if(ad.aq.Count==0)throw new FormatException("@bind target requires at least one block or group name");
-if(ad.aX==av.fs){if(d4==null)throw new FormatException("group bind requires an explicit 'agg:' (avg/sum/min/max) — no default is assumed (PDR §6)");
-switch(d4){case "avg": ad.cu=ak.fl;break;case "sum": ad.cu=ak.iQ;break;case "min": ad.cu=ak.iG;break;case "max": ad.cu=ak.iF;
-break;default: throw new FormatException($"unknown agg '{d4}' (expected avg/sum/min/max)");}}return ad;}static bq mP(string ea){var m=new bq();
-if(!ea.StartsWith("\""))throw new FormatException("line must start with a quoted label");int gn=ea.IndexOf('"',1);if(gn<0)throw new FormatException("unterminated quoted label");
-m.L=ea.Substring(1,gn-1);string dv=ea.Substring(gn+1).Trim();int eM=dv.IndexOf('(');if(eM<0)throw new FormatException("missing display function, e.g. bar(...)/text(...)");
-string w=dv.Substring(0,eM).Trim().ToLowerInvariant();string nm=ao(dv,eM);string Q=dv.Substring(dv.IndexOf(')',eM)+1).Trim();
-var gk=nm.Trim().Split('.');if(gk.Length!=2)throw new FormatException("expected 'bindname.field' inside display function, e.g. power.percent");
-m.aT=gk[0].Trim();m.G=gk[1].Trim();if(w=="bar")m.e=d.cx;else if(w=="led")m.e=d.cK;else if(w=="spark"||w=="sparkline")m.e=d.bt;
-else if(w=="hazard"||w=="stripes")m.e=d.cI;else if(w=="chevron"||w=="chevrons")m.e=d.cB;else if(w=="dots"||w=="dot")m.e=d.cE;
-else if(w=="balance"||w=="horizon"||w=="centered")m.e=d.bJ;else if(w=="toggle"||w=="switch")m.e=d.bT;else if(w=="checkbox"||w=="check")m.e=d.bL;
-else if(w=="status"||w=="badge"||w=="state")m.e=d.bS;else if(w=="ammo"||w=="pips")m.e=d.bI;else if(w=="flow"||w=="rate"||w=="spinner")m.e=d.bM;
-else if(w=="text")m.e=d.iS;else throw new FormatException($"unknown display function '{w}'");while(Q.Length>0){int gi=Q.IndexOf("dir:",StringComparison.OrdinalIgnoreCase);
-int b8=Q.IndexOf('(');if(gi>=0&&(b8<0||gi<b8)){string eg=Q.Substring(gi+4).Trim();int e1=eg.IndexOf(' ');m.il=(e1>=0 ? eg.Substring(0,e1): eg).ToLowerInvariant();
-Q=(e1>=0 ? eg.Substring(e1): "").Trim();continue;}int h7=Q.IndexOf("unit:",StringComparison.OrdinalIgnoreCase);if(h7>=0&&(b8<0||h7<b8)){
-string fi=Q.Substring(h7+5).Trim();int e2=fi.IndexOf(' ');m.cR=(e2>=0 ? fi.Substring(0,e2): fi).Trim().Trim('"');Q=(e2>=0 ? fi.Substring(e2): "").Trim();
-continue;}int gw=Q.IndexOf("format:",StringComparison.OrdinalIgnoreCase);if(gw>=0&&(b8<0||gw<b8)){string ek=Q.Substring(gw+7).Trim();
-int e3=ek.IndexOf(' ');m.cG=(e3>=0 ? ek.Substring(0,e3): ek).Trim().Trim('"');Q=(e3>=0 ? ek.Substring(e3): "").Trim();continue;}int eG=Q.IndexOf('(');
-if(eG<0)break;string ae=Q.Substring(0,eG).Trim().ToLowerInvariant();int kF=ae.LastIndexOf(' ');if(kF>=0)ae=ae.Substring(kF+1).Trim();
-string bf=ao(Q,eG);Q=Q.Substring(Q.IndexOf(')',eG)+1).Trim();if(ae=="gradient"){m.cH=true;m.bO=ap(bf).Select(pu=>pu.Trim()).ToArray();
-if(m.bO.Length<2)throw new FormatException("gradient() needs at least 2 colors");}else if(ae=="flat"){m.ag=bf.Trim();}else if(ae=="pattern"){
-string F=bf.Trim().ToLowerInvariant();if(F=="hazard"||F=="stripes")m.e=d.cI;else if(F=="chevron"||F=="chevrons")m.e=d.cB;
-else if(F=="dots"||F=="dot")m.e=d.cE;else if(F=="led")m.e=d.cK;else if(F=="balance"||F=="horizon")m.e=d.bJ;
-else if(F=="toggle"||F=="switch")m.e=d.bT;else if(F=="checkbox"||F=="check")m.e=d.bL;else if(F=="status"||F=="badge"||F=="state")m.e=d.bS;
-else if(F=="ammo"||F=="pips")m.e=d.bI;else if(F=="flow"||F=="rate"||F=="spinner")m.e=d.bM;}else if(ae=="color"){m.aU=new List<cD>();
-foreach(var hm in ap(bf)){int gf=hm.LastIndexOf(':');if(gf<0)throw new FormatException("color() entries need 'expr : color'");string kH=hm.Substring(0,gf).Trim();
-string jF=hm.Substring(gf+1).Trim();if(kH.Equals("default",StringComparison.OrdinalIgnoreCase)){m.aU.Add(new cD{dS=true,dO=jF}
-);}else{string pM=ne(kH);m.aU.Add(new cD{ip=pM,dO=jF});}}if(!m.aU.Any(pi=>pi.dS))throw new FormatException("color() requires a 'default:' fallback entry — PDR-consistent decision: no silent fallback color assumed");
-}else if(ae=="dir"||ae=="direction"){m.il=bf.Trim().ToLowerInvariant();}else if(ae=="unit"){m.cR=bf.Trim().Trim('"');}else if(ae=="max"){
-m.aY=double.Parse(bf.Trim(),System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture);}else if(ae=="format"||ae=="fmt"){
-m.cG=bf.Trim().Trim('"');}else{throw new FormatException($"unknown modifier '{ae}'");}}return m;}static string ao(string eY,int hc){
-int gh=0;for(int da=hc;da<eY.Length;da++){if(eY[da]=='(')gh++;else if(eY[da]==')'){gh--;if(gh==0)return eY.Substring(hc+1,da-hc-1);
-}}throw new FormatException("unbalanced parentheses");}static List<string>ap(string nr){return nr.Split(',').Select(pv=>pv.Trim()).Where(pw=>pw.Length>0).ToList();
-}static string ne(string b7){b7=b7.Trim();foreach(var oW in new[]{">=","<=","==",">","<"}){int gL=b7.IndexOf(oW,StringComparison.Ordinal);
-if(gL>0)return b7.Substring(gL).Trim();if(gL==0)return b7;}throw new FormatException($"color() rule has no recognizable comparison operator: '{b7}'");}
-static string W(string bB){if(bB.Length>=2&&bB[0]=='"'&&bB[bB.Length-1]=='"')return bB.Substring(1,bB.Length-2);return bB;}}public static class mc{public static double mb(ak nl,List<double>cr){
-if(cr==null||cr.Count==0)throw new InvalidOperationException("cannot aggregate an empty value set");switch(nl){case ak.fl: return cr.Average();case ak.iQ: return cr.Sum();
-case ak.iG: return cr.Min();case ak.iF: return cr.Max();default: throw new InvalidOperationException("Aggregate() called with Agg.None");}}}public static class E{
-public static string m1(string oF,double eO,int jj=10,string l2=null){eO=Math.Max(0,Math.Min(100,eO));int j4=(int)Math.Round(jj*(eO/100.0));
-string nC=new string('#',j4)+new string('-',jj-j4);string p3=l2!=null ? l2 : $"{eO:0}%";return $"{oF} [{nC}] {p3}";
-}public static string mx(double bl,string h6=null,string eo=null){if(h6=="auto"){double fO=Math.Abs(bl);if(fO>=1e9)return(bl/1e9).ToString("F1")+"G";
-if(fO>=1e6)return(bl/1e6).ToString("F1")+"M";if(fO>=1e3)return(bl/1e3).ToString("F1")+"k";string n3= !string.IsNullOrEmpty(eo)? eo : "F0";return bl.ToString(n3);
-}string j6= !string.IsNullOrEmpty(eo)? eo :(Math.Abs(bl)>=100.0 ? "F0" : "F1");if(string.IsNullOrEmpty(h6)){return bl.ToString(j6);}return bl.ToString(j6)+h6;
-}public static float mz(string pa,float lG,float hZ,float eh=1.0f){string cg=(pa ?? "standard").ToLowerInvariant();
-if(cg=="compact"||(cg=="auto"&&lG<=300&&hZ<=300&&hZ>160)){return eh*0.75f;}if(cg=="corner"||(cg=="auto"&&hZ<=160)){
-return eh*0.55f;}if(cg=="wide"||(cg=="auto"&&lG>=1000)){return eh*1.15f;}return eh;}public static string m_(string oG,double eP,int bb=5){
-eP=Math.Max(0,Math.Min(100,eP));double ei=(eP-50.0)/50.0;int dh=0;int dy=0;if(ei< -0.01)dh=(int)Math.Round(-ei*bb);
-else if(ei>0.01)dy=(int)Math.Round(ei*bb);if(dh>bb)dh=bb;if(dy>bb)dy=bb;string oJ=new string('-',bb-dh)+new string('<',dh);
-string po=new string('>',dy)+new string('-',bb-dy);return $"{oG} [{oJ}|{po}] {eP:0}%";}public static string na(string kC,double p5){
-return p5>=50.0 ? $"{kC} [====O] ON" : $"{kC} [O====] OFF";}public static string m4(string kD,double p6){return p6>=50.0 ? $"{kD} [X] ACTIVE" : $"{kD} [ ] READY ";
-}public static string m9(string g1,double l1){if(l1>=75.0)return $"{g1} [ ONLINE  ]";if(l1>=25.0)return $"{g1} [ STANDBY ]";return $"{g1} [ OFFLINE ]";
-}public static string mZ(string oH,double eQ,int kK=8){eQ=Math.Max(0,Math.Min(100,eQ));int j5=(int)Math.Round(kK*(eQ/100.0));
-string o7=new string('|',j5)+new string('.',kK-j5);return $"{oH} [{o7}] {eQ:0}%";}public static string m5(string g2,double dt,int lQ=0){
-char[]pH=new[]{'|','/','-','\\'};char lk=pH[(lQ>=0 ? lQ : 0)%4];if(dt>55.0)return $"{g2} {lk} ▲ CHG {dt:0}%";if(dt<45.0)return $"{g2} {lk} ▼ DSC {dt:0}%";
-return $"{g2} ● STBY {dt:0}%";}public static bool mI(string af,string dd){if(af==null||dd==null)return false;if(af=="*"||af==dd)return true;
-if(!af.Contains("*")&& !af.Contains("?"))return string.Equals(af,dd,StringComparison.OrdinalIgnoreCase);int aj=0,db=0,hS= -1,g6=0;while(db<dd.Length){
-if(aj<af.Length&&(af[aj]=='?'||char.ToLowerInvariant(af[aj])==char.ToLowerInvariant(dd[db]))){aj++;db++;}else if(aj<af.Length&&af[aj]=='*'){
-hS=aj;g6=db;aj++;}else if(hS!= -1){aj=hS+1;g6++;db=g6;}else{return false;}}while(aj<af.Length&&af[aj]=='*')aj++;return aj==af.Length;
-}public static int mg(double oZ,int lU){return Math.Max(0,Math.Min(lU,1+(int)(Math.Max(0.0,oZ)*lU)));}public static string dR(string[]co,double hn){
-if(co==null||co.Length==0)return "white";hn=Math.Max(0,Math.Min(100,hn));int gM=(int)Math.Floor(hn/100.0*co.Length);if(gM>=co.Length)gM=co.Length-1;
-return co[gM];}public static j mA(string[]bk,double o4){if(bk==null||bk.Length==0)return j.dX;if(bk.Length==1)return j.bR(bk[0]);
-double pl=Math.Max(0.0,Math.Min(1.0,o4/100.0));double lo=pl*(bk.Length-1);int gN=(int)Math.Floor(lo);int om=Math.Min(bk.Length-1,gN+1);
-double hW=lo-gN;j b3=j.bR(bk[gN]);j f9=j.bR(bk[om]);byte pj=(byte)Math.Round(b3.a0+(f9.a0-b3.a0)*hW);
-byte oh=(byte)Math.Round(b3.aW+(f9.aW-b3.aW)*hW);byte nA=(byte)Math.Round(b3.aS+(f9.aS-b3.aS)*hW);return new j(pj,oh,nA);}public static string iL(List<cD>lg,double p7){
-foreach(var hA in lg){if(hA.dS)continue;if(mv(hA.ip,p7))return hA.dO;}var jJ=lg.FirstOrDefault(pk=>pk.dS);return jJ!=null ? jJ.dO : null;
-}static bool mv(string c5,double dH){c5=c5.Trim();foreach(var hb in new[]{">=","<=","==",">","<"}){if(c5.StartsWith(hb)){double dx=double.Parse(c5.Substring(hb.Length).Trim(),System.Globalization.CultureInfo.InvariantCulture);
-switch(hb){case ">=": return dH>=dx;case "<=": return dH<=dx;case "==": return Math.Abs(dH-dx)<1e-9;case ">": return dH>dx;case "<": return dH<dx;
-}}}throw new FormatException($"unsupported comparison expression: '{c5}'");}public static List<string>m3(List<string>nS,int cs){
-var eI=new List<string>();eI.Add("+"+new string('-',cs+2)+"+");foreach(var g4 in nS){string pZ=g4.Length>cs ? g4.Substring(0,cs): g4;
-string o_=pZ.PadRight(cs);eI.Add("| "+o_+" |");}eI.Add("+"+new string('-',cs+2)+"+");return eI;}public struct iJ{public float iZ,i_,iY,iy;
-}public static iJ ml(int jD,int le,int e4,int e5,int dE,int dF,float pQ,float pP,float k0,float k1,float gD,float gE){
-dE=Math.Max(1,dE);dF=Math.Max(1,dF);e4=Math.Max(1,Math.Min(dE-jD,e4));e5=Math.Max(1,Math.Min(dF-le,e5));
-float nt=pQ-(k0*2f);float ns=pP-(k1*2f);float jy=(nt-(gD*(dE-1)))/dE;float jx=(ns-(gE*(dF-1)))/dF;
-float pc=k0+jD*(jy+gD);float pd=k1+le*(jx+gE);float pb=e4*jy+((e4-1)*gD);float o5=e5*jx+((e5-1)*gE);return new iJ{
-iZ=pc,i_=pd,iY=pb,iy=o5};}public struct iM{public int mL;public int fu;public int P;public int ah;public int cQ;
-public int aw;public int nf;public int ng;public int ms;public int mt;
-public double mu;}public static iM mm(z bi){var g=new iM();var k3=bi.ay!=null&&bi.ay.Count>0 ? bi.ay : new List<al>{
-new al{aM=bi.fv}};g.mL=k3.Count;g.fu=0;g.P=0;g.ah=0;if(!string.IsNullOrEmpty(bi.bm)&& !bi.bm.Equals("none",StringComparison.OrdinalIgnoreCase))g.P++;
-if(!string.IsNullOrEmpty(bi.cA)&& !bi.cA.Equals("none",StringComparison.OrdinalIgnoreCase))g.P+=2;foreach(var dm in k3){
-if(!string.IsNullOrEmpty(dm.cv)&& !dm.cv.Equals("none",StringComparison.OrdinalIgnoreCase))g.P++;if(!string.IsNullOrEmpty(dm.bu))g.P+=2;
-g.fu+=dm.aM.Count;foreach(var oE in dm.aM){g.nf++;g.ng++;g.P+=2;switch(oE.e){case d.cx: g.cQ++;
-g.aw++;g.P+=2;g.ah++;break;case d.cK: g.aw+=10;g.P+=10;
-g.ah+=10;break;case d.cI: g.aw+=10;g.P+=11;g.ah+=10;break;case d.cB: g.aw+=10;
-g.P+=10;g.ah+=10;break;case d.cE: g.aw+=12;g.P+=12;g.ah+=12;
-break;case d.bt: g.cQ++;g.aw+=8;g.P+=9;g.ah+=8;break;case d.bJ: g.cQ+=2;
-g.aw++;g.P+=3;g.ah++;break;case d.bT: case d.bL: g.cQ++;
-g.aw++;g.P+=2;g.ah++;break;case d.bS: case d.bM: g.cQ++;g.aw+=2;
-g.P+=3;g.ah+=2;break;case d.bI: g.aw+=8;g.P+=8;g.ah+=8;
-break;default: g.ah++;break;}}}g.ms=25+(g.fu*2);g.mt=180+(g.ah*4);
-g.mu=0.0;return g;}}
+line:""ENERGY"" bar(pwr_$screen.percent) dir:up");}public static void a3(string k9,string[]pj,string nZ){var ff=new a5{fF=k9}
+;foreach(var pe in pj){var ha=pe.Split(new[]{'='},2);string lh=fG(ha[0]);ff.d_.Add(lh);if(ha.Length>1)ff.fA[lh]=Z(ha[1].Trim());
+}var o7=nZ.Replace("\r\n","\n").Split('\n');foreach(var oV in o7){string lA=oV.Trim();if(lA.Length>0)ff.fv.Add(lA);}iC[k9]=ff;}static string fG(string ci){
+ci=ci.Trim();if(ci.StartsWith("$"))ci=ci.Substring(1);return ci.ToLowerInvariant();}public static fI m3(string ob){var ad=new fI();z e=null;
+am u=null;var lr=m9(ob,ad.ay,ad.cz);for(int de=0;de<lr.Count;de++){string c=lr[de].Trim();
+if(c.Length==0)continue;try{if(c.StartsWith("@bind")){ad.bq.Add(m4(c));}else if(c.StartsWith("@screen")){e=new z{a1=c.Substring("@screen".Length).Trim()}
+;ad.R.Add(e);u=null;}else if(c.StartsWith("profile:")){t(e,"profile:");e.bu=c.Substring("profile:".Length).Trim().ToLowerInvariant();
+}else if(c.StartsWith("border:")){t(e,"border:");string jz=c.Substring("border:".Length).Trim();if(u!=null)u.iB=jz;
+else e.cD=jz;}else if(c.StartsWith("border_color:")){t(e,"border_color:");string jC=c.Substring("border_color:".Length).Trim();
+if(u!=null)u.fx=jC;else e.dT=jC;}else if(c.StartsWith("border_gradient:")||c.StartsWith("border_gradient(")){
+t(e,"border_gradient");string bA=c.StartsWith("border_gradient:")? c.Substring("border_gradient:".Length): c.Substring("border_gradient".Length);
+bA=bA.Trim();if(bA.StartsWith("(")&&bA.Contains(")"))bA=ap(bA,0);string[]lV=aq(bA).Select(pJ=>pJ.Trim()).ToArray();if(u!=null)u.fy=lV;
+else e.aM=lV;}else if(c.StartsWith("title_align:")){t(e,"title_align:");string l1=c.Substring("title_align:".Length).Trim().ToLowerInvariant();
+if(u!=null)u.fN=l1;else e.ja=l1;}else if(c.StartsWith("title_color:")){t(e,"title_color:");string l4=c.Substring("title_color:".Length).Trim();
+if(u!=null)u.fO=l4;else e.jb=l4;}else if(c.StartsWith("font_size:")){t(e,"font_size:");float l_=float.Parse(c.Substring("font_size:".Length).Trim(),System.Globalization.CultureInfo.InvariantCulture);
+if(u!=null)u.iL=l_;else e.bQ=l_;}else if(c.StartsWith("font:")){t(e,"font:");string kh=c.Substring("font:".Length).Trim();
+if(u!=null)u.iJ=kh;else e.iK=kh;}else if(c.StartsWith("bg:")||c.StartsWith("background:")){t(e,"bg:");string jH=c.Substring(c.IndexOf(':')+1).Trim();
+if(u!=null)u.cy=jH;else e.bo=jH;}else if(c.StartsWith("layout:")){t(e,"layout:");m5(c.Substring("layout:".Length).Trim(),e);
+}else if(c.StartsWith("refresh:")){t(e,"refresh:");e.ne=int.Parse(c.Substring("refresh:".Length).Trim());}else if(c.StartsWith("output:")){
+t(e,"output:");var eU=aq(c.Substring("output:".Length).Trim());if(eU.Count==0)throw new FormatException("output: requires a target block name");
+e.a2=Z(eU[0]);e.bt=eU.Count>1 ? int.Parse(eU[1]): 0;}else if(c.StartsWith("width:")){t(e,"width:");
+e.je=int.Parse(c.Substring("width:".Length).Trim());}else if(c.StartsWith("boot_msg:")||c.StartsWith("boot:")){t(e,"boot_msg:");
+e.iz=Z(c.Substring(c.IndexOf(':')+1).Trim());}else if(c.StartsWith("boot_stagger:")){t(e,"boot_stagger:");e.iA=int.Parse(c.Substring("boot_stagger:".Length).Trim());
+}else if(c.StartsWith("boot_batch:")){t(e,"boot_batch:");e.ix=Math.Max(1,int.Parse(c.Substring("boot_batch:".Length).Trim()));
+}else if(c.StartsWith("boot_duration:")){t(e,"boot_duration:");string c4=c.Substring("boot_duration:".Length).Trim().ToLowerInvariant();
+bool kI=c4.EndsWith("s");if(kI)c4=c4.Substring(0,c4.Length-1).Trim();float gy;if(float.TryParse(c4,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out gy)){
+e.fw=kI ? gy : gy/60f;}}else if(c.StartsWith("boot_log:")){t(e,"boot_log:");e.dS.Add(Z(c.Substring("boot_log:".Length).Trim()));
+}else if(c.StartsWith("banner:")){t(e,"banner:");e.bp=Z(c.Substring("banner:".Length).Trim());}else if(c.StartsWith("boot_logo:")){
+t(e,"boot_logo:");e.br=Z(c.Substring("boot_logo:".Length).Trim());}else if(c.StartsWith("boot_gradient:")||c.StartsWith("boot_gradient(")||c.StartsWith("banner_gradient:")||c.StartsWith("banner_gradient(")){
+t(e,"boot_gradient");e.dR=i0(c);}else if(c.StartsWith("bg_gradient:")||c.StartsWith("bg_gradient(")){t(e,"bg_gradient");
+e.dQ=i0(c);}else if(c.StartsWith("panel_bg:")){t(e,"panel_bg:");e.fH=c.Substring("panel_bg:".Length).Trim();
+}else if(c.StartsWith("alert_bg:")){t(e,"alert_bg:");e.iv=c.Substring("alert_bg:".Length).Trim();}else if(c.StartsWith("boot_color:")||c.StartsWith("banner_color:")){
+t(e,"boot_color:");e.iy=c.Substring(c.IndexOf(':')+1).Trim();}else if(c.StartsWith("orientation:")){t(e,"orientation:");
+string pc=c.Substring("orientation:".Length).Trim().ToLowerInvariant();if(u!=null)u.iY=pc;}else if(c.StartsWith("@panel")){t(e,"@panel");
+u=m7(c);e.az.Add(u);}else if(c.StartsWith("title:")){t(e,"title:");if(u==null){u=new am{
+cP="main",cF=0,cQ=0,cR=e.bS,cS=e.bT};e.az.Add(u);}u.bw=Z(c.Substring("title:".Length).Trim());
+}else if(c.StartsWith("line:")){t(e,"line:");if(u==null){u=new am{cP="main",cF=0,cQ=0,cR=e.bS,cS=e.bT}
+;e.az.Add(u);}u.aP.Add(m6(c.Substring("line:".Length).Trim()));}else{ad.ay.Add($"Line {de + 1}: unrecognized directive: \"{c}\"");
+}}catch(Exception oi){ad.ay.Add($"Line {de + 1}: parse error ({oi.Message}) in \"{c}\"");}}foreach(var lB in ad.R){if(string.IsNullOrEmpty(lB.a2))ad.ay.Add($"@screen {lB.a1}: missing required 'output:' — a screen must declare which physical block/surface it renders to");
+}foreach(var aG in ad.R){if(aG.bp!=null&& !ad.cz.ContainsKey(aG.bp))ad.ay.Add("Screen '"+aG.a1+"': banner '"+aG.bp+"' is not defined (@banner "+aG.bp+" ... @end)");
+if(aG.br!=null&& !ad.cz.ContainsKey(aG.br))ad.ay.Add("Screen '"+aG.a1+"': boot_logo '"+aG.br+"' is not defined (@banner "+aG.br+" ... @end)");
+}return ad;}static void m5(string gg,z lI){int hx=gg.IndexOf('(');if(hx<0)throw new FormatException("missing '(' in layout: specification");
+string kP=gg.Substring(0,hx).Trim().ToLowerInvariant();string nF=ap(gg,hx);var f2=aq(nF);if(kP=="grid"){if(f2.Count<2)throw new FormatException("layout: grid(cols, rows) requires 2 arguments");
+lI.bS=Math.Max(1,int.Parse(f2[0]));lI.bT=Math.Max(1,int.Parse(f2[1]));}else{throw new FormatException($"unknown layout kind '{kP}' (expected grid)");
+}}static am m7(string o2){string dB=o2.Substring("@panel".Length).Trim();int ed=dB.IndexOf("at(",StringComparison.OrdinalIgnoreCase);if(ed<0)throw new FormatException("@panel requires an at(...) positioning clause");
+string pa=dB.Substring(0,ed).Trim();string jw=dB.Substring(ed);int ln=jw.IndexOf('(');string ju=ap(jw,ln);
+var bz=aq(ju);if(bz.Count<2)throw new FormatException("at(col, row) requires at least 2 numbers");var aT=new am{cP=pa,cF=int.Parse(bz[0]),cQ=int.Parse(bz[1]),cR=bz.Count>2 ? int.Parse(bz[2]): 1,cS=bz.Count>3 ? int.Parse(bz[3]): 1}
+;int jo=ed+ln+ju.Length+1;if(jo<dB.Length){string ao=dB.Substring(jo).Trim();int l9=ao.IndexOf("title",StringComparison.OrdinalIgnoreCase);
+if(l9>=0){string dH=ao.Substring(l9+5).Trim();if(dH.StartsWith("(")&&dH.Contains(")"))aT.bw=Z(ap(dH,0));else if(dH.StartsWith(":")){
+string bB=dH.Substring(1).Trim();if(bB.StartsWith("\"")){int kd=bB.IndexOf('"',1);aT.bw=kd>0 ? bB.Substring(1,kd-1): Z(bB);}else{int lR=bB.IndexOf(' ');
+aT.bw=lR>=0 ? bB.Substring(0,lR): bB;}}}string lc=dW(ao,"orientation:");if(lc!=null)aT.iY=lc.ToLowerInvariant();string jn=dW(ao,"title_align:");
+if(jn!=null)aT.fN=jn.ToLowerInvariant();string l6=dW(ao,"title_color:");if(l6!=null)aT.fO=l6;int ei=ao.IndexOf("border:",StringComparison.OrdinalIgnoreCase);
+if(ei>=0&& !ao.Substring(ei).StartsWith("border_gradient:",StringComparison.OrdinalIgnoreCase)&& !ao.Substring(ei).StartsWith("border_color:",StringComparison.OrdinalIgnoreCase)){
+aT.iB=dW(ao.Substring(ei),"border:");}int eg=ao.IndexOf("border_gradient:",StringComparison.OrdinalIgnoreCase);if(eg<0)eg=ao.IndexOf("border_gradient(",StringComparison.OrdinalIgnoreCase);
+if(eg>=0){string bc=ao.Substring(eg+"border_gradient".Length).Trim();if(bc.StartsWith(":"))bc=bc.Substring(1).Trim();if(bc.StartsWith("(")&&bc.Contains(")"))bc=ap(bc,0);
+aT.fy=aq(bc).Select(pK=>pK.Trim()).ToArray();}}return aT;}static string dW(string lC,string kO){int kH=lC.IndexOf(kO,StringComparison.OrdinalIgnoreCase);
+if(kH<0)return null;string ip=lC.Substring(kH+kO.Length).Trim();int lS=ip.IndexOf(' ');return lS>=0 ? ip.Substring(0,lS): ip;}static string[]i0(string hh){
+int gO=hh.IndexOfAny(new[]{':','('});string da=hh.Substring(hh[gO]==':' ? gO+1 : gO).Trim();if(da.StartsWith("(")&&da.Contains(")"))da=ap(da,0);return aq(da).Select(pL=>pL.Trim()).ToArray();
+}static List<string>m9(string oc,List<string>gC,Dictionary<string,List<string>>nT){var me=new Dictionary<string,a5>(StringComparer.OrdinalIgnoreCase);
+var cm=(oc ?? "").Replace("\r\n","\n").Split('\n');var hs=new List<string>();int ce=0;while(ce<cm.Length){string hK=cm[ce++];if(hK.TrimStart().StartsWith("@banner ",StringComparison.OrdinalIgnoreCase)){
+var _=new List<string>();while(ce<cm.Length){string jl=cm[ce++].Replace("\t","    ").TrimEnd();if(jl.Trim().Equals("@end",StringComparison.OrdinalIgnoreCase))break;
+_.Add(jl);}while(_.Count>0&&_[0].Length==0)_.RemoveAt(0);while(_.Count>0&&_[_.Count-1].Length==0)_.RemoveAt(_.Count-1);int g1=int.MaxValue;
+foreach(var fW in _)if(fW.Length>0)g1=Math.Min(g1,fW.Length-fW.TrimStart().Length);for(int dl=0;dl<_.Count;dl++)if(_[dl].Length>0)_[dl]=_[dl].Substring(g1);
+nT[hK.TrimStart().Substring(8).Trim()]=_;continue;}string bg=i6(hK).Trim();if(bg.Length==0)continue;if(bg.StartsWith("@template")){try{
+var ig=m8(bg);while(ce<cm.Length){string n0=cm[ce++];string gh=i6(n0).Trim();if(gh.Equals("@end",StringComparison.OrdinalIgnoreCase))break;
+if(gh.Length>0)ig.fv.Add(gh);}me[ig.fF]=ig;}catch(Exception oj){gC.Add($"Template parse error ({oj.Message}) in \"{bg}\"");}}
+else if(bg.StartsWith("@use")){try{iF(bg,me,hs,gC);}catch(Exception ok){gC.Add($"@use error ({ok.Message}) in \"{bg}\"");
+}}else{hs.Add(bg);}}return hs;}static a5 m8(string o3){string hL=o3.Substring("@template".Length).Trim();int hy=hL.IndexOf('(');
+if(hy<0)throw new FormatException("missing '(' in @template header");string pb=hL.Substring(0,hy).Trim();string nG=ap(hL,hy);var ih=new a5{
+fF=pb};foreach(var pf in aq(nG)){var hb=pf.Split(new[]{'='},2);string li=fG(hb[0]);ih.d_.Add(li);if(hb.Length>1)ih.fA[li]=Z(hb[1].Trim());
+}return ih;}static void iF(string o4,Dictionary<string,a5>mf,List<string>lf,List<string>oh,int j3=0){string e1=o4.Substring("@use".Length).Trim();
+int eS=e1.IndexOf('(');string hl=eS>=0 ? e1.Substring(0,eS).Trim(): e1.Trim();string nH=eS>=0 ? ap(e1,eS): "";a5 cs=null;
+if(!mf.TryGetValue(hl,out cs)){if(!iC.TryGetValue(hl,out cs))throw new FormatException($"unknown template '{hl}'");}var ek=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
+foreach(var kT in cs.fA)ek[kT.Key]=kT.Value;var jt=aq(nH);for(int cZ=0;cZ<jt.Count;cZ++){string eb=jt[cZ];int gA=eb.IndexOf('=');if(gA>=0){
+string oN=fG(eb.Substring(0,gA));string qk=Z(eb.Substring(gA+1).Trim());ek[oN]=qk;}else{if(cZ<cs.d_.Count){string oO=cs.d_[cZ];
+ek[oO]=Z(eb.Trim());}}}foreach(var n_ in cs.fv){string c7=n_;foreach(var eK in ek){c7=c7.Replace("$"+eK.Key,eK.Value).Replace("{"+eK.Key+"}",eK.Value);
+}if(c7.StartsWith("@use")){if(j3>3)throw new FormatException("@use nested too deep");iF(c7,mf,lf,oh,j3+1);
+}else lf.Add(c7);}}static void t(z oa,string oe){if(oa==null)throw new FormatException($"'{oe}' used before any @screen declared");
+}static string i6(string aF){if(string.IsNullOrEmpty(aF))return aF;bool g0=false;for(int bf=0;bf<aF.Length;bf++){char gk=aF[bf];if(gk=='"'){g0= !g0;
+}else if(!g0){if(gk=='/'&&bf+1<aF.Length&&aF[bf+1]=='/'){return aF.Substring(0,bf);}if(gk=='#'){if(mW(aF,bf)){continue;}return aF.Substring(0,bf);}}}return aF;
+}static bool mW(string bC,int kK){int cg=0;for(int gX=kK+1;gX<bC.Length;gX++){char b4=bC[gX];if((b4>='0'&&b4<='9')||(b4>='a'&&b4<='f')||(b4>='A'&&b4<='F'))cg++;
+else break;}if(cg==3||cg==4||cg==6||cg==8){int dp=kK+1+cg;if(dp>=bC.Length||char.IsWhiteSpace(bC[dp])||bC[dp]==')'||bC[dp]==','||bC[dp]==':')return true;
+}return false;}static aL m4(string o5){string hM=o5.Substring("@bind".Length).Trim();int gB=hM.IndexOf('=');if(gB<0)throw new FormatException("missing '=' in @bind");
+string la=hM.Substring(0,gB).Trim();string gD=hM.Substring(gB+1).Trim();int hz=gD.IndexOf('(');if(hz<0)throw new FormatException("missing '(' in @bind target");
+string ew=gD.Substring(0,hz).Trim().ToLowerInvariant();string nI=ap(gD,hz);var a9=aq(nI);if(a9.Count==0)throw new FormatException("@bind target has no arguments");
+var ae=new aL{P=la};if(ew=="dynamic"||ew=="var"||ew=="mem"){ae.a_=aw.cI;ae.aN=a9.Count>0 ? Z(a9[0].Trim()): la;
+for(int fX=0;fX<a9.Count;fX++){var eL=a9[fX].Split(new[]{':'},2);if(eL.Length==2&&eL[0].Trim().Equals("default",StringComparison.OrdinalIgnoreCase)){double j2;
+if(double.TryParse(eL[1].Trim(),System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out j2))ae.dV=j2;else ae.fz=Z(eL[1].Trim());
+}}return ae;}ae.a_=ew=="group" ? aw.fB : aw.mx;string ea=null;for(int d9=0;d9<a9.Count;d9++){var hc=a9[d9].Split(new[]{':'},2);if(hc.Length==2&&hc[0].Trim().Equals("agg",StringComparison.OrdinalIgnoreCase)){
+ea=hc[1].Trim().ToLowerInvariant();}else{ae.ar.Add(Z(a9[d9].Trim()));}}if(ae.ar.Count==0)throw new FormatException("@bind target requires at least one block or group name");
+if(ae.a_==aw.fB){if(ea==null)throw new FormatException("group bind requires an explicit 'agg:' (avg/sum/min/max) — no default is assumed (PDR §6)");
+switch(ea){case "avg": ae.cx=al.fu;break;case "sum": ae.cx=al.i7;break;case "min": ae.cx=al.iX;break;case "max": ae.cx=al.iW;
+break;default: throw new FormatException($"unknown agg '{ea}' (expected avg/sum/min/max)");}}return ae;}static bs m6(string eh){var n=new bs();
+if(!eh.StartsWith("\""))throw new FormatException("line must start with a quoted label");int gz=eh.IndexOf('"',1);if(gz<0)throw new FormatException("unterminated quoted label");
+n.N=eh.Substring(1,gz-1);string dA=eh.Substring(gz+1).Trim();int eT=dA.IndexOf('(');if(eT<0)throw new FormatException("missing display function, e.g. bar(...)/text(...)");
+string x=dA.Substring(0,eT).Trim().ToLowerInvariant();string nE=ap(dA,eT);string T=dA.Substring(dA.IndexOf(')',eT)+1).Trim();
+var gw=nE.Trim().Split('.');if(gw.Length!=2)throw new FormatException("expected 'bindname.field' inside display function, e.g. power.percent");
+n.aX=gw[0].Trim();n.I=gw[1].Trim();if(x=="bar")n.g=d.cA;else if(x=="led")n.g=d.cN;else if(x=="spark"||x=="sparkline")n.g=d.bv;
+else if(x=="hazard"||x=="stripes")n.g=d.cL;else if(x=="chevron"||x=="chevrons")n.g=d.cE;else if(x=="dots"||x=="dot")n.g=d.cH;
+else if(x=="balance"||x=="horizon"||x=="centered")n.g=d.bK;else if(x=="toggle"||x=="switch")n.g=d.bW;else if(x=="checkbox"||x=="check")n.g=d.bO;
+else if(x=="status"||x=="badge"||x=="state")n.g=d.bV;else if(x=="ammo"||x=="pips")n.g=d.bJ;else if(x=="flow"||x=="rate"||x=="spinner")n.g=d.bP;
+else if(x=="text")n.g=d.i9;else throw new FormatException($"unknown display function '{x}'");while(T.Length>0){int gu=T.IndexOf("dir:",StringComparison.OrdinalIgnoreCase);
+int ca=T.IndexOf('(');if(gu>=0&&(ca<0||gu<ca)){string en=T.Substring(gu+4).Trim();int e8=en.IndexOf(' ');n.iD=(e8>=0 ? en.Substring(0,e8): en).ToLowerInvariant();
+T=(e8>=0 ? en.Substring(e8): "").Trim();continue;}int im=T.IndexOf("unit:",StringComparison.OrdinalIgnoreCase);if(im>=0&&(ca<0||im<ca)){
+string fp=T.Substring(im+5).Trim();int e9=fp.IndexOf(' ');n.cU=(e9>=0 ? fp.Substring(0,e9): fp).Trim().Trim('"');T=(e9>=0 ? fp.Substring(e9): "").Trim();
+continue;}int gI=T.IndexOf("format:",StringComparison.OrdinalIgnoreCase);if(gI>=0&&(ca<0||gI<ca)){string er=T.Substring(gI+7).Trim();
+int fa=er.IndexOf(' ');n.cJ=(fa>=0 ? er.Substring(0,fa): er).Trim().Trim('"');T=(fa>=0 ? er.Substring(fa): "").Trim();continue;}int eN=T.IndexOf('(');
+if(eN<0)break;string af=T.Substring(0,eN).Trim().ToLowerInvariant();int kY=af.LastIndexOf(' ');if(kY>=0)af=af.Substring(kY+1).Trim();
+string bh=ap(T,eN);T=T.Substring(T.IndexOf(')',eN)+1).Trim();if(af=="gradient"){n.cK=true;n.bR=aq(bh).Select(pM=>pM.Trim()).ToArray();
+if(n.bR.Length<2)throw new FormatException("gradient() needs at least 2 colors");}else if(af=="flat"){n.ah=bh.Trim();}else if(af=="pattern"){
+string H=bh.Trim().ToLowerInvariant();if(H=="hazard"||H=="stripes")n.g=d.cL;else if(H=="chevron"||H=="chevrons")n.g=d.cE;
+else if(H=="dots"||H=="dot")n.g=d.cH;else if(H=="led")n.g=d.cN;else if(H=="balance"||H=="horizon")n.g=d.bK;
+else if(H=="toggle"||H=="switch")n.g=d.bW;else if(H=="checkbox"||H=="check")n.g=d.bO;else if(H=="status"||H=="badge"||H=="state")n.g=d.bV;
+else if(H=="ammo"||H=="pips")n.g=d.bJ;else if(H=="flow"||H=="rate"||H=="spinner")n.g=d.bP;}else if(af=="color"){n.aY=new List<cG>();
+foreach(var hA in aq(bh)){int gr=hA.LastIndexOf(':');if(gr<0)throw new FormatException("color() entries need 'expr : color'");string k_=hA.Substring(0,gr).Trim();
+string jY=hA.Substring(gr+1).Trim();if(k_.Equals("default",StringComparison.OrdinalIgnoreCase)){n.aY.Add(new cG{dY=true,dU=jY}
+);}else{string p3=nw(k_);n.aY.Add(new cG{iG=p3,dU=jY});}}if(!n.aY.Any(pA=>pA.dY))throw new FormatException("color() requires a 'default:' fallback entry — PDR-consistent decision: no silent fallback color assumed");
+}else if(af=="dir"||af=="direction"){n.iD=bh.Trim().ToLowerInvariant();}else if(af=="unit"){n.cU=bh.Trim().Trim('"');}else if(af=="max"){
+n.a0=double.Parse(bh.Trim(),System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture);}else if(af=="format"||af=="fmt"){
+n.cJ=bh.Trim().Trim('"');}else{throw new FormatException($"unknown modifier '{af}'");}}return n;}static string ap(string e4,int hq){
+int gt=0;for(int df=hq;df<e4.Length;df++){if(e4[df]=='(')gt++;else if(e4[df]==')'){gt--;if(gt==0)return e4.Substring(hq+1,df-hq-1);
+}}throw new FormatException("unbalanced parentheses");}static List<string>aq(string nJ){return nJ.Split(',').Select(pN=>pN.Trim()).Where(pO=>pO.Length>0).ToList();
+}static string nw(string b9){b9=b9.Trim();foreach(var pd in new[]{">=","<=","==",">","<"}){int gY=b9.IndexOf(pd,StringComparison.Ordinal);
+if(gY>0)return b9.Substring(gY).Trim();if(gY==0)return b9;}throw new FormatException($"color() rule has no recognizable comparison operator: '{b9}'");}
+static string Z(string bD){if(bD.Length>=2&&bD[0]=='"'&&bD[bD.Length-1]=='"')return bD.Substring(1,bD.Length-2);return bD;}}public static class mv{public static double mu(al nD,List<double>cu){
+if(cu==null||cu.Count==0)throw new InvalidOperationException("cannot aggregate an empty value set");switch(nD){case al.fu: return cu.Average();case al.i7: return cu.Sum();
+case al.iX: return cu.Min();case al.iW: return cu.Max();default: throw new InvalidOperationException("Aggregate() called with Agg.None");}}}public static class E{
+public static string nj(string oX,double eV,int jB=10,string ml=null){eV=Math.Max(0,Math.Min(100,eV));int kn=(int)Math.Round(jB*(eV/100.0));
+string nU=new string('#',kn)+new string('-',jB-kn);string ql=ml!=null ? ml : $"{eV:0}%";return $"{oX} [{nU}] {ql}";
+}public static string mQ(double bn,string il=null,string ev=null){if(il=="auto"){double fY=Math.Abs(bn);if(fY>=1e9)return(bn/1e9).ToString("F1")+"G";
+if(fY>=1e6)return(bn/1e6).ToString("F1")+"M";if(fY>=1e3)return(bn/1e3).ToString("F1")+"k";string ol= !string.IsNullOrEmpty(ev)? ev : "F0";return bn.ToString(ol);
+}string kp= !string.IsNullOrEmpty(ev)? ev :(Math.Abs(bn)>=100.0 ? "F0" : "F1");if(string.IsNullOrEmpty(il)){return bn.ToString(kp);}return bn.ToString(kp)+il;
+}public static float mS(string ps,float lZ,float ic,float eo=1.0f){string cj=(ps ?? "standard").ToLowerInvariant();
+if(cj=="compact"||(cj=="auto"&&lZ<=300&&ic<=300&&ic>160)){return eo*0.75f;}if(cj=="corner"||(cj=="auto"&&ic<=160)){
+return eo*0.55f;}if(cj=="wide"||(cj=="auto"&&lZ>=1000)){return eo*1.15f;}return eo;}public static string nh(string oY,double eW,int bd=5){
+eW=Math.Max(0,Math.Min(100,eW));double ep=(eW-50.0)/50.0;int dm=0;int dD=0;if(ep< -0.01)dm=(int)Math.Round(-ep*bd);
+else if(ep>0.01)dD=(int)Math.Round(ep*bd);if(dm>bd)dm=bd;if(dD>bd)dD=bd;string o0=new string('-',bd-dm)+new string('<',dm);
+string pG=new string('>',dD)+new string('-',bd-dD);return $"{oY} [{o0}|{pG}] {eW:0}%";}public static string ns(string kV,double qn){
+return qn>=50.0 ? $"{kV} [====O] ON" : $"{kV} [O====] OFF";}public static string nm(string kW,double qo){return qo>=50.0 ? $"{kW} [X] ACTIVE" : $"{kW} [ ] READY ";
+}public static string nr(string he,double mk){if(mk>=75.0)return $"{he} [ ONLINE  ]";if(mk>=25.0)return $"{he} [ STANDBY ]";return $"{he} [ OFFLINE ]";
+}public static string ng(string oZ,double eX,int k2=8){eX=Math.Max(0,Math.Min(100,eX));int ko=(int)Math.Round(k2*(eX/100.0));
+string pp=new string('|',ko)+new string('.',k2-ko);return $"{oZ} [{pp}] {eX:0}%";}public static string nn(string hf,double dy,int l8=0){
+char[]pZ=new[]{'|','/','-','\\'};char lD=pZ[(l8>=0 ? l8 : 0)%4];if(dy>55.0)return $"{hf} {lD} ▲ CHG {dy:0}%";if(dy<45.0)return $"{hf} {lD} ▼ DSC {dy:0}%";
+return $"{hf} ● STBY {dy:0}%";}public static bool m_(string ag,string di){if(ag==null||di==null)return false;if(ag=="*"||ag==di)return true;
+if(!ag.Contains("*")&& !ag.Contains("?"))return string.Equals(ag,di,StringComparison.OrdinalIgnoreCase);int ak=0,dg=0,h5= -1,hk=0;while(dg<di.Length){
+if(ak<ag.Length&&(ag[ak]=='?'||char.ToLowerInvariant(ag[ak])==char.ToLowerInvariant(di[dg]))){ak++;dg++;}else if(ak<ag.Length&&ag[ak]=='*'){
+h5=ak;hk=dg;ak++;}else if(h5!= -1){ak=h5+1;hk++;dg=hk;}else{return false;}}while(ak<ag.Length&&ag[ak]=='*')ak++;return ak==ag.Length;
+}public static int mz(double pg,int mc){return Math.Max(0,Math.Min(mc,1+(int)(Math.Max(0.0,pg)*mc)));}public static string dX(string[]cr,double hB){
+if(cr==null||cr.Length==0)return "white";hB=Math.Max(0,Math.Min(100,hB));int gZ=(int)Math.Floor(hB/100.0*cr.Length);if(gZ>=cr.Length)gZ=cr.Length-1;
+return cr[gZ];}public static j iN(string[]bm,double pm){if(bm==null||bm.Length==0)return j.d2;if(bm.Length==1)return j.bU(bm[0]);
+double pD=Math.Max(0.0,Math.Min(1.0,pm/100.0));double lH=pD*(bm.Length-1);int g_=(int)Math.Floor(lH);int oG=Math.Min(bm.Length-1,g_+1);
+double h9=lH-g_;j b5=j.bU(bm[g_]);j gl=j.bU(bm[oG]);byte pB=(byte)Math.Round(b5.aQ+(gl.aQ-b5.aQ)*h9);
+byte oB=(byte)Math.Round(b5.aO+(gl.aO-b5.aO)*h9);byte nS=(byte)Math.Round(b5.aK+(gl.aK-b5.aK)*h9);return new j(pB,oB,nS);}public static string i2(List<cG>lz,double qp){
+foreach(var hO in lz){if(hO.dY)continue;if(mO(hO.iG,qp))return hO.dU;}var j1=lz.FirstOrDefault(pC=>pC.dY);return j1!=null ? j1.dU : null;
+}static bool mO(string c8,double dM){c8=c8.Trim();foreach(var hp in new[]{">=","<=","==",">","<"}){if(c8.StartsWith(hp)){double dC=double.Parse(c8.Substring(hp.Length).Trim(),System.Globalization.CultureInfo.InvariantCulture);
+switch(hp){case ">=": return dM>=dC;case "<=": return dM<=dC;case "==": return Math.Abs(dM-dC)<1e-9;case ">": return dM>dC;case "<": return dM<dC;
+}}}throw new FormatException($"unsupported comparison expression: '{c8}'");}public static List<string>nl(List<string>n9,int cv){
+var eP=new List<string>();eP.Add("+"+new string('-',cv+2)+"+");foreach(var hi in n9){string qg=hi.Length>cv ? hi.Substring(0,cv): hi;
+string ph=qg.PadRight(cv);eP.Add("| "+ph+" |");}eP.Add("+"+new string('-',cv+2)+"+");return eP;}public struct i_{public float jg,jh,jf,iP;
+}public static i_ mE(int jW,int lx,int fb,int fc,int dJ,int dK,float p7,float p6,float lj,float lk,float gQ,float gR){
+dJ=Math.Max(1,dJ);dK=Math.Max(1,dK);fb=Math.Max(1,Math.Min(dJ-jW,fb));fc=Math.Max(1,Math.Min(dK-lx,fc));
+float nL=p7-(lj*2f);float nK=p6-(lk*2f);float jR=(nL-(gQ*(dJ-1)))/dJ;float jQ=(nK-(gR*(dK-1)))/dK;
+float pu=lj+jW*(jR+gQ);float pv=lk+lx*(jQ+gR);float pt=fb*jR+((fb-1)*gQ);float pn=fc*jQ+((fc-1)*gR);return new i_{
+jg=pu,jh=pv,jf=pt,iP=pn};}public struct i3{public int m2;public int fD;public int S;public int ai;public int cT;
+public int ax;public int nx;public int ny;public int mL;public int mM;
+public double mN;}public static i3 mF(z bk){var h=new i3();var lm=bk.az!=null&&bk.az.Count>0 ? bk.az : new List<am>{
+new am{aP=bk.fE}};h.m2=lm.Count;h.fD=0;h.S=0;h.ai=0;if(!string.IsNullOrEmpty(bk.bo)&& !bk.bo.Equals("none",StringComparison.OrdinalIgnoreCase))h.S++;
+if(!string.IsNullOrEmpty(bk.cD)&& !bk.cD.Equals("none",StringComparison.OrdinalIgnoreCase))h.S+=2;foreach(var ds in lm){
+if(!string.IsNullOrEmpty(ds.cy)&& !ds.cy.Equals("none",StringComparison.OrdinalIgnoreCase))h.S++;if(!string.IsNullOrEmpty(ds.bw))h.S+=2;
+h.fD+=ds.aP.Count;foreach(var oW in ds.aP){h.nx++;h.ny++;h.S+=2;switch(oW.g){case d.cA: h.cT++;
+h.ax++;h.S+=2;h.ai++;break;case d.cN: h.ax+=10;h.S+=10;
+h.ai+=10;break;case d.cL: h.ax+=10;h.S+=11;h.ai+=10;break;case d.cE: h.ax+=10;
+h.S+=10;h.ai+=10;break;case d.cH: h.ax+=12;h.S+=12;h.ai+=12;
+break;case d.bv: h.cT++;h.ax+=8;h.S+=9;h.ai+=8;break;case d.bK: h.cT+=2;
+h.ax++;h.S+=3;h.ai++;break;case d.bW: case d.bO: h.cT++;
+h.ax++;h.S+=2;h.ai++;break;case d.bV: case d.bP: h.cT++;h.ax+=2;
+h.S+=3;h.ai+=2;break;case d.bJ: h.ax+=8;h.S+=8;h.ai+=8;
+break;default: h.ai++;break;}}}h.mL=25+(h.fD*2);h.mM=180+(h.ai*4);
+h.mN=0.0;return h;}}

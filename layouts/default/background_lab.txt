@@ -1,0 +1,53 @@
+# Background Lab
+# What backgrounds can do: a gradient, deliberate two-tone panels, a see-through screen and an alert background.
+@bind v = dynamic("demo.v", default: 62)
+
+# 1. Vertical gradient behind translucent panel cards (the default card lifts any background).
+@screen Gradient
+output: "Background LCD 1", 0
+profile: standard
+layout: grid(2, 1)
+bg_gradient(#0f172a, #312e81, #701a75)
+border_color: #a78bfa
+@panel a at(0, 0, 1, 1) title: "LEFT"
+line: "POWER   " bar(v.percent) gradient(#ef4444, #eab308, #22c55e)
+@panel b at(1, 0, 1, 1) title: "RIGHT"
+line: "SHIELD  " bar(v.percent) flat(#38bdf8)
+
+# 2. Two tones on purpose: each panel has its own bg: after its @panel line.
+@screen TwoTone
+output: "Background LCD 2", 0
+profile: standard
+layout: grid(2, 1)
+bg: #020617
+border_color: #38bdf8
+@panel a at(0, 0, 1, 1) title: "PORT"
+bg: #0c4a6e
+line: "POWER   " bar(v.percent) flat(#7dd3fc)
+@panel b at(1, 0, 1, 1) title: "STARBOARD"
+bg: #4c1d95
+line: "POWER   " bar(v.percent) flat(#c4b5fd)
+
+# 3. See-through: no background and no cards, so only the bars and text are drawn.
+@screen Clear
+output: "Background LCD 3", 0
+profile: standard
+layout: grid(2, 1)
+bg: transparent
+panel_bg: none
+border_color: #22c55e
+@panel a at(0, 0, 1, 1) title: "LEFT"
+line: "POWER   " bar(v.percent) flat(#22c55e)
+@panel b at(1, 0, 1, 1) title: "RIGHT"
+line: "SHIELD  " bar(v.percent) flat(#22c55e)
+
+# 4. Alert: run the block with the argument "alert red" and the background flashes to alert_bg.
+@screen Alert
+output: "Background LCD 4", 0
+profile: standard
+layout: grid(1, 1)
+bg: #0a0c10
+alert_bg: #7f1d1d
+border_color: #ef4444
+@panel p at(0, 0, 1, 1) title: "ALERT"
+line: "HULL    " bar(v.percent) gradient(#ef4444, #eab308, #22c55e)
