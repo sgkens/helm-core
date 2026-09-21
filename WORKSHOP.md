@@ -92,7 +92,7 @@ External scripts (autopilots, combat computers, sorters) can broadcast directly 
 @screen "Cockpit LCD"
 output: "Cockpit", 0             # Block name, Surface Index
 profile: auto                    # auto, standard, compact, wide, corner
-border: graphic                  # ascii or none change the in-game frame; other styles draw the standard frame
+border: frame                    # graphic, frame, corners, single, heavy, double, rounded, ascii or none
 border_color: cyan               # Named color (#hex or color name)
 bg: #0a0c10                      # Background color (or bg_gradient(#000, #123), screen_bg:, panel_bg:)
 refresh: 600                     # Draw at most every N ticks (optional)

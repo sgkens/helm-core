@@ -129,6 +129,9 @@ Configure borders globally per screen or locally per panel:
 - `border: rounded` — Smooth rounded aerospace cockpit corners (`╭────╮` / `│    │` / `╰────╯`).
 - `border: minimal` — Divider-only frames with open side rails for ultra-dense telemetry walls.
 - `border: ascii` — Strict vanilla Keen `Monospace` printable ASCII (`+----+` / `|    |` / `+----+`).
+- `border: frame` and `border: corners` — In-game frame drawn with quads: all four sides, or bracket corners only.
+
+In the game every style is drawn with quads: `graphic` and `minimal` are the top and bottom lines, `frame`, `single`, `heavy` (thicker) and `double` (a second inner frame) add the sides, `rounded` adds a circle at each corner, and `corners` draws brackets. `border_color` and `border_gradient` colour them, and `border:` on an `@panel` line frames that panel.
 - `border: graphic` — Default sci-fi HUD framing with recessed slot tracks.
 - `border: none` — Flush, edge-to-edge monitors without frame boundaries.
 

@@ -79,7 +79,7 @@ title_color: #<hexcolor>
 - `bg: #hex`: Screen background color (e.g. `#090b0f`). See [Backgrounds](#backgrounds) for gradients, panel colours and the alert background.
 - `border_color: #hex`: Screen border frame color. `border_gradient(#a, #b, ...)` blends through the stops from left to right along the top and bottom lines (`gradient_mode: steps` uses the first stop on top and the last on the bottom).
 - `gradient_mode: smooth` or `steps`: How gradients pick a colour. Default `smooth`.
-- `border: style`: Modular border character set.
+- `border: style`: The frame. In the game: `graphic` and `minimal` draw the top and bottom lines; `frame`, `single`, `heavy` (thicker) and `double` (a second inner frame) also draw the sides; `rounded` adds a circle at each corner; `corners` draws corner brackets; `ascii` uses text characters; `none` draws nothing. `border_color` and `border_gradient(...)` colour it. Put `border:` after an `@panel` line to frame that panel.
 - `mirror: "Screen"` and `mirror_panel: "Panel"`: Copy another screen, or one panel of it. See [Mirroring a Screen](#mirroring-a-screen).
 - `banner: name`, `boot_logo: name`, `boot_batch`, `boot_calibrate`: See [ASCII Banners](#ascii-banners) and [Boot Sequence Directives](#boot-sequence-directives).
 
