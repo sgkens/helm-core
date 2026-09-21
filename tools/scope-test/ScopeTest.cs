@@ -231,6 +231,21 @@ static class ScopeTest {
     Check(Math.Abs(drawAt[refreshScreen] - 121.0) < 0.5, "refresh: after 10 s it is drawn again and re-armed: " + drawAt[refreshScreen].ToString("0.0"));
     timeField.SetValue(prog, 0.0);
 
+    // Calibration sweep after the boot: a gauge reading 50% runs 0 to 100 (peak at the midpoint) and settles on 50%.
+    var calib = (Dictionary<ScreenDef, double>)Dump.Get(prog, "_calibT0");
+    var a2 = cfg0.Screens[1];
+    Func<double, double> sweepFill = t => {
+        timeField.SetValue(prog, t); calib[a2] = 0.0;
+        for (int pass = 0; pass < 40; pass++) render.Invoke(prog, new object[] { a2 });
+        var sb = bufs.GetType().GetProperty("Item").GetValue(bufs, new object[] { a2 });
+        return ScopeTest.barInfo2((System.Collections.IList)sb.GetType().GetField("Slots").GetValue(sb), (List<VRage.Game.GUI.TextPanel.MySprite>)sb.GetType().GetField("Sprites").GetValue(sb), 0);
+    };
+    Check(Math.Abs(sweepFill(0.3) - 0.50) < 0.02, "calibration: a quarter of the way the gauge is at 50% (0 to 100 in the first half): " + sweepFill(0.3).ToString("0.000"));
+    Check(Math.Abs(sweepFill(0.6) - 1.00) < 0.02, "calibration: at the midpoint the gauge is at 100%: " + sweepFill(0.6).ToString("0.000"));
+    Check(Math.Abs(sweepFill(0.9) - 0.75) < 0.02, "calibration: three quarters of the way it is coming back, at 75%: " + sweepFill(0.9).ToString("0.000"));
+    Check(Math.Abs(sweepFill(1.3) - 0.50) < 0.02 && !calib.ContainsKey(a2), "calibration: after 1.2 s it settles on the live 50% and the sweep ends: " + sweepFill(1.3).ToString("0.000"));
+    timeField.SetValue(prog, 0.0);
+
     Console.WriteLine(fails == 0 ? "ALL PASS" : fails + " FAILED");
     return fails;
   }
