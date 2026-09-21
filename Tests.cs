@@ -216,6 +216,10 @@ line: ""O2""  bar(o2_$screen.percent) flat(cyan)
         Check(HelmParser.Parse("@screen a").Screens[0].BootBatch == 1, "boot_batch defaults to 1");
         Check(HelmParser.Parse("@screen a\nboot_batch: 0").Screens[0].BootBatch == 1, "boot_batch below 1 is clamped to 1");
 
+        // --- gradient_mode ---
+        Check(!HelmParser.Parse("@screen a").Screens[0].GradientSteps, "gradients blend by default");
+        Check(HelmParser.Parse("@screen a\ngradient_mode: steps").Screens[0].GradientSteps && !HelmParser.Parse("@screen a\ngradient_mode: smooth").Screens[0].GradientSteps, "gradient_mode: steps selects the nearest stop, smooth blends");
+
         // --- Value-driven backgrounds, flash, horizontal gradients and textures ---
         var cfgVb = HelmParser.Parse("@screen a\noutput: \"x\", 0\nbg: color(b.percent < 20 : #450a0a, default: #0e1218)\nflash: b.percent < 5\nbg_texture: Grid\nbg_texture_color: #38bdf8\nbg_gradient_dir: horizontal\n@panel p at(0, 0, 1, 1) title: \"T\"\nbg: color(c.output > 90 : red, c.output > 50 : yellow, default: green)\nbg_gradient(#000, #fff)\nbg_gradient_dir: vertical\nflash: c.percent > 90\n");
         Check(cfgVb.Errors.Count == 0, "value backgrounds parse without errors: " + string.Join(" | ", cfgVb.Errors));

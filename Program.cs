@@ -1459,6 +1459,17 @@ namespace IngameScript
         // Approach B: Retained Virtual Sprite Buffer (Geometric quads + in-place mutation)
         // =========================================================================
 
+        // The colour at pct (0 to 100) along the stops, blended between the two neighbouring stops.
+        private Color GradColor(string[] stops, double pct)
+        {
+            if (stops.Length == 1) return ResolveColor(stops[0]);
+            double r = Math.Max(0.0, Math.Min(100.0, pct)) / 100.0 * (stops.Length - 1);
+            int i = Math.Min((int)r, stops.Length - 2);
+            float t = (float)(r - i);
+            Color a = ResolveColor(stops[i]), b = ResolveColor(stops[i + 1]);
+            return new Color((int)(a.R + (b.R - a.R) * t), (int)(a.G + (b.G - a.G) * t), (int)(a.B + (b.B - a.B) * t), (int)(a.A + (b.A - a.A) * t));
+        }
+
         // A gradient as 16 bands inside a rectangle. Returns the band colours in order.
         private static Color[] AddBands(ScreenBuffer buf, string[] stops, string dir, float x, float y, float w, float h)
         {
@@ -1544,8 +1555,18 @@ namespace IngameScript
                     ? ResolveColor(screen.BorderGradientColors[screen.BorderGradientColors.Length - 1])
                     : borderColTop;
 
-                AddQuad(buf, new Vector2(viewportOffset.X + surfaceSize.X / 2f, viewportOffset.Y + paddingY * 0.5f), new Vector2(usableW, 2f), borderColTop);
-                AddQuad(buf, new Vector2(viewportOffset.X + surfaceSize.X / 2f, viewportOffset.Y + surfaceSize.Y - (paddingY * 0.5f)), new Vector2(usableW, 2f), borderColBot);
+                float borderX = viewportOffset.X + (surfaceSize.X - usableW) / 2f;
+                if (screen.BorderGradientColors != null && screen.BorderGradientColors.Length > 1 && !screen.GradientSteps)
+                {
+                    // border_gradient blends across the frame: both lines run through all the stops, left to right.
+                    AddBands(buf, screen.BorderGradientColors, "horizontal", borderX, viewportOffset.Y + paddingY * 0.5f - 1f, usableW, 2f);
+                    AddBands(buf, screen.BorderGradientColors, "horizontal", borderX, viewportOffset.Y + surfaceSize.Y - (paddingY * 0.5f) - 1f, usableW, 2f);
+                }
+                else
+                {
+                    AddQuad(buf, new Vector2(viewportOffset.X + surfaceSize.X / 2f, viewportOffset.Y + paddingY * 0.5f), new Vector2(usableW, 2f), borderColTop);
+                    AddQuad(buf, new Vector2(viewportOffset.X + surfaceSize.X / 2f, viewportOffset.Y + surfaceSize.Y - (paddingY * 0.5f)), new Vector2(usableW, 2f), borderColBot);
+                }
             }
 
             var panels = screen.Panels;
@@ -1915,7 +1936,8 @@ namespace IngameScript
                     ? Layout.GradientColorAt(line.GradientColors, value)
                     : line.FlatColor;
                 Color barCol = ResolveColor(colorName);
-                bool isRedAlert = (barCol == Color.Red);
+                bool isRedAlert = (barCol == Color.Red); // decided by the nearest stop, so red segments still flash
+                if (line.Gradient && !screen.GradientSteps && line.GradientColors.Length > 1) barCol = GradColor(line.GradientColors, value);
 
                 if (isRedAlert && alertPhase)
                 {

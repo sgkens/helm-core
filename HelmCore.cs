@@ -199,6 +199,7 @@ namespace HelmCore
         public string BootMessage;
         public int BootStaggerTicks = 10;
         public int BootBatch = 1; // screens that power on together
+        public bool GradientSteps; // gradient_mode: steps - gradients pick the nearest stop instead of blending
         public string PanelBg;    // colour of the default card behind panels of a multi-panel screen; "none" for no card (default: a faint white overlay)
         public string BgTexture;  // bg_texture: name of a built-in sprite drawn over the background
         public string BgTextureColor; // bg_texture_color: its tint (default white at low opacity)
@@ -647,6 +648,11 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     {
                         RequireScreen(current, "bg_texture_color:");
                         current.BgTextureColor = line.Substring("bg_texture_color:".Length).Trim();
+                    }
+                    else if (line.StartsWith("gradient_mode:"))
+                    {
+                        RequireScreen(current, "gradient_mode:");
+                        current.GradientSteps = line.Substring("gradient_mode:".Length).Trim().Equals("steps", StringComparison.OrdinalIgnoreCase);
                     }
                     else if (line.StartsWith("panel_bg:"))
                     {

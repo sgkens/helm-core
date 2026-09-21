@@ -1430,6 +1430,17 @@
         // Approach B: Retained Virtual Sprite Buffer (Geometric quads + in-place mutation)
         // =========================================================================
 
+        // The colour at pct (0 to 100) along the stops, blended between the two neighbouring stops.
+        private Color GradColor(string[] stops, double pct)
+        {
+            if (stops.Length == 1) return ResolveColor(stops[0]);
+            double r = Math.Max(0.0, Math.Min(100.0, pct)) / 100.0 * (stops.Length - 1);
+            int i = Math.Min((int)r, stops.Length - 2);
+            float t = (float)(r - i);
+            Color a = ResolveColor(stops[i]), b = ResolveColor(stops[i + 1]);
+            return new Color((int)(a.R + (b.R - a.R) * t), (int)(a.G + (b.G - a.G) * t), (int)(a.B + (b.B - a.B) * t), (int)(a.A + (b.A - a.A) * t));
+        }
+
         // A gradient as 16 bands inside a rectangle. Returns the band colours in order.
         private static Color[] AddBands(ScreenBuffer buf, string[] stops, string dir, float x, float y, float w, float h)
         {
@@ -1515,8 +1526,18 @@
                     ? ResolveColor(screen.BorderGradientColors[screen.BorderGradientColors.Length - 1])
                     : borderColTop;
 
-                AddQuad(buf, new Vector2(viewportOffset.X + surfaceSize.X / 2f, viewportOffset.Y + paddingY * 0.5f), new Vector2(usableW, 2f), borderColTop);
-                AddQuad(buf, new Vector2(viewportOffset.X + surfaceSize.X / 2f, viewportOffset.Y + surfaceSize.Y - (paddingY * 0.5f)), new Vector2(usableW, 2f), borderColBot);
+                float borderX = viewportOffset.X + (surfaceSize.X - usableW) / 2f;
+                if (screen.BorderGradientColors != null && screen.BorderGradientColors.Length > 1 && !screen.GradientSteps)
+                {
+                    // border_gradient blends across the frame: both lines run through all the stops, left to right.
+                    AddBands(buf, screen.BorderGradientColors, "horizontal", borderX, viewportOffset.Y + paddingY * 0.5f - 1f, usableW, 2f);
+                    AddBands(buf, screen.BorderGradientColors, "horizontal", borderX, viewportOffset.Y + surfaceSize.Y - (paddingY * 0.5f) - 1f, usableW, 2f);
+                }
+                else
+                {
+                    AddQuad(buf, new Vector2(viewportOffset.X + surfaceSize.X / 2f, viewportOffset.Y + paddingY * 0.5f), new Vector2(usableW, 2f), borderColTop);
+                    AddQuad(buf, new Vector2(viewportOffset.X + surfaceSize.X / 2f, viewportOffset.Y + surfaceSize.Y - (paddingY * 0.5f)), new Vector2(usableW, 2f), borderColBot);
+                }
             }
 
             var panels = screen.Panels;
@@ -1886,7 +1907,8 @@
                     ? Layout.GradientColorAt(line.GradientColors, value)
                     : line.FlatColor;
                 Color barCol = ResolveColor(colorName);
-                bool isRedAlert = (barCol == Color.Red);
+                bool isRedAlert = (barCol == Color.Red); // decided by the nearest stop, so red segments still flash
+                if (line.Gradient && !screen.GradientSteps && line.GradientColors.Length > 1) barCol = GradColor(line.GradientColors, value);
 
                 if (isRedAlert && alertPhase)
                 {
@@ -2493,6 +2515,7 @@
         public string BootMessage;
         public int BootStaggerTicks = 10;
         public int BootBatch = 1; // screens that power on together
+        public bool GradientSteps; // gradient_mode: steps - gradients pick the nearest stop instead of blending
         public string PanelBg;    // colour of the default card behind panels of a multi-panel screen; "none" for no card (default: a faint white overlay)
         public string BgTexture;  // bg_texture: name of a built-in sprite drawn over the background
         public string BgTextureColor; // bg_texture_color: its tint (default white at low opacity)
@@ -2908,6 +2931,11 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     {
                         RequireScreen(current, "bg_texture_color:");
                         current.BgTextureColor = line.Substring("bg_texture_color:".Length).Trim();
+                    }
+                    else if (line.StartsWith("gradient_mode:"))
+                    {
+                        RequireScreen(current, "gradient_mode:");
+                        current.GradientSteps = line.Substring("gradient_mode:".Length).Trim().Equals("steps", StringComparison.OrdinalIgnoreCase);
                     }
                     else if (line.StartsWith("panel_bg:"))
                     {
