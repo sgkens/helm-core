@@ -97,6 +97,24 @@ line: "H2 " tank(h2.percent) gradient(#1e3a8a, #38bdf8)
 - **Sizes:** the gauge fills its panel, so a panel that spans the whole screen is the large size, and a grid of panels gives medium ones (`grid(3, 1)` is three tubes side by side). See the `tank_fullscreen`, `tank_trio` and `vertical_bars` presets.
 - **`max(N)`** works as on any gauge, so an item amount can fill a tube. `helmv.ps1` does not draw vertical panels or tanks.
 
+### Mirroring a Screen
+
+`mirror: "Screen name"` on a screen copies the drawing of another `@screen` of the same Programmable Block to this screen's display, scaled to fit and centred.
+
+```helm
+@screen Bridge
+output: "Bridge LCD", 0
+# ... panels ...
+
+@screen Hallway
+output: "Hallway LCD", 0
+mirror: "Bridge"
+```
+
+- The name is matched without regard to case. The source must be a graphic screen (not `border: ascii` and not a banner).
+- The copy is redrawn only when the source has redrawn. A mirror has no panels of its own; anything else written under it is ignored.
+- Only screens drawn by this script can be mirrored. The game does not let a script read the picture of another block's screen.
+
 ### Backgrounds
 
 A screen is drawn in layers: the screen background, then a card behind each panel of a multi-panel screen, then the panel contents.
