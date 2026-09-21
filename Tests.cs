@@ -290,6 +290,10 @@ line: ""O2""  bar(o2_$screen.percent) flat(cyan)
         Check(szl[0].LabelColor == "#ff0000" && szl[0].Track == "#101010", "label_color and track kept");
         Check(Layout.ResolveConditionalColor(szl[0].ColorRules, 80) == "red/orange" && Layout.ResolveConditionalColor(szl[0].ColorRules, 10) == "green/cyan", "a colour rule can answer with a gradient");
 
+        var cfgCb = HelmParser.Parse("@screen a\noutput: \"x\", 0\nmirror: \"b\"\nmirror_panel: \"p\"\n@panel p at(0, 0, 1, 1) title: \"P\"\nline: \"A\" bar(b.percent) color_by(c.temp) color(c.temp > 5 : red, default: green)\n");
+        Check(cfgCb.Errors.Count == 0 && cfgCb.Screens[0].MirrorPanel == "p", "mirror_panel parses: " + string.Join(" | ", cfgCb.Errors));
+        Check(cfgCb.Screens[0].Panels[0].Lines[0].ColorBind == "c" && cfgCb.Screens[0].Panels[0].Lines[0].ColorField == "temp", "color_by(bind.field) parses");
+
         // --- Banners: raw ASCII art blocks ---
         string bannerDsl = "@banner logo\n\n        ZZ   # \"q\"\n     ZZ ZZ\n\n@end\n@screen a\noutput: \"x\", 0\nbanner: logo\nboot_logo: logo\nbanner_color: red\n";
         var cfgBan = HelmParser.Parse(bannerDsl);
