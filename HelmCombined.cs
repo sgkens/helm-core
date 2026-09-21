@@ -1854,7 +1854,9 @@
 
                 int lineCount = Math.Max(1, panel.Lines.Count);
                 float panelUsableH = pHeight - headerH - 8f;
-                float rowHeight = panelUsableH / lineCount;
+                float wsum = 0f, acc = 0f;
+                foreach (var pl in panel.Lines) wsum += 1 << pl.Size;
+                float unitH = panelUsableH / Math.Max(1f, wsum);
                 float innerPadX = 6f;
 
                 for (int i = 0; i < panel.Lines.Count; i++)
@@ -1862,13 +1864,15 @@
                     var line = panel.Lines[i];
                     var slot = new LineSlot { Line = line };
 
-                    float rowY = pTop + headerH + 4f + (i * rowHeight);
+                    float rowHeight = unitH * (1 << line.Size);
+                    float rowY = pTop + headerH + 4f + acc;
+                    acc += rowHeight;
                     float centerY = rowY + (rowHeight / 2f);
                     float textY = centerY - (11f * fontSize);
 
                     slot.LabelSpriteIndex = buf.Sprites.Count;
                     slot.HasDynamicLabel = line.Label != null && (line.Label.Contains("{val}") || line.Label.Contains("{percent}"));
-                    var labelSprite = MySprite.CreateText(line.Label, font, Color.White, fontSize, TextAlignment.LEFT);
+                    var labelSprite = MySprite.CreateText(line.Label, font, line.LabelColor != null ? ResolveColor(line.LabelColor) : Color.White, fontSize, TextAlignment.LEFT);
                     labelSprite.Position = new Vector2(pLeft + innerPadX, textY);
                     buf.Sprites.Add(labelSprite);
 
@@ -1881,6 +1885,8 @@
                         float barRight = pLeft + pWidth - innerPadX - valueWidth;
                         float barWidth = Math.Max(16f, barRight - barLeft);
                         float barHeight = Math.Max(line.Kind == LineKind.Spark ? 8f : 4f, Math.Min((line.Kind == LineKind.Spark ? 20f : 16f) * fontSize, rowHeight * (line.Kind == LineKind.Spark ? 0.55f : 0.45f)));
+                        if (line.Size > 0) barHeight = rowHeight * 0.7f;
+                        Color track = line.Track != null ? ResolveColor(line.Track) : new Color(25, 30, 38);
 
                         slot.BarLeft = barLeft;
                         slot.BarMaxWidth = barWidth;
@@ -1889,7 +1895,7 @@
 
                         if (line.Kind == LineKind.Bar)
                         {
-                            AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(barWidth, barHeight), new Color(25, 30, 38));
+                            AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(barWidth, barHeight), track);
                             slot.FillSpriteIndex = buf.Sprites.Count;
                             AddQuad(buf, new Vector2(barLeft, centerY), new Vector2(0f, barHeight), ResolveColor(line.FlatColor));
                         }
@@ -1953,7 +1959,7 @@
                         }
                         else if (line.Kind == LineKind.Balance)
                         {
-                            AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(barWidth, barHeight), new Color(25, 30, 38));
+                            AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(barWidth, barHeight), track);
                             slot.FillSpriteIndex = buf.Sprites.Count;
                             AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(0f, barHeight), ResolveColor(line.FlatColor));
                             AddQuad(buf, new Vector2(barLeft + (barWidth / 2f), centerY), new Vector2(2f, barHeight + 4f), new Color(80, 110, 150));
@@ -2048,7 +2054,7 @@
                 var lab = buf.Sprites[slot.LabelSpriteIndex]; lab.Alignment = TextAlignment.CENTER; buf.Sprites[slot.LabelSpriteIndex] = lab;
                 var val = buf.Sprites[slot.ValSpriteIndex]; val.Alignment = TextAlignment.CENTER; buf.Sprites[slot.ValSpriteIndex] = val;
 
-                AddQuad(buf, new Vector2(cx, top + th / 2f), new Vector2(tw, th), new Color(25, 30, 38));
+                AddQuad(buf, new Vector2(cx, top + th / 2f), new Vector2(tw, th), line.Track != null ? ResolveColor(line.Track) : new Color(25, 30, 38));
                 slot.FillSpriteIndex = buf.Sprites.Count;
                 if (line.Kind == LineKind.Tank)
                 {
@@ -2099,7 +2105,9 @@
             }
 
             float bh = slot.BarHeight / TankBands;
-            Color liquid = line.ColorRules != null ? ResolveColor(Layout.ResolveConditionalColor(line.ColorRules, value)) : col;
+            string rc = line.ColorRules != null ? Layout.ResolveConditionalColor(line.ColorRules, value) : null;
+            Color liquid = rc != null ? ResolveColor(rc) : col;
+            string[] stops = rc != null ? (rc.Contains("/") ? rc.Split('/') : null) : line.Gradient && line.GradientColors.Length > 1 ? line.GradientColors : null;
             for (int b = 0; b < TankBands; b++)
             {
                 float vis = Math.Max(0f, Math.Min(bh, lvl - b * bh));
@@ -2107,7 +2115,7 @@
                 q.Size = new Vector2(slot.BarMaxWidth - 6f, vis);
                 q.Position = new Vector2(cx, bottom - b * bh - vis / 2f);
                 // A gradient runs through the liquid from the bottom to the top; otherwise the whole body is one colour.
-                q.Color = line.ColorRules == null && line.Gradient && line.GradientColors.Length > 1 ? GradColor(line.GradientColors, 100.0 * (b + 0.5) / TankBands) : liquid;
+                q.Color = stops != null ? GradColor(stops, 100.0 * (b + 0.5) / TankBands) : liquid;
                 buf.Sprites[slot.ExtraSpriteIndices[b]] = q;
             }
             // Wave: a line of characters on the surface that slides sideways. Bubbles: three characters rising through the liquid.
@@ -2258,7 +2266,8 @@
                     ? Layout.GradientColorAt(line.GradientColors, value)
                     : line.FlatColor;
                 Color barCol = ResolveColor(colorName);
-                bool isRedAlert = (barCol == Color.Red); // decided by the nearest stop, so red segments still flash
+                bool isRedAlert = (barCol == Color.Red);
+                if (colorName != null && colorName.Contains("/")) barCol = GradColor(colorName.Split('/'), value); // a rule that answers with a gradient: red/orange // decided by the nearest stop, so red segments still flash
                 if (line.ColorRules == null && line.Gradient && !screen.GradientSteps && line.GradientColors.Length > 1) barCol = GradColor(line.GradientColors, value);
 
                 if (isRedAlert && alertPhase)
@@ -2733,6 +2742,8 @@
         public string Direction = "right"; // "right", "left", "up", "down"
         public string Unit;           // e.g. "MW", "kL", "km", "t", "%"
         public string Format;         // e.g. "F1", "F0", "N0"
+        public int Size;              // size(medium) = 1, size(large) = 2: the row takes 2 or 4 shares of its panel and the bar grows with it
+        public string LabelColor, Track; // label_color(...) and track(...): the label text and the empty part of a bar
         public double Max;            // max(N): the value is shown as a percentage of N (0 = off)
         public string MaxBind, MaxField; // max(bind.field): the maximum is read from a block field
         public bool HasMax { get { return Max > 0 || MaxBind != null; } }
@@ -3887,6 +3898,13 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     if (def.GradientColors.Length < 2)
                         throw new FormatException("gradient() needs at least 2 colors");
                 }
+                else if (mFunc == "size")
+                {
+                    string sz = mArgs.Trim().ToLowerInvariant();
+                    def.Size = sz == "large" || sz == "fill" ? 2 : sz == "medium" ? 1 : 0;
+                }
+                else if (mFunc == "label_color") def.LabelColor = mArgs.Trim();
+                else if (mFunc == "track") def.Track = mArgs.Trim();
                 else if (mFunc == "flat")
                 {
                     def.FlatColor = mArgs.Trim();

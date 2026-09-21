@@ -61,6 +61,8 @@ namespace HelmCore
         public string Direction = "right"; // "right", "left", "up", "down"
         public string Unit;           // e.g. "MW", "kL", "km", "t", "%"
         public string Format;         // e.g. "F1", "F0", "N0"
+        public int Size;              // size(medium) = 1, size(large) = 2: the row takes 2 or 4 shares of its panel and the bar grows with it
+        public string LabelColor, Track; // label_color(...) and track(...): the label text and the empty part of a bar
         public double Max;            // max(N): the value is shown as a percentage of N (0 = off)
         public string MaxBind, MaxField; // max(bind.field): the maximum is read from a block field
         public bool HasMax { get { return Max > 0 || MaxBind != null; } }
@@ -1248,6 +1250,13 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     if (def.GradientColors.Length < 2)
                         throw new FormatException("gradient() needs at least 2 colors");
                 }
+                else if (mFunc == "size")
+                {
+                    string sz = mArgs.Trim().ToLowerInvariant();
+                    def.Size = sz == "large" || sz == "fill" ? 2 : sz == "medium" ? 1 : 0;
+                }
+                else if (mFunc == "label_color") def.LabelColor = mArgs.Trim();
+                else if (mFunc == "track") def.Track = mArgs.Trim();
                 else if (mFunc == "flat")
                 {
                     def.FlatColor = mArgs.Trim();
