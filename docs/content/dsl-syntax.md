@@ -115,23 +115,6 @@ mirror: "Bridge"
 - The copy is redrawn only when the source has redrawn. A mirror has no panels of its own; anything else written under it is ignored.
 - Only screens drawn by this script can be mirrored. The game does not let a script read the picture of another block's screen.
 
-### Text From Another LCD
-
-`text(bind.line1)`, `line2`, and so on show a line of the text held by a text panel or LCD that is not a HELM screen, so notes, other scripts' text output and the like can appear inside a HELM display.
-
-```helm
-@bind notes = block("Ship Notes")
-
-@screen Bridge
-output: "Bridge LCD", 0
-@panel NOTES at(0, 0, 1, 1) title: "NOTES"
-line: "1" text(notes.line1) flat(#94a3b8)
-line: "2" text(notes.line2) flat(#94a3b8)
-```
-
-- The bind must name one block with a text surface. The text is read every 2 seconds; a line the panel does not have shows empty.
-- Only text can be read. The game gives a script no access to the picture on another screen, so images and the drawing of another script cannot be copied. To copy a HELM screen, use `mirror:` above.
-
 ### Backgrounds
 
 A screen is drawn in layers: the screen background, then a card behind each panel of a multi-panel screen, then the panel contents.

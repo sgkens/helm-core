@@ -118,7 +118,6 @@ namespace Sandbox.ModAPI.Ingame
         Color FontColor { get; set; }
         Color BackgroundColor { get; set; }
         bool WriteText(string value, bool append = false);
-        string GetText();
         MySpriteDrawFrame DrawFrame();
         Vector2 MeasureStringInPixels(System.Text.StringBuilder text, string font, float scale);
     }

@@ -2280,12 +2280,15 @@ namespace IngameScript
                 bool sweep = cp >= 0.0 && line.Kind != LineKind.Text && line.Kind != LineKind.Toggle && line.Kind != LineKind.Checkbox && line.Kind != LineKind.Status && line.Kind != LineKind.Flow;
                 if (sweep) value = cp < 0.5 ? cp * 200.0 : 100.0 + (value - 100.0) * (cp - 0.5) * 2.0;
 
-                string colorName = line.Gradient
+                // One colour choice for every kind: colour rules win, then a gradient, then the flat colour.
+                string colorName = line.ColorRules != null
+                    ? Layout.ResolveConditionalColor(line.ColorRules, value)
+                    : line.Gradient
                     ? Layout.GradientColorAt(line.GradientColors, value)
                     : line.FlatColor;
                 Color barCol = ResolveColor(colorName);
                 bool isRedAlert = (barCol == Color.Red); // decided by the nearest stop, so red segments still flash
-                if (line.Gradient && !screen.GradientSteps && line.GradientColors.Length > 1) barCol = GradColor(line.GradientColors, value);
+                if (line.ColorRules == null && line.Gradient && !screen.GradientSteps && line.GradientColors.Length > 1) barCol = GradColor(line.GradientColors, value);
 
                 if (isRedAlert && alertPhase)
                 {
@@ -2521,9 +2524,7 @@ namespace IngameScript
                     {
                         slot.LastText = dt;
                         dirty = true;
-                        Color txtCol = line.ColorRules != null
-                            ? ResolveColor(Layout.ResolveConditionalColor(line.ColorRules, value))
-                            : Color.White;
+                        Color txtCol = barCol;
 
                         if (txtCol == Color.Red && alertPhase)
                             txtCol = new Color(255, 75, 75);
