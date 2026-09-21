@@ -1082,11 +1082,24 @@
             return 0.0;
         }
 
+        // Amount of one item in all of a block's inventories. Field "kind:Subtype", for example ingot:Iron, ore:Ice,
+        // component:SteelPlate, ammo:NATO_25x184mm. A reactor's fuel is ingot:Uranium.
+        private static double ItemAmount(IMyTerminalBlock b, string field)
+        {
+            int c = field.IndexOf(':');
+            string kind = field.Substring(0, c).ToLowerInvariant();
+            var type = new MyItemType("MyObjectBuilder_" + (kind == "ammo" ? "AmmoMagazine" : char.ToUpper(kind[0]) + kind.Substring(1)), field.Substring(c + 1));
+            double sum = 0;
+            for (int i = 0; i < b.InventoryCount; i++) sum += (double)b.GetInventory(i).GetItemAmount(type);
+            return sum;
+        }
+
         private double ResolveBlockField(IMyTerminalBlock block, string field)
         {
             if (block == null) return 0.0;
             string f = field.ToLowerInvariant();
             if (f == "percent" || f == "pct") return ResolvePercent(block);
+            if (f.IndexOf(':') > 0) return ItemAmount(block, field);
 
             var battery = block as IMyBatteryBlock;
             if (battery != null)

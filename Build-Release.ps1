@@ -340,7 +340,7 @@ if (-not $NoMinify) {
 
     # Wrap the body the way the game does, for the compile check (tools/spritedump/CombinedCheck).
     $wrapped = "using System;using System.Collections;using System.Collections.Generic;using System.Linq;using System.Text;" +
-               "using Sandbox.ModAPI.Ingame;using VRage.Game.GUI.TextPanel;using VRageMath;" +
+               "using Sandbox.ModAPI.Ingame;using VRage.Game.GUI.TextPanel;using VRage.Game.ModAPI.Ingame;using VRageMath;" +
                "namespace IngameScript{public partial class Program:MyGridProgram{`n" + $minified + "`n}}"
     $wrapPath = Join-Path (Join-Path (Join-Path (Join-Path $ScriptDir "tools") "spritedump") "CombinedCheck") "Wrapped.g.cs"
     [System.IO.File]::WriteAllText($wrapPath, $wrapped, (New-Object System.Text.UTF8Encoding($false)))

@@ -58,6 +58,8 @@ public static class Dump
         public string CustomData { get; set; }
         public IMyCubeGrid CubeGrid { get { return null; } }
         public dynamic IsSameConstructAs(params object[] a) { return true; }
+        public dynamic InventoryCount { get { return 0; } set { } }
+        public dynamic GetInventory(params object[] a) { return null; }
     }
 
     public class MockSurface : IMyTextSurface

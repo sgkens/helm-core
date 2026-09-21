@@ -1,0 +1,19 @@
+# Cargo Contents
+# Amounts of named items in a cargo group, and a reactor's fuel. Field format: kind:Subtype.
+@bind cargo   = group("Cargo Containers", agg: sum)
+@bind reactor = block("Main Reactor")
+
+@screen Contents
+output: "Contents LCD", 0
+profile: standard
+layout: grid(1, 1)
+bg: #0a0c10
+border_color: #94a3b8
+
+@panel stock at(0, 0, 1, 1) title: "STOCK"
+line: "IRON    " text(cargo.ingot:Iron) unit("kg") flat(#e2e8f0)
+line: "NICKEL  " text(cargo.ingot:Nickel) unit("kg") flat(#e2e8f0)
+line: "ICE     " text(cargo.ore:Ice) unit("kg") flat(#7dd3fc)
+line: "STEEL   " text(cargo.component:SteelPlate) flat(#cbd5e1)
+line: "URANIUM " text(reactor.ingot:Uranium) unit("kg") flat(#a3e635)
+line: "CARGO   " bar(cargo.percent) gradient(#22c55e, #eab308, #ef4444)

@@ -5,7 +5,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
-    <NoWarn>CS0169;CS0414;CS0649;CS0219;CS8981;CS0168</NoWarn>
+    <NoWarn>CS0169;CS0414;CS0649;CS0219;CS8981;CS0168;CS0108</NoWarn>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
   <ItemGroup>

@@ -12,6 +12,8 @@ namespace Sandbox.ModAPI.Ingame
     public partial interface IMyTerminalBlock
     {
         dynamic IsSameConstructAs(params object[] a);
+        dynamic InventoryCount { get; set; }
+        dynamic GetInventory(params object[] a);
     }
     public partial interface IMyBatteryBlock
     {

@@ -76,8 +76,18 @@ namespace VRage.Game.GUI.TextPanel
     }
 }
 
+namespace VRage.Game.ModAPI.Ingame
+{
+    public struct MyItemType
+    {
+        public string TypeId, SubtypeId;
+        public MyItemType(string typeId, string subtypeId) { TypeId = typeId; SubtypeId = subtypeId; }
+    }
+}
+
 namespace Sandbox.ModAPI.Ingame
 {
+    using VRage.Game.ModAPI.Ingame;
     using VRage.Game.GUI.TextPanel;
     using VRageMath;
 
