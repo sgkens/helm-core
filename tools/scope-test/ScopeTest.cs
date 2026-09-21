@@ -39,17 +39,17 @@ static class ScopeTest {
     // the docked ship's blocks come FIRST, which is how GetBlockWithName finds the wrong one
     var fBat = new FBlock { Ship = dock, CustomName = "Main Battery" }; var mBat = new FBlock { Ship = mine, CustomName = "Main Battery" };
     var fTank = new FBlock { Ship = dock, CustomName = "H2 Tank Alpha" }; var mTank = new FBlock { Ship = sub, CustomName = "H2 Tank Alpha" };
-    var fLcd = new FLcd(dock, "Cockpit"); var mLcd = new FLcd(mine, "Cockpit"); var aLcd = new FLcd(mine, "AmmoLcd");
+    var fLcd = new FLcd(dock, "Cockpit"); var mLcd = new FLcd(mine, "Cockpit"); var aLcd = new FLcd(mine, "AmmoLcd"); var gLcd = new FLcd(mine, "GradLcd"); var nLcd = new FLcd(mine, "NoneLcd");
     mBat.Invs = new[] { new FInv { Iron = 100, Ice = 5 }, new FInv { Iron = 50 } };
     mTank.Invs = new[] { new FInv { Iron = 25 } };
     fBat.Invs = new[] { new FInv { Iron = 9999 } };
     var gts = new FGts();
-    gts.All.AddRange(new IMyTerminalBlock[] { fBat, fTank, fLcd, mBat, mTank, mLcd, aLcd, me });
+    gts.All.AddRange(new IMyTerminalBlock[] { fBat, fTank, fLcd, mBat, mTank, mLcd, aLcd, gLcd, nLcd, me });
     var gDock = new FGroup { Name = "Fleet" }; gDock.Blocks.Add(fBat); gDock.Blocks.Add(fTank);
     var gMine = new FGroup { Name = "Fleet" }; gMine.Blocks.Add(mBat); gMine.Blocks.Add(mTank);
     gts.Groups.Add(gDock); gts.Groups.Add(gMine);
     var gOnlyDock = new FGroup { Name = "DockOnly" }; gOnlyDock.Blocks.Add(fBat); gts.Groups.Add(gOnlyDock);
-    me.CustomData = "@bind bat = block(\"Main Battery\")\n@bind tank = block(\"H2 Tank\")\n@bind fleet = group(\"Fleet\", agg: avg)\n@bind wild = group(\"*Tank*\", agg: avg)\n@bind lost = group(\"DockOnly\", agg: avg)\n@bind none = block(\"Nothing Here\")\n@bind fleetsum = group(\"Fleet\", agg: sum)\n@screen S\noutput: \"Cockpit\", 0\nlayout: grid(1, 1)\n@panel p at(0, 0, 1, 1) title: \"T\"\nline: \"B\" bar(bat.percent) flat(cyan)\n@screen A2\noutput: \"AmmoLcd\", 0\nlayout: grid(1, 1)\n@panel q at(0, 0, 1, 1) title: \"T\"\nline: \"HALF\" bar(bat.ingot:Iron) max(300) flat(cyan)\nline: \"OVER\" bar(bat.ingot:Iron) max(100) flat(cyan)\n";
+    me.CustomData = "@bind bat = block(\"Main Battery\")\n@bind tank = block(\"H2 Tank\")\n@bind fleet = group(\"Fleet\", agg: avg)\n@bind wild = group(\"*Tank*\", agg: avg)\n@bind lost = group(\"DockOnly\", agg: avg)\n@bind none = block(\"Nothing Here\")\n@bind fleetsum = group(\"Fleet\", agg: sum)\n@screen S\noutput: \"Cockpit\", 0\nlayout: grid(1, 1)\n@panel p at(0, 0, 1, 1) title: \"T\"\nline: \"B\" bar(bat.percent) flat(cyan)\n@screen A2\noutput: \"AmmoLcd\", 0\nlayout: grid(1, 1)\n@panel q at(0, 0, 1, 1) title: \"T\"\nline: \"HALF\" bar(bat.ingot:Iron) max(300) flat(cyan)\nline: \"OVER\" bar(bat.ingot:Iron) max(100) flat(cyan)\n@screen G\noutput: \"GradLcd\", 0\nlayout: grid(2, 1)\nbg_gradient(#000000, #ffffff)\n@panel a at(0, 0, 1, 1) title: \"A\"\nline: \"X\" bar(bat.percent) flat(cyan)\n@panel b at(1, 0, 1, 1) title: \"B\"\nline: \"Y\" bar(bat.percent) flat(cyan)\n@screen N\noutput: \"NoneLcd\", 0\nlayout: grid(2, 1)\nbg: #102030\npanel_bg: none\nalert_bg: #ff0000\n@panel a at(0, 0, 1, 1) title: \"A\"\nline: \"X\" bar(bat.percent) flat(cyan)\n@panel b at(1, 0, 1, 1) title: \"B\"\nline: \"Y\" bar(bat.percent) flat(cyan)\n";
     MyGridProgram.BootstrapMe = me; MyGridProgram.BootstrapGts = gts;
     var prog = new Program();
     var binds = (Dictionary<string, List<IMyTerminalBlock>>)Dump.Get(prog, "_resolvedBinds");
@@ -64,7 +64,7 @@ static class ScopeTest {
     Check(binds["wild"].Count == 1 && binds["wild"][0] == mTank, "wildcard '*Tank*' matches this construct only");
     Check(binds["lost"].Count == 0, "group that exists only on the docked ship resolves to nothing");
     Check(binds["none"].Count == 0, "unknown name resolves to nothing");
-    Check(outs.Count == 2 && outs[cfg0.Screens[0]] == (IMyTextSurface)mLcd, "output 'Cockpit': this ship's LCD is drawn on, the docked ship's LCD is not touched");
+    Check(outs.Count == 4 && outs[cfg0.Screens[0]] == (IMyTextSurface)mLcd, "output 'Cockpit': this ship's LCD is drawn on, the docked ship's LCD is not touched");
     // Item amounts: "kind:Subtype" reads the amount of one item across all of a block's inventories.
     var rfv = typeof(Program).GetMethod("ResolveFieldValue", BindingFlags.Instance | BindingFlags.NonPublic);
     Func<string, string, double> field = (b, f) => (double)rfv.Invoke(prog, new object[] { b, f });
@@ -93,6 +93,30 @@ static class ScopeTest {
     Check(Math.Abs(barInfo(1, "fill") - 1.0) < 0.01, "max: 150 of max(100) is capped at a full bar: " + barInfo(1, "fill").ToString("0.000"));
     Check(barInfo(1, "text") == 150, "max: the capped bar still prints 150");
 
+    // Backgrounds: a gradient is drawn as 16 bands; the default card is a faint translucent overlay; panel_bg: none removes
+    // the card; and the red alert flashes the background to alert_bg and back.
+    Func<ScreenDef, List<VRage.Game.GUI.TextPanel.MySprite>> spritesOf = sc => {
+        for (int pass = 0; pass < 3; pass++) render.Invoke(prog, new object[] { sc });
+        var bb = bufs.GetType().GetProperty("Item").GetValue(bufs, new object[] { sc });
+        return (List<VRage.Game.GUI.TextPanel.MySprite>)bb.GetType().GetField("Sprites").GetValue(bb);
+    };
+    Func<VRage.Game.GUI.TextPanel.MySprite, string> col = sp => sp.Color.Value.R + "." + sp.Color.Value.G + "." + sp.Color.Value.B + "." + sp.Color.Value.A;
+    var grad = spritesOf(cfg0.Screens[2]);
+    Check(grad[0].Color.Value.R < 20 && grad[15].Color.Value.R > 235 && grad[7].Color.Value.R > 100 && grad[7].Color.Value.R < 150, "background: bg_gradient(#000000, #ffffff) runs dark to light over 16 bands");
+    Check(grad.Count(sp => col(sp) == "255.255.255.6") == 2, "background: two panels get the faint white default card");
+    var flat = spritesOf(cfg0.Screens[3]);
+    Check(col(flat[0]) == "16.32.48.255", "background: bg #102030 is one quad: " + col(flat[0]));
+    Check(!flat.Any(sp => col(sp) == "255.255.255.6"), "background: panel_bg: none draws no card");
+    var tick = typeof(Program).GetField("_tickCounter", BindingFlags.Instance | BindingFlags.NonPublic);
+    prog.Main("alert red", UpdateType.Terminal);
+    tick.SetValue(prog, 0); flat = spritesOf(cfg0.Screens[3]);
+    Check(col(flat[0]) == "255.0.0.255", "background: red alert flashes the background to alert_bg (phase on): " + col(flat[0]));
+    tick.SetValue(prog, 8); flat = spritesOf(cfg0.Screens[3]);
+    Check(col(flat[0]) == "16.32.48.255", "background: and back to bg (phase off): " + col(flat[0]));
+    prog.Main("alert off", UpdateType.Terminal);
+    tick.SetValue(prog, 0); flat = spritesOf(cfg0.Screens[3]);
+    Check(col(flat[0]) == "16.32.48.255", "background: no flashing once the alert is off: " + col(flat[0]));
+
     // Console: the same model is echoed to the info pane and drawn on the Programmable Block's own screen.
     var echo = new System.Text.StringBuilder();
     prog.Echo = t => echo.Append(t);
@@ -103,7 +127,7 @@ static class ScopeTest {
     Console.WriteLine("--- info pane ---\n" + text + "-----------------");
     Check(text.Contains("HELM-[Kernel-(v0.0.0)]"), "console: header with the version");
     Check(text.Contains("krn-cfg") && text.Contains("cfg-dsp") && text.Contains("perf"), "console: krn-cfg, cfg-dsp and perf sections");
-    Check(text.Contains("screens 2") && text.Contains("binds 5/7"), "console: 2 screens; 5 of 7 binds matched a block");
+    Check(text.Contains("screens 4") && text.Contains("binds 5/7"), "console: 4 screens; 5 of 7 binds matched a block");
     Check(text.Contains("docked-ignored 3"), "console: three blocks on the docked ship were ignored");
     Check(text.Contains("512x512"), "console: display list shows the surface size");
     Check(text.Contains(" instr ") && text.Contains(" peak "), "console: perf shows the last run's instructions and the peak");
