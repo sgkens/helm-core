@@ -20,7 +20,7 @@
 #                         or as a pipeline variable when manually running.
 #
 # Optional tunable Variables:
-#   HELM_BUDGET_SOFT_LIMIT  — Soft warning threshold (default: 99500)
+#   HELM_BUDGET_SOFT_LIMIT  — Soft warning threshold (default: 90000)
 #   HELM_BUDGET_HARD_LIMIT  — Hard failure threshold (default: 100000)
 #   HELM_PACKAGE_NAME       — Generic package name (default: helm-core)
 #   AUTOMATOR_VERSION       — Tag of the default runner image sgkens/phellams-automator (default: 2.22.0)
@@ -43,7 +43,7 @@ default:
 
 variables:
   AUTOMATOR_VERSION: "2.22.0"
-  HELM_BUDGET_SOFT_LIMIT: "99500"
+  HELM_BUDGET_SOFT_LIMIT: "90000"
   HELM_BUDGET_HARD_LIMIT: "100000"
   HELM_PACKAGE_NAME: "helm-core"
   DOTNET_NOLOGO: "true"
@@ -99,6 +99,8 @@ build-release:
     paths:
       - HelmCombined.cs
       - HelmCombined.min.cs
+      - HelmCombined.map.txt
+      - tools/minify-rename/obj/HelmCombined.prerename.cs
       - tools/spritedump/CombinedCheck/Wrapped.g.cs
       - layouts/
       - WORKSHOP.md
@@ -170,6 +172,22 @@ combined-compile-check:
     - if: '$CI_COMMIT_TAG'
 
 # ---------------------------------------------------------------------------
+# rename-parity — The shipped script has its identifiers shortened by tools/minify-rename. Run the source and the
+# shipped script through their public entry points on every preset (fake blocks and screens) and compare every drawn
+# sprite and every echoed line. Any difference fails the pipeline.
+# ---------------------------------------------------------------------------
+rename-parity:
+  stage: gate
+  needs:
+    - build-release
+  script:
+    - pwsh tools/rename-check/Test-RenameParity.ps1
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH =~ /^release\//'
+    - if: '$CI_COMMIT_TAG'
+
+# ---------------------------------------------------------------------------
 # scope-test — Program.cs must use only blocks on its own construct and never a docked ship's. Runs the real
 # Program.cs against fake blocks where the docked ship's blocks come first (the game returns the first match).
 # ---------------------------------------------------------------------------
@@ -184,15 +202,15 @@ scope-test:
     - if: '$CI_COMMIT_TAG'
 
 # ---------------------------------------------------------------------------
-# minify-verify — The minified script must be the same program as HelmCombined.cs:
-# Roslyn lexes both and their token streams (ignoring whitespace and comments) must be identical.
+# minify-verify — The whitespace-minified script (before names are shortened) must be the same program as
+# HelmCombined.cs: Roslyn lexes both and their token streams (ignoring whitespace and comments) must be identical.
 # ---------------------------------------------------------------------------
 minify-verify:
   stage: gate
   needs:
     - build-release
   script:
-    - dotnet run --project tools/minify-check -- HelmCombined.cs HelmCombined.min.cs
+    - dotnet run --project tools/minify-check -- HelmCombined.cs tools/minify-rename/obj/HelmCombined.prerename.cs
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH =~ /^release\//'
