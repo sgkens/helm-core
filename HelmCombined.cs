@@ -98,6 +98,8 @@
             public double LastValue = -99999.0;
             public string LastText;
             public float DisplayValue = -1f; // fluid damping lerp
+            public bool Vert;                // laid out as a column (vertical panel or tank)
+            public float CharW = 12f;        // width of one text character at the wave's scale
         }
 
         private Dictionary<ScreenDef, ScreenBuffer> _screenBuffers
@@ -1795,6 +1797,12 @@
                     AddQuad(buf, new Vector2(pLeft + pWidth / 2f, pTop + headerH - 2f), new Vector2(pWidth - 8f, 1f), divCol);
                 }
 
+                if (panel.Orientation == "vertical" || panel.Lines.Any(pl => pl.Kind == LineKind.Tank))
+                {
+                    BuildVertical(buf, surface, panel, font, fontSize, pLeft, pTop, pWidth, pHeight, headerH);
+                    continue;
+                }
+
                 int lineCount = Math.Max(1, panel.Lines.Count);
                 float panelUsableH = pHeight - headerH - 8f;
                 float rowHeight = panelUsableH / lineCount;
@@ -1961,6 +1969,117 @@
         }
 
 
+        // ---------------- vertical bars and tanks ----------------
+        // A panel with orientation: vertical, or with a tank(...) line, lays its lines out as columns: the value on top,
+        // the bar or the liquid tube in the middle, the label below. A tank or vertical bar fills the height of its panel,
+        // so a panel that spans the screen is the large size and a grid of panels gives medium ones.
+
+        private const string WavePattern = "~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-";
+        private const int TankBands = 8;
+
+        private void BuildVertical(ScreenBuffer buf, IMyTextSurface surface, PanelDef panel, string font, float fontSize, float pLeft, float pTop, float pWidth, float pHeight, float headerH)
+        {
+            int n = Math.Max(1, panel.Lines.Count);
+            float colW = (pWidth - 12f) / n;
+            float txtH = 22f * fontSize;
+            float top = pTop + headerH + 4f + txtH;
+            float th = Math.Max(20f, pTop + pHeight - 4f - txtH - top);
+            float cw = surface.MeasureStringInPixels(new StringBuilder("M"), font, fontSize * 0.9f).X;
+            for (int i = 0; i < panel.Lines.Count; i++)
+            {
+                var line = panel.Lines[i];
+                float cx = pLeft + 6f + colW * (i + 0.5f);
+                float tw = colW * 0.7f;
+                var slot = new LineSlot { Line = line, Vert = true, BarLeft = cx, BarMaxWidth = tw, BarHeight = th, BarCenterY = top + th / 2f, CharW = cw };
+
+                slot.LabelSpriteIndex = buf.Sprites.Count;
+                AddBootText(buf.Sprites, line.Label, Color.White, cx, pTop + pHeight - 4f - txtH, fontSize);
+                slot.ValSpriteIndex = buf.Sprites.Count;
+                AddBootText(buf.Sprites, "---", Color.White, cx, top - txtH, fontSize);
+                var lab = buf.Sprites[slot.LabelSpriteIndex]; lab.Alignment = TextAlignment.CENTER; buf.Sprites[slot.LabelSpriteIndex] = lab;
+                var val = buf.Sprites[slot.ValSpriteIndex]; val.Alignment = TextAlignment.CENTER; buf.Sprites[slot.ValSpriteIndex] = val;
+
+                AddQuad(buf, new Vector2(cx, top + th / 2f), new Vector2(tw, th), new Color(25, 30, 38));
+                slot.FillSpriteIndex = buf.Sprites.Count;
+                if (line.Kind == LineKind.Tank)
+                {
+                    for (int b = 0; b < TankBands; b++)
+                    {
+                        slot.ExtraSpriteIndices.Add(buf.Sprites.Count);
+                        AddQuad(buf, new Vector2(cx, top + th), new Vector2(tw - 6f, 0f), Color.White);
+                    }
+                    for (int w = 0; w < 4; w++)  // wave line, then three bubbles
+                    {
+                        slot.ExtraSpriteIndices.Add(buf.Sprites.Count);
+                        var t = MySprite.CreateText("", font, w == 0 ? new Color(255, 255, 255, 170) : new Color(255, 255, 255, 110), fontSize * 0.9f, TextAlignment.CENTER);
+                        t.Position = new Vector2(cx, top + th);
+                        buf.Sprites.Add(t);
+                    }
+                    Color edge = new Color(90, 110, 135);
+                    AddQuad(buf, new Vector2(cx - tw / 2f, top + th / 2f), new Vector2(3f, th), edge);
+                    AddQuad(buf, new Vector2(cx + tw / 2f, top + th / 2f), new Vector2(3f, th), edge);
+                    AddQuad(buf, new Vector2(cx, top + th), new Vector2(tw + 3f, 3f), edge);
+                }
+                else
+                {
+                    AddQuad(buf, new Vector2(cx, top + th), new Vector2(tw, 0f), ResolveColor(line.FlatColor));
+                }
+                buf.Slots.Add(slot);
+            }
+        }
+
+        // Updates a column. Returns true when it changed and the screen needs a redraw (a tank always does: it moves).
+        private bool UpdateVertical(ScreenBuffer buf, LineSlot slot, double value, double raw, Color col, bool valueChanged)
+        {
+            var line = slot.Line;
+            float before = slot.DisplayValue;
+            if (slot.DisplayValue < 0f) slot.DisplayValue = (float)value;
+            slot.DisplayValue = Math.Abs(slot.DisplayValue - (float)value) > 0.05f ? slot.DisplayValue + ((float)value - slot.DisplayValue) * 0.35f : (float)value;
+            float lvl = Math.Max(0f, Math.Min(1f, slot.DisplayValue / 100f)) * slot.BarHeight;
+            float bottom = slot.BarCenterY + slot.BarHeight / 2f;
+            float cx = slot.BarLeft;
+            if (line.Kind != LineKind.Tank)
+            {
+                var f = buf.Sprites[slot.FillSpriteIndex];
+                f.Size = new Vector2(slot.BarMaxWidth, lvl);
+                f.Position = new Vector2(cx, bottom - lvl / 2f);
+                f.Color = col;
+                buf.Sprites[slot.FillSpriteIndex] = f;
+                if (valueChanged || slot.DisplayValue != before) SetVal(buf, slot, FormatDisplayValue(raw, line), col);
+                return valueChanged || slot.DisplayValue != before;
+            }
+
+            float bh = slot.BarHeight / TankBands;
+            Color liquid = line.ColorRules != null ? ResolveColor(Layout.ResolveConditionalColor(line.ColorRules, value)) : col;
+            for (int b = 0; b < TankBands; b++)
+            {
+                float vis = Math.Max(0f, Math.Min(bh, lvl - b * bh));
+                var q = buf.Sprites[slot.ExtraSpriteIndices[b]];
+                q.Size = new Vector2(slot.BarMaxWidth - 6f, vis);
+                q.Position = new Vector2(cx, bottom - b * bh - vis / 2f);
+                // A gradient runs through the liquid from the bottom to the top; otherwise the whole body is one colour.
+                q.Color = line.ColorRules == null && line.Gradient && line.GradientColors.Length > 1 ? GradColor(line.GradientColors, 100.0 * (b + 0.5) / TankBands) : liquid;
+                buf.Sprites[slot.ExtraSpriteIndices[b]] = q;
+            }
+            // Wave: a line of characters on the surface that slides sideways. Bubbles: three characters rising through the liquid.
+            int chars = Math.Max(1, (int)((slot.BarMaxWidth - 8f) / slot.CharW));
+            bool show = lvl > 6f;
+            var wave = buf.Sprites[slot.ExtraSpriteIndices[TankBands]];
+            wave.Data = show ? WavePattern.Substring((int)(_time * 5.0) % 6, Math.Min(chars, 100)) : "";
+            wave.Position = new Vector2(cx, bottom - lvl - 12f);
+            buf.Sprites[slot.ExtraSpriteIndices[TankBands]] = wave;
+            for (int k = 0; k < 3; k++)
+            {
+                var bub = buf.Sprites[slot.ExtraSpriteIndices[TankBands + 1 + k]];
+                double ph = (_time * (0.35 + 0.1 * k) + k * 0.37) % 1.0;
+                bub.Data = lvl > 24f ? (k == 1 ? "O" : "o") : "";
+                bub.Position = new Vector2(cx + (k - 1) * slot.BarMaxWidth * 0.26f, bottom - (float)ph * (lvl - 6f) - 10f);
+                buf.Sprites[slot.ExtraSpriteIndices[TankBands + 1 + k]] = bub;
+            }
+            SetVal(buf, slot, FormatDisplayValue(raw, line), col);
+            return true;
+        }
+
         // Sets the text and colour of a line's value sprite, or the colour of its fill sprite, in the retained buffer.
         private static void SetVal(ScreenBuffer buf, LineSlot slot, string text, Color col)
         {
@@ -2098,6 +2217,12 @@
 
                 bool valueChanged = sweep || Math.Abs(raw - slot.LastValue) > 0.1;
                 if (valueChanged) slot.LastValue = raw;
+
+                if (slot.Vert)
+                {
+                    if (UpdateVertical(buf, slot, value, raw, barCol, valueChanged)) dirty = true;
+                    continue;
+                }
 
                 if (line.Kind == LineKind.Bar)
                 {
@@ -2535,7 +2660,7 @@
         public bool AllShips;   // scope: all - also use blocks on ships docked on a connector
     }
 
-    public enum LineKind { Text, Bar, LedBar, Spark, Hazard, Chevron, Dots, Balance, Toggle, Checkbox, Status, Ammo, Flow }
+    public enum LineKind { Text, Bar, LedBar, Spark, Hazard, Chevron, Dots, Balance, Toggle, Checkbox, Status, Ammo, Flow, Tank }
 
     public class ColorRule
     {
@@ -3653,6 +3778,7 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
             else if (func == "ammo" || func == "pips") def.Kind = LineKind.Ammo;
             else if (func == "flow" || func == "rate" || func == "spinner") def.Kind = LineKind.Flow;
             else if (func == "text") def.Kind = LineKind.Text;
+            else if (func == "tank" || func == "tube" || func == "bucket") def.Kind = LineKind.Tank;
             else throw new FormatException($"unknown display function '{func}'");
 
             // 3) chained modifiers: gradient(...) / flat(...) / color(...) / pattern(...) / dir / unit / format

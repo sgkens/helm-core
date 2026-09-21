@@ -1,0 +1,14 @@
+# Tank Fullscreen
+# One liquid tube filling the whole screen. The liquid rises with the value, a wave line of characters slides along the
+# surface and bubbles rise through it. The gradient runs through the liquid from the bottom to the top.
+@bind h2 = group("Hydrogen Tanks", agg: avg)
+
+@screen Tank
+output: "Tank LCD", 0
+profile: standard
+layout: grid(1, 1)
+bg: #050b14
+border_color: #38bdf8
+
+@panel p at(0, 0, 1, 1) title: "HYDROGEN"
+line: "H2" tank(h2.percent) gradient(#ef4444, #eab308, #38bdf8)

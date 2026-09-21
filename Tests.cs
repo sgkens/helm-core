@@ -221,6 +221,12 @@ line: ""O2""  bar(o2_$screen.percent) flat(cyan)
         Check(HelmParser.Parse("@screen a\nboot_calibrate: 0").Screens[0].BootCalibrate == 0f && HelmParser.Parse("@screen a\nboot_calibrate: off").Screens[0].BootCalibrate == 0f, "boot_calibrate: 0 and off switch the sweep off");
         Check(Math.Abs(HelmParser.Parse("@screen a\nboot_calibrate: 2.5s").Screens[0].BootCalibrate - 2.5f) < 0.001f, "boot_calibrate: 2.5s parsed");
 
+        // --- tank and vertical panels ---
+        var cfgTank = HelmParser.Parse("@screen a\noutput: \"x\", 0\n@panel p at(0, 0, 1, 1) title: \"T\"\norientation: vertical\nline: \"H2\" tank(h.percent) gradient(#f00, #0f0)\nline: \"O2\" tube(o.percent) flat(cyan)\nline: \"XX\" bucket(o.percent) flat(cyan)\nline: \"BA\" bar(o.percent) flat(cyan)\n");
+        Check(cfgTank.Errors.Count == 0, "tank, tube and bucket parse without errors: " + string.Join(" | ", cfgTank.Errors));
+        var tl = cfgTank.Screens[0].Panels[0].Lines;
+        Check(cfgTank.Screens[0].Panels[0].Orientation == "vertical" && tl[0].Kind == LineKind.Tank && tl[1].Kind == LineKind.Tank && tl[2].Kind == LineKind.Tank && tl[3].Kind == LineKind.Bar, "orientation: vertical is kept and tank, tube and bucket are the same gauge");
+
         // --- screen_bg and the partial background note ---
         var cfgTrap = HelmParser.Parse("@screen a\noutput: \"x\", 0\nlayout: grid(2, 1)\n@panel p at(0, 0, 1, 1) title: \"P\"\n@panel q at(1, 0, 1, 1) title: \"Q\"\nbg: #4a0d67\n");
         Check(cfgTrap.Errors.Count == 0 && cfgTrap.Warnings.Count == 1 && cfgTrap.Warnings[0].Contains("only 1 of 2 panels"), "bg: after the last @panel colours that panel only, and a warning says so: " + string.Join(" | ", cfgTrap.Warnings));

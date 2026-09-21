@@ -1,0 +1,19 @@
+# Tank Trio
+# Medium tanks: three panels side by side, each one a tank that fills its panel.
+@bind h2  = group("Hydrogen Tanks", agg: avg)
+@bind o2  = group("Oxygen Tanks", agg: avg)
+@bind pwr = group("Batteries", agg: avg)
+
+@screen Trio
+output: "Tank LCD", 0
+profile: wide
+layout: grid(3, 1)
+bg: #050b14
+border_color: #94a3b8
+
+@panel a at(0, 0, 1, 1) title: "H2"
+line: "H2" tank(h2.percent) gradient(#1e3a8a, #38bdf8)
+@panel b at(1, 0, 1, 1) title: "O2"
+line: "O2" tank(o2.percent) gradient(#0e7490, #67e8f9)
+@panel c at(2, 0, 1, 1) title: "POWER"
+line: "PWR" tank(pwr.percent) gradient(#ef4444, #eab308, #22c55e)

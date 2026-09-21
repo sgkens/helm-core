@@ -1,0 +1,20 @@
+# Vertical Bars
+# A panel with orientation: vertical lays its lines out as columns: the value on top, the bar in the middle, the label below.
+@bind pwr   = group("Batteries", agg: avg)
+@bind h2    = group("Hydrogen Tanks", agg: avg)
+@bind o2    = group("Oxygen Tanks", agg: avg)
+@bind cargo = group("Cargo Containers", agg: avg)
+
+@screen Bars
+output: "Bars LCD", 0
+profile: standard
+layout: grid(1, 1)
+bg: #0a0c10
+border_color: #22c55e
+
+@panel p at(0, 0, 1, 1) title: "SHIP"
+orientation: vertical
+line: "PWR" bar(pwr.percent) gradient(#ef4444, #eab308, #22c55e)
+line: "H2 " bar(h2.percent) gradient(#1e3a8a, #38bdf8)
+line: "O2 " bar(o2.percent) flat(#67e8f9)
+line: "CRG" bar(cargo.percent) gradient(#22c55e, #eab308, #ef4444)
