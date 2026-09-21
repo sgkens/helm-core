@@ -163,7 +163,7 @@ You can run these commands from a timer block, sensor, or cockpit hotbar:
 | `boot` | Plays the boot sequence again on every screen. |
 | `console on` / `console off` | Shows or hides the console on the Programmable Block's own screen. |
 | `scan` (also `diagnose`, `test`) | Prints a diagnostic report of binds, surfaces and instruction use. |
-| `alert red` (also `on`) | Turns on the flashing red alert across all screens. |
+| `alert red` (also `on`) | Turns on the red alert: every screen's background flashes to its `alert_bg` colour, and red gauges flash. |
 | `alert off` | Clears the alert state. |
 | `alert toggle` | Flips the alert state. |
 | `set <var> <val>` | Sets an in-memory dynamic telemetry variable. |

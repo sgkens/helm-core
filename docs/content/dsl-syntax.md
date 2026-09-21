@@ -73,9 +73,27 @@ title_color: #<hexcolor>
 - `output: "Name", index`: Terminal block name and 0-based surface index.
 - `profile`: Hardware screen profile controlling aspect ratio and viewport adaptation.
 - `layout: grid(cols, rows)`: Defines the layout grid dimensions (e.g. `grid(2, 2)`).
-- `bg: #hex`: Screen background color (e.g. `#090b0f`).
+- `bg: #hex`: Screen background color (e.g. `#090b0f`). See [Backgrounds](#backgrounds) for gradients, panel colours and the alert background.
 - `border_color: #hex`: Screen border frame color.
 - `border: style`: Modular border character set.
+
+### Backgrounds
+
+A screen is drawn in layers: the screen background, then a card behind each panel of a multi-panel screen, then the panel contents.
+
+| Directive | Where | Meaning |
+| :--- | :--- | :--- |
+| `bg: <color>` | `@screen` | Solid screen background. `transparent` draws none, so the game's own screen colour (black) shows through |
+| `bg_gradient(<color>, <color>, ...)` | `@screen` | Vertical gradient, top to bottom, drawn as 16 bands. Replaces `bg:` |
+| `bg: <color>` | after an `@panel` line | Background of that panel only. Use different colours for a deliberate two-tone screen |
+| `panel_bg: <color>` or `none` | `@screen` | The card behind every panel that has no `bg:` of its own. `none` draws no card |
+| `alert_bg: <color>` or `none` | `@screen` | Colour the background flashes to while the red alert is on (default `#5b0f0f`). `none` turns the flash off for this screen |
+
+Colours are `#rrggbb`, a name, or `r,g,b,a` with an alpha from 0 to 255, so a background or card can be translucent.
+
+- **The default card** is white at about 2% opacity, so it lifts whatever is behind it, a solid colour, a gradient or a transparent screen, instead of adding a second colour. Before this, every multi-panel screen drew a fixed near-black card, which showed as a different colour behind each panel on a coloured background.
+- **Red alert:** `alert red` flashes every screen's background between `bg` and `alert_bg` (half a cycle each, about every second and a half at the fast rate) until `alert off`. Gauges whose colour is red also flash, as before.
+- The `background_lab` preset shows a gradient, two deliberate tones, a see-through screen and an alert background. `helmv.ps1` does not draw gradients, panel cards or the alert flash.
 
 ### Item Amounts (Cargo and Reactor Contents)
 
