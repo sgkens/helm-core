@@ -15,10 +15,13 @@ Launch with any preset, custom layout file, or interactive flags:
 pwsh ./helmv.ps1
 
 # Inspect the command carrier preset in engineering measurement mode
-pwsh ./helmv.ps1 -Preset command_carrier -Measurement
+pwsh ./helmv.ps1 command_carrier -Measurement
 
 # Test the battery monolith on a cockpit corner pod in strict ASCII mode
-pwsh ./helmv.ps1 -Preset battery_monolith -ScreenProfile CockpitCorner -RenderMode Ascii
+pwsh ./helmv.ps1 battery_monolith -ScreenProfile CockpitCorner -RenderMode Ascii
+
+# One screen of a multi-screen layout
+pwsh ./helmv.ps1 background_lab -ScreenName Alert
 ```
 
 ---
@@ -57,27 +60,56 @@ While `helmv.ps1` is running interactively, you can control the simulation using
 
 | Parameter | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `-Preset` | `string` | `default` | Preset name from `layouts/default/` or `layouts/custom/`. Tab completion supported! |
-| `-CustomPreset` | `string` | - | Direct path to any custom `.txt` or `.helm` layout file. |
-| `-ScreenProfile` | `string` | `Auto` | `TextPanel` (1:1), `WideLCD` (2:1), `CockpitSmall` (2:1), `CornerLCD` (4:1), `CockpitCorner` (2:1), `Off`. |
-| `-RenderMode` | `string` | `Auto` | `Graphic` (UTF-8 block characters and gradients), `Ascii` (strict vanilla SE text), `Auto`. |
-| `-Border` | `string` | Layout def | `heavy`, `double`, `single`, `minimal`, `rounded`, `ascii`, `graphic`, `none`. |
-| `-RedAlert` | `switch` | `$false` | Turns on the red alert: card backgrounds flash to the screen's `alert_bg` colour, as `alert red` does in game. |
-| `-Measurement` | `switch` | `$false` | Enables engineering measurements with dynamic width balancing (aliases: `-Units`). |
-| `-Percent` | `switch` | `$false` | Forces clean percentage formatting across all gauges. |
-| `-SingleFrame` | `switch` | `$false` | Renders a single frame and exits (perfect for headless CI or piping). |
-| `-Duration` | `int` | `0` (indefinite)| Automatic exit after N seconds. |
-| `-Speed` | `double` | `1.0` | Telemetry simulation oscillation speed multiplier (0.1x to 10x). |
-| `-Help` | `switch` | `$false` | Displays visual help screen with ASCII banner and exits immediately. |
+| `-Preset` | `string` | `bridge` | Name of a file in `layouts/default/` or `layouts/custom/` (without `.txt`). Tab completion lists the files, so new presets appear without editing the script |
+| `-ScreenName` | `string` | first screen | Which screen of a multi-screen layout to draw, by name or by position (`0` is the first) |
+| `-CustomPreset` | `string` | - | Direct path to a layout file, or the layout text itself |
+| `-Frames` | `int` | `60` | Number of frames to simulate before exiting |
+| `-Interactive` | `switch` | `$false` | Run until stopped, with the hotkeys listed above |
+| `-UpdateFrequency` | `string` | `10x` | Simulated refresh rate: `1x`, `10x`, `100x` or `Custom` (with `-IntervalMs`) |
+| `-IntervalMs` | `int` | - | Frame interval in milliseconds for `-UpdateFrequency Custom` |
+| `-Boot` | `switch` | `$false` | Plays the boot sequence first |
+| `-BootDuration` | `double` | screen value | Seconds the boot sequence takes |
+| `-RedAlert` | `switch` | `$false` | Turns on the red alert: card backgrounds flash to the screen's `alert_bg` colour, as `alert red` does in game |
+| `-ScreenProfile` | `string` | `Auto` | `TextPanel` (1:1), `WideLCD` (2:1), `CockpitSmall` (2:1), `CornerLCD` (4:1), `CockpitCorner` (2:1), `Off` |
+| `-RenderMode` | `string` | `Auto` | `Graphic` (block characters and gradients), `Ascii` (strict vanilla text), `Auto` |
+| `-StrictSEAscii` | `switch` | `$false` | Only characters present in the game's Monospace font |
+| `-Border` | `string` | layout | `heavy`, `double`, `single`, `minimal`, `rounded`, `ascii`, `graphic`, `none` |
+| `-TitleAlign` | `string` | layout | `left`, `center` or `right` |
+| `-Measurement` / `-Percent` | `switch` | `$false` | Engineering units, or plain percentages, on every gauge |
+| `-SingleColumn` / `-MultiColumn` | `switch` | auto | Stack the panels, or set them two to a row |
+| `-ShowStats` / `-ShowSprites` | `switch` | `$false` | Print allocation counts, or the raw sprite list |
+| `-FontMode` / `-FontSize` | | `Off` / `16` | Terminal font simulation (`Monospace`, `Standard`, `JetBrains`, `Cascadia`) |
+| `-Help` | `switch` | `$false` | Displays the help screen and exits |
+
+`Test-HelmLayout.ps1` takes the same layout parameters (`-Preset`, `-ScreenName`, `-Path`, `-LayoutText`, `-Boot`, `-Frames`, and so on) and adds `-CopyToClipboard` and `-PassThru`.
+
+---
+
+## What the Preview Does Not Draw
+
+`helmv` is a text preview of the layout and its colours. It does not run the game's sprite renderer, so after the run it prints a `helmv:` note for each feature in the layout that it cannot show:
+
+| Feature | In the preview | In the game |
+| :--- | :--- | :--- |
+| `tank`, `tube`, `bucket` | Plain bar | Liquid tube with wave and bubbles |
+| `orientation: vertical` | Horizontal rows | Columns |
+| `size(medium\|large)` | Same row height | Rows of 2 and 4 shares |
+| `label_color`, `track`, `color_by` | Ignored | Applied |
+| A colour rule that answers `a/b` | Not blended | Gradient |
+| `bg_gradient`, `bg_texture`, value-driven `bg:` | One card colour | Drawn as set |
+| `mirror`, `mirror_panel`, `banner` | Not drawn | Copy of the screen, the ASCII art |
+| `at(col, row, spanX, spanY)` | Panels stacked or two to a row | Placed on the grid |
+
+Parser warnings (for example a `bg:` that colours one panel only) are printed in the same place, and a parse error stops the run with the line it came from. A layout with several screens shows the first one unless `-ScreenName` is given, and says so.
 
 ---
 
 ## VRage MySprite Frame Inspector
 
-Add `-SingleFrame` to verify exact sprite rendering parameters or inspect raw terminal string lengths:
+Add `-Frames 1 -ShowSprites` to verify exact sprite rendering parameters or inspect raw terminal string lengths:
 
 ```powershell
-pwsh ./helmv.ps1 -Preset survival_essentials -SingleFrame
+pwsh ./helmv.ps1 survival_essentials -Frames 1 -ShowSprites
 ```
 
 This verifies that the 3-phase dynamic alignment engine maintains an exact card width across every visible line with zero text overflow.
