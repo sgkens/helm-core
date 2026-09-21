@@ -28,6 +28,7 @@ class Surf : IMyTextSurface
     public Color FontColor { get; set; }
     public Color BackgroundColor { get; set; }
     public bool WriteText(string v, bool append = false) { return true; }
+    public string GetText() { return ""; }
     public void GetSprites(List<string> sprites) { sprites.Add("Grid"); sprites.Add("Circle"); sprites.Add("Danger"); }
     public Vector2 MeasureStringInPixels(StringBuilder t, string font, float scale) { return new Vector2(t.Length * 13f * scale, 22f * scale); }
     public MySpriteDrawFrame DrawFrame() { return new Cap(this); }
