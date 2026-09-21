@@ -56,21 +56,27 @@ switch(style){case 0: return new Color(232,121,249);case 1: return new Color(192
 }return new Color(170,180,195);}void DrawConsole(){Vector2 size=_pbSurface.SurfaceSize;Vector2 off=(_pbSurface.TextureSize-size)/2f;int chars=30;foreach(var kv in _con)chars=Math.Max(chars,kv.Key.Length);
 Vector2 cell=_pbSurface.MeasureStringInPixels(new StringBuilder("M"),"Monospace",1f);float scale=Math.Min(1f,Math.Min(size.X*0.94f/(chars*cell.X),size.Y*0.94f/(_con.Count*cell.Y)));
 float x=off.X+size.X*0.03f;float y=off.Y+size.Y*0.03f;var sp=new List<MySprite>();sp.Add(new MySprite{Type=SpriteType.TEXTURE,Data="SquareSimple",Position=off+size/2f,Size=size,Color=new Color(12,12,16)}
-);foreach(var kv in _con){AddBootText(sp,kv.Key,ConColor(kv.Value),x,y,scale);y+=cell.Y*scale;}using(var frame=_pbSurface.DrawFrame()){frame.AddRange(sp);}}static readonly string[]BootLogo={
+);foreach(var kv in _con){AddBootText(sp,kv.Key,ConColor(kv.Value),x,y,scale);y+=cell.Y*scale;}using(var frame=_pbSurface.DrawFrame()){frame.AddRange(sp);}}static readonly List<string>BootLogo=new List<string>{
 "        ZZ     ZZ","     ZZ ZZ     ZZ ZZ","   ZZVZ ZZ     ZZ ZVZZ","  ZZZZZ ZZZZZZZZZ ZZZZZ"," ZVZ    ZZ     ZZ    ZVZ"," ZGZ    ZZ     ZZ    ZGZ"," ZVVZ   ZZ     ZZ   ZVVZ","  ZVVZ ZZ       ZZ ZUVZ","   ZZZ Z         Z ZZZ","     ZZZZZZZ ZZZZZZZ","        ZZZZ ZZZZ"}
-;void StartBoot(){_bootT0.Clear();if(_config==null)return;for(int i=0;i<_config.Screens.Count;i++){var s=_config.Screens[i];if(s.BootDuration>0f)_bootT0[s]=_time+i*s.BootStaggerTicks/60.0;
-}}void RenderBoots(){List<ScreenDef>done=null;foreach(var kv in _bootT0){double p=(_time-kv.Value)/kv.Key.BootDuration;if(p<0)continue;if(p>=1.0){if(done==null)done=new List<ScreenDef>();
-done.Add(kv.Key);continue;}DrawBoot(kv.Key,p);}if(done==null)return;foreach(var s in done){_bootT0.Remove(s);_screenBuffers.Remove(s);_lastSignature.Remove(s);}
-}static void AddBootText(List<MySprite>sp,string text,Color col,float x,float y,float scale){var t=MySprite.CreateText(text,"Monospace",col,scale,TextAlignment.LEFT);
-t.Position=new Vector2(x,y);sp.Add(t);}void DrawBoot(ScreenDef screen,double p){IMyTextSurface surface;if(!_resolvedOutputs.TryGetValue(screen,out surface))return;
-Vector2 size=surface.SurfaceSize;Vector2 off=(surface.TextureSize-size)/2f;var logs=screen.GetEffectiveBootLogs();string msg=screen.BootMessage ?? "HELM TELEMETRY KERNEL ONLINE";
-bool logo=size.Y>=200f;int chars=msg.Length+3;foreach(var l in logs)chars=Math.Max(chars,l.Length+5);if(logo)foreach(var l in BootLogo)chars=Math.Max(chars,l.Length);
-int rows=(logo ? BootLogo.Length+1 : 0)+2+logs.Count;Vector2 cell=surface.MeasureStringInPixels(new StringBuilder("M"),"Monospace",1f);float scale=Math.Min(1f,Math.Min(size.X*0.94f/(chars*cell.X),size.Y*0.94f/(rows*cell.Y)));
-float x0=off.X+(size.X-chars*cell.X*scale)/2f;float y=off.Y+(size.Y-rows*cell.Y*scale)/2f;float lh=cell.Y*scale;var sp=new List<MySprite>();sp.Add(new MySprite{
-Type=SpriteType.TEXTURE,Data="SquareSimple",Position=off+size/2f,Size=size,Color=new Color(10,12,16)});if(logo){string[]stops=screen.BootGradientColors!=null&&screen.BootGradientColors.Length>0 ? screen.BootGradientColors : new[]{
-screen.BootColor};for(int i=0;i<BootLogo.Length;i++){HelmColor c=Layout.GradientLerp(stops,BootLogo.Length>1 ? 100.0*i/(BootLogo.Length-1): 0.0);AddBootText(sp,BootLogo[i],new Color(c.R,c.G,c.B),x0,y,scale);
-y+=lh;}y+=lh;}AddBootText(sp,">> "+msg,new Color(34,197,94),x0,y,scale);y+=lh*2f;int shown=Layout.BootLogCount(p,logs.Count);for(int i=0;i<shown;i++){bool ok=i==logs.Count-1&&p>=0.8;
-AddBootText(sp,ok ? "[OK]" : "[..]",ok ? new Color(34,197,94): new Color(56,189,248),x0,y,scale);AddBootText(sp,logs[i],new Color(203,213,225),x0+5f*cell.X*scale,y,scale);
+;void StartBoot(){_bootT0.Clear();if(_config==null)return;for(int i=0;i<_config.Screens.Count;i++){var s=_config.Screens[i];if(s.BootDuration>0f)_bootT0[s]=_time+(i/Math.Max(1,s.BootBatch))*s.BootStaggerTicks/60.0;
+}}void RenderBoots(){List<ScreenDef>done=null;int groups=(_bootT0.Count+3)/4,k=0;foreach(var kv in _bootT0){double p=(_time-kv.Value)/kv.Key.BootDuration;if(p<0)continue;
+if(p>=1.0){if(done==null)done=new List<ScreenDef>();done.Add(kv.Key);continue;}if((k++ +_tickCounter)%groups==0)DrawBoot(kv.Key,p);}if(done==null)return;foreach(var s in done){
+_bootT0.Remove(s);_screenBuffers.Remove(s);_lastSignature.Remove(s);}}static void AddBootText(List<MySprite>sp,string text,Color col,float x,float y,float scale){
+var t=MySprite.CreateText(text,"Monospace",col,scale,TextAlignment.LEFT);t.Position=new Vector2(x,y);sp.Add(t);}static void AddArt(List<MySprite>sp,List<string>art,ScreenDef screen,float x,float y,float scale,float lh){
+string[]stops=screen.BootGradientColors!=null&&screen.BootGradientColors.Length>0 ? screen.BootGradientColors : new[]{screen.BootColor};for(int i=0;i<art.Count;
+i++){HelmColor c=Layout.GradientLerp(stops,art.Count>1 ? 100.0*i/(art.Count-1): 0.0);AddBootText(sp,art[i],new Color(c.R,c.G,c.B),x,y+i*lh,scale);}}bool RenderBanner(ScreenDef screen,IMyTextSurface surface){
+List<string>art;if(_lastSignature.ContainsKey(screen)|| !_config.Banners.TryGetValue(screen.Banner,out art))return false;_lastSignature[screen]="banner";Vector2 size=surface.SurfaceSize;
+Vector2 off=(surface.TextureSize-size)/2f;int chars=1;foreach(var l in art)chars=Math.Max(chars,l.Length);Vector2 cell=surface.MeasureStringInPixels(new StringBuilder("M"),"Monospace",1f);
+float scale=Math.Min(size.X*0.94f/(chars*cell.X),size.Y*0.94f/(art.Count*cell.Y));var sp=new List<MySprite>();sp.Add(new MySprite{Type=SpriteType.TEXTURE,Data="SquareSimple",Position=off+size/2f,Size=size,Color=string.IsNullOrEmpty(screen.Background)? new Color(10,12,16): ResolveColor(screen.Background)}
+);AddArt(sp,art,screen,off.X+(size.X-chars*cell.X*scale)/2f,off.Y+(size.Y-art.Count*cell.Y*scale)/2f,scale,cell.Y*scale);using(var frame=surface.DrawFrame()){frame.AddRange(sp);
+}return true;}void DrawBoot(ScreenDef screen,double p){IMyTextSurface surface;if(!_resolvedOutputs.TryGetValue(screen,out surface))return;Vector2 size=surface.SurfaceSize;
+Vector2 off=(surface.TextureSize-size)/2f;var logs=screen.GetEffectiveBootLogs();string msg=screen.BootMessage ?? "HELM TELEMETRY KERNEL ONLINE";bool logo=size.Y>=200f;
+List<string>art;if(screen.BootLogo==null|| !_config.Banners.TryGetValue(screen.BootLogo,out art))art=BootLogo;int chars=msg.Length+3;foreach(var l in logs)chars=Math.Max(chars,l.Length+5);
+if(logo)foreach(var l in art)chars=Math.Max(chars,l.Length);int rows=(logo ? art.Count+1 : 0)+2+logs.Count;Vector2 cell=surface.MeasureStringInPixels(new StringBuilder("M"),"Monospace",1f);
+float scale=Math.Min(1f,Math.Min(size.X*0.94f/(chars*cell.X),size.Y*0.94f/(rows*cell.Y)));float x0=off.X+(size.X-chars*cell.X*scale)/2f;float y=off.Y+(size.Y-rows*cell.Y*scale)/2f;
+float lh=cell.Y*scale;var sp=new List<MySprite>();sp.Add(new MySprite{Type=SpriteType.TEXTURE,Data="SquareSimple",Position=off+size/2f,Size=size,Color=new Color(10,12,16)}
+);if(logo){AddArt(sp,art,screen,x0,y,scale,lh);y+=(art.Count+1)*lh;}AddBootText(sp,">> "+msg,new Color(34,197,94),x0,y,scale);y+=lh*2f;int shown=Layout.BootLogCount(p,logs.Count);
+for(int i=0;i<shown;i++){bool ok=i==logs.Count-1&&p>=0.8;AddBootText(sp,ok ? "[OK]" : "[..]",ok ? new Color(34,197,94): new Color(56,189,248),x0,y,scale);AddBootText(sp,logs[i],new Color(203,213,225),x0+5f*cell.X*scale,y,scale);
 y+=lh;}using(var frame=surface.DrawFrame()){frame.AddRange(sp);}}void ResolveBindsAndOutputs(){_resolvedBinds.Clear();_resolvedOutputs.Clear();_fallbackUsed.Clear();
 _outErr.Clear();_allLoaded=false;if(_config==null)return;foreach(var bind in _config.Binds){var blocks=new List<IMyTerminalBlock>();if(bind.Kind==BindKind.Dynamic){
 string k= !string.IsNullOrEmpty(bind.DynamicKey)? bind.DynamicKey : bind.Name;if(!_dynamicValues.ContainsKey(k)){_dynamicValues[k]=bind.DefaultValue;if(bind.DefaultText!=null)_dynText[k]=bind.DefaultText;
@@ -160,8 +166,9 @@ List<IMyTerminalBlock>blocks;if(!_resolvedBinds.TryGetValue(bindName,out blocks)
 if(blocks.Count==1)return ResolveBlockField(blocks[0],field);var values=new List<double>();foreach(var b in blocks)values.Add(ResolveBlockField(b,field));return Aggregator.Aggregate(bindDef!=null ? bindDef.Aggregation : Agg.Avg,values);
 }double ResolvePercentForBind(string bindName){return ResolveFieldValue(bindName,"percent");}static string FormatDisplayValue(double value,LineDef line){if(line==null||(string.IsNullOrEmpty(line.Unit)&&string.IsNullOrEmpty(line.Format)&&line.Field=="percent")){
 return GetPercentString(value);}return Layout.FormatDisplayValue(value,line.Unit,line.Format);}bool RenderScreen(ScreenDef screen){IMyTextSurface surface;if(!_resolvedOutputs.TryGetValue(screen,out surface))return false;
-if(screen.Border.Equals("ascii",StringComparison.OrdinalIgnoreCase)){return RenderScreenAscii(screen,surface);}return RenderScreenGraphic(screen,surface);}static void AddQuad(ScreenBuffer buf,Vector2 pos,Vector2 size,Color col,float rot=0f,string data="SquareSimple"){
-buf.Sprites.Add(new MySprite{Type=SpriteType.TEXTURE,Data=data,Position=pos,Size=size,Color=col,RotationOrScale=rot});}void BuildGraphicBuffer(ScreenDef screen,IMyTextSurface surface,ScreenBuffer buf){
+if(screen.Banner!=null)return RenderBanner(screen,surface);if(screen.Border.Equals("ascii",StringComparison.OrdinalIgnoreCase)){return RenderScreenAscii(screen,surface);
+}return RenderScreenGraphic(screen,surface);}static void AddQuad(ScreenBuffer buf,Vector2 pos,Vector2 size,Color col,float rot=0f,string data="SquareSimple"){buf.Sprites.Add(new MySprite{
+Type=SpriteType.TEXTURE,Data=data,Position=pos,Size=size,Color=col,RotationOrScale=rot});}void BuildGraphicBuffer(ScreenDef screen,IMyTextSurface surface,ScreenBuffer buf){
 buf.Sprites.Clear();buf.Slots.Clear();Vector2 surfaceSize=surface.SurfaceSize;Vector2 textureSize=surface.TextureSize;Vector2 viewportOffset=(textureSize-surfaceSize)/2f;
 float paddingX=Math.Max(4f,surfaceSize.X*0.02f);float paddingY=Math.Max(4f,surfaceSize.Y*0.02f);if(screen.Profile=="compact"||(screen.Profile=="auto"&&surfaceSize.Y<=260f&&surfaceSize.Y>150f)){
 paddingX=4f;paddingY=4f;}else if(screen.Profile=="corner"||(screen.Profile=="auto"&&surfaceSize.Y<=150f)){paddingX=2f;paddingY=2f;}float usableW=surfaceSize.X-(paddingX*2f);
@@ -296,13 +303,15 @@ public string Name="default";public int Col=0;public int Row=0;public int SpanX=
 public string Border;public string Font;public float? FontSize;public string Background;public string BorderColor;public string[]BorderGradientColors;public string Orientation="horizontal";
 public List<LineDef>Lines=new List<LineDef>();}public class ScreenDef{public string Name;public string Profile="standard";public string Border="graphic";public string BorderColor;
 public string[]BorderGradientColors;public string TitleAlign="left";public string TitleColor;public string Font="Monospace";public string Background;public string BootMessage;
-public int BootStaggerTicks=10;public float BootDuration=2.5f;public string BootColor="cyan";public string[]BootGradientColors;public List<string>BootLogs=new List<string>();
-public List<string>GetEffectiveBootLogs(){if(BootLogs!=null&&BootLogs.Count>0)return BootLogs;return new List<string>{"helm-core initializing...","seeking compliant surface displays...","uploading firmware...","awaiting compliance...","helm-core online -- BOOT // SUCCESS"}
+public int BootStaggerTicks=10;public int BootBatch=1;public string Banner;public string BootLogo;public float BootDuration=2.5f;public string BootColor="cyan";
+public string[]BootGradientColors;public List<string>BootLogs=new List<string>();public List<string>GetEffectiveBootLogs(){if(BootLogs!=null&&BootLogs.Count>0)return BootLogs;
+return new List<string>{"helm-core initializing...","seeking compliant surface displays...","uploading firmware...","awaiting compliance...","helm-core online -- BOOT // SUCCESS"}
 ;}public float FontSize=1.0f;public int RefreshTicks=100;public int GridCols=1;public int GridRows=1;public int Width=30;public string OutputBlockName;public int OutputSurfaceIndex=0;
 public List<PanelDef>Panels=new List<PanelDef>();public List<LineDef>Lines{get{if(Panels.Count==0)Panels.Add(new PanelDef{Name="main"});return Panels[0].Lines;}
 }}public class TemplateDef{public string Name;public List<string>ParamNames=new List<string>();public Dictionary<string,string>Defaults=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
 public List<string>BodyLines=new List<string>();}public class ParsedConfig{public List<BindDef>Binds=new List<BindDef>();public List<ScreenDef>Screens=new List<ScreenDef>();
-public List<string>Errors=new List<string>();}public static class HelmParser{static readonly Dictionary<string,TemplateDef>BuiltinTemplates=new Dictionary<string,TemplateDef>(StringComparer.OrdinalIgnoreCase);
+public List<string>Errors=new List<string>();public Dictionary<string,List<string>>Banners=new Dictionary<string,List<string>>(StringComparer.OrdinalIgnoreCase);
+}public static class HelmParser{static readonly Dictionary<string,TemplateDef>BuiltinTemplates=new Dictionary<string,TemplateDef>(StringComparer.OrdinalIgnoreCase);
 static HelmParser(){RegisterBuiltinTemplates();}static void RegisterBuiltinTemplates(){RegisterTemplate("fighter_hud",new[]{"$screen=\"Cockpit Display\"","$surf=0","$pwr=\"Main Batteries\"","$h2=\"Hydrogen Tanks\"","$cargo=\"Cargo Containers\""}
 ,@"@bind pwr_$screen=group(""$pwr"",agg:avg)
 @bind h2_$screen=group(""$h2"",agg:avg)
@@ -392,7 +401,7 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");}public static void RegisterTe
 ;foreach(var p in paramDecls){var kv=p.Split(new[]{'='},2);string pName=NormalizeParam(kv[0]);t.ParamNames.Add(pName);if(kv.Length>1)t.Defaults[pName]=Unquote(kv[1].Trim());
 }var lines=body.Replace("\r\n","\n").Split('\n');foreach(var l in lines){string s=l.Trim();if(s.Length>0)t.BodyLines.Add(s);}BuiltinTemplates[name]=t;}static string NormalizeParam(string p){
 p=p.Trim();if(p.StartsWith("$"))p=p.Substring(1);return p.ToLowerInvariant();}public static ParsedConfig Parse(string customData){var cfg=new ParsedConfig();ScreenDef current=null;
-PanelDef currentPanel=null;var preprocessed=PreprocessTemplates(customData,cfg.Errors);for(int i=0;i<preprocessed.Count;i++){string line=preprocessed[i].Trim();
+PanelDef currentPanel=null;var preprocessed=PreprocessTemplates(customData,cfg.Errors,cfg.Banners);for(int i=0;i<preprocessed.Count;i++){string line=preprocessed[i].Trim();
 if(line.Length==0)continue;try{if(line.StartsWith("@bind")){cfg.Binds.Add(ParseBind(line));}else if(line.StartsWith("@screen")){current=new ScreenDef{Name=line.Substring("@screen".Length).Trim()}
 ;cfg.Screens.Add(current);currentPanel=null;}else if(line.StartsWith("profile:")){RequireScreen(current,"profile:");current.Profile=line.Substring("profile:".Length).Trim().ToLowerInvariant();
 }else if(line.StartsWith("border:")){RequireScreen(current,"border:");string b=line.Substring("border:".Length).Trim();if(currentPanel!=null)currentPanel.Border=b;
@@ -411,19 +420,23 @@ RequireScreen(current,"output:");var parts=SplitArgs(line.Substring("output:".Le
 current.OutputBlockName=Unquote(parts[0]);current.OutputSurfaceIndex=parts.Count>1 ? int.Parse(parts[1]): 0;}else if(line.StartsWith("width:")){RequireScreen(current,"width:");
 current.Width=int.Parse(line.Substring("width:".Length).Trim());}else if(line.StartsWith("boot_msg:")||line.StartsWith("boot:")){RequireScreen(current,"boot_msg:");
 current.BootMessage=Unquote(line.Substring(line.IndexOf(':')+1).Trim());}else if(line.StartsWith("boot_stagger:")){RequireScreen(current,"boot_stagger:");current.BootStaggerTicks=int.Parse(line.Substring("boot_stagger:".Length).Trim());
+}else if(line.StartsWith("boot_batch:")){RequireScreen(current,"boot_batch:");current.BootBatch=Math.Max(1,int.Parse(line.Substring("boot_batch:".Length).Trim()));
 }else if(line.StartsWith("boot_duration:")){RequireScreen(current,"boot_duration:");string dStr=line.Substring("boot_duration:".Length).Trim().ToLowerInvariant();
 bool inSeconds=dStr.EndsWith("s");if(inSeconds)dStr=dStr.Substring(0,dStr.Length-1).Trim();float dur;if(float.TryParse(dStr,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out dur)){
 current.BootDuration=inSeconds ? dur : dur/60f;}}else if(line.StartsWith("boot_log:")){RequireScreen(current,"boot_log:");current.BootLogs.Add(Unquote(line.Substring("boot_log:".Length).Trim()));
-}else if(line.StartsWith("boot_gradient:")||line.StartsWith("boot_gradient(")){RequireScreen(current,"boot_gradient");string gStr=line.StartsWith("boot_gradient:")? line.Substring("boot_gradient:".Length): line.Substring("boot_gradient".Length);
-gStr=gStr.Trim();if(gStr.StartsWith("(")&&gStr.Contains(")"))gStr=ExtractParenArgs(gStr,0);current.BootGradientColors=SplitArgs(gStr).Select(s=>s.Trim()).ToArray();
-}else if(line.StartsWith("boot_color:")){RequireScreen(current,"boot_color:");current.BootColor=line.Substring("boot_color:".Length).Trim();}else if(line.StartsWith("orientation:")){
-RequireScreen(current,"orientation:");string o=line.Substring("orientation:".Length).Trim().ToLowerInvariant();if(currentPanel!=null)currentPanel.Orientation=o;
-}else if(line.StartsWith("@panel")){RequireScreen(current,"@panel");currentPanel=ParsePanel(line);current.Panels.Add(currentPanel);}else if(line.StartsWith("title:")){
-RequireScreen(current,"title:");if(currentPanel==null){currentPanel=new PanelDef{Name="main",Col=0,Row=0,SpanX=current.GridCols,SpanY=current.GridRows};current.Panels.Add(currentPanel);
-}currentPanel.Title=Unquote(line.Substring("title:".Length).Trim());}else if(line.StartsWith("line:")){RequireScreen(current,"line:");if(currentPanel==null){currentPanel=new PanelDef{
-Name="main",Col=0,Row=0,SpanX=current.GridCols,SpanY=current.GridRows};current.Panels.Add(currentPanel);}currentPanel.Lines.Add(ParseLine(line.Substring("line:".Length).Trim()));
+}else if(line.StartsWith("banner:")){RequireScreen(current,"banner:");current.Banner=Unquote(line.Substring("banner:".Length).Trim());}else if(line.StartsWith("boot_logo:")){
+RequireScreen(current,"boot_logo:");current.BootLogo=Unquote(line.Substring("boot_logo:".Length).Trim());}else if(line.StartsWith("boot_gradient:")||line.StartsWith("boot_gradient(")||line.StartsWith("banner_gradient:")||line.StartsWith("banner_gradient(")){
+RequireScreen(current,"boot_gradient");int gi=line.IndexOfAny(new[]{':','('});string gStr=line.Substring(line[gi]==':' ? gi+1 : gi);gStr=gStr.Trim();if(gStr.StartsWith("(")&&gStr.Contains(")"))gStr=ExtractParenArgs(gStr,0);
+current.BootGradientColors=SplitArgs(gStr).Select(s=>s.Trim()).ToArray();}else if(line.StartsWith("boot_color:")||line.StartsWith("banner_color:")){RequireScreen(current,"boot_color:");
+current.BootColor=line.Substring(line.IndexOf(':')+1).Trim();}else if(line.StartsWith("orientation:")){RequireScreen(current,"orientation:");string o=line.Substring("orientation:".Length).Trim().ToLowerInvariant();
+if(currentPanel!=null)currentPanel.Orientation=o;}else if(line.StartsWith("@panel")){RequireScreen(current,"@panel");currentPanel=ParsePanel(line);current.Panels.Add(currentPanel);
+}else if(line.StartsWith("title:")){RequireScreen(current,"title:");if(currentPanel==null){currentPanel=new PanelDef{Name="main",Col=0,Row=0,SpanX=current.GridCols,SpanY=current.GridRows}
+;current.Panels.Add(currentPanel);}currentPanel.Title=Unquote(line.Substring("title:".Length).Trim());}else if(line.StartsWith("line:")){RequireScreen(current,"line:");
+if(currentPanel==null){currentPanel=new PanelDef{Name="main",Col=0,Row=0,SpanX=current.GridCols,SpanY=current.GridRows};current.Panels.Add(currentPanel);}currentPanel.Lines.Add(ParseLine(line.Substring("line:".Length).Trim()));
 }else{cfg.Errors.Add($"Line {i + 1}: unrecognized directive: \"{line}\"");}}catch(Exception ex){cfg.Errors.Add($"Line {i + 1}: parse error ({ex.Message}) in \"{line}\"");
 }}foreach(var s in cfg.Screens){if(string.IsNullOrEmpty(s.OutputBlockName))cfg.Errors.Add($"@screen {s.Name}: missing required 'output:' — a screen must declare which physical block/surface it renders to");
+}foreach(var sc in cfg.Screens){if(sc.Banner!=null&& !cfg.Banners.ContainsKey(sc.Banner))cfg.Errors.Add("Screen '"+sc.Name+"': banner '"+sc.Banner+"' is not defined (@banner "+sc.Banner+" ... @end)");
+if(sc.BootLogo!=null&& !cfg.Banners.ContainsKey(sc.BootLogo))cfg.Errors.Add("Screen '"+sc.Name+"': boot_logo '"+sc.BootLogo+"' is not defined (@banner "+sc.BootLogo+" ... @end)");
 }return cfg;}static void ParseLayout(string body,ScreenDef screen){int paren=body.IndexOf('(');if(paren<0)throw new FormatException("missing '(' in layout: specification");
 string kind=body.Substring(0,paren).Trim().ToLowerInvariant();string argsStr=ExtractParenArgs(body,paren);var args=SplitArgs(argsStr);if(kind=="grid"){if(args.Count<2)throw new FormatException("layout: grid(cols, rows) requires 2 arguments");
 screen.GridCols=Math.Max(1,int.Parse(args[0]));screen.GridRows=Math.Max(1,int.Parse(args[1]));}else{throw new FormatException($"unknown layout kind '{kind}' (expected grid)");
@@ -439,27 +452,30 @@ if(borderIdx>=0&& !remainder.Substring(borderIdx).StartsWith("border_gradient:",
 panel.Border=ExtractAttr(remainder.Substring(borderIdx),"border:");}int bgIdx=remainder.IndexOf("border_gradient:",StringComparison.OrdinalIgnoreCase);if(bgIdx<0)bgIdx=remainder.IndexOf("border_gradient(",StringComparison.OrdinalIgnoreCase);
 if(bgIdx>=0){string gStr=remainder.Substring(bgIdx+"border_gradient".Length).Trim();if(gStr.StartsWith(":"))gStr=gStr.Substring(1).Trim();if(gStr.StartsWith("(")&&gStr.Contains(")"))gStr=ExtractParenArgs(gStr,0);
 panel.BorderGradientColors=SplitArgs(gStr).Select(s=>s.Trim()).ToArray();}}return panel;}static string ExtractAttr(string s,string key){int idx=s.IndexOf(key,StringComparison.OrdinalIgnoreCase);
-if(idx<0)return null;string val=s.Substring(idx+key.Length).Trim();int sp=val.IndexOf(' ');return sp>=0 ? val.Substring(0,sp): val;}static List<string>PreprocessTemplates(string customData,List<string>errors){
+if(idx<0)return null;string val=s.Substring(idx+key.Length).Trim();int sp=val.IndexOf(' ');return sp>=0 ? val.Substring(0,sp): val;}static List<string>PreprocessTemplates(string customData,List<string>errors,Dictionary<string,List<string>>banners){
 var userTemplates=new Dictionary<string,TemplateDef>(StringComparer.OrdinalIgnoreCase);var rawLines=(customData ?? "").Replace("\r\n","\n").Split('\n');var outLines=new List<string>();
-int i=0;while(i<rawLines.Length){string raw=rawLines[i++];string line=StripComment(raw).Trim();if(line.Length==0)continue;if(line.StartsWith("@template")){try{var t=ParseTemplateHeader(line);
-while(i<rawLines.Length){string bodyRaw=rawLines[i++];string bodyLine=StripComment(bodyRaw).Trim();if(bodyLine.Equals("@end",StringComparison.OrdinalIgnoreCase))break;
-if(bodyLine.Length>0)t.BodyLines.Add(bodyLine);}userTemplates[t.Name]=t;}catch(Exception ex){errors.Add($"Template parse error ({ex.Message}) in \"{line}\"");}}
-else if(line.StartsWith("@use")){try{ExpandTemplateCall(line,userTemplates,outLines,errors);}catch(Exception ex){errors.Add($"@use error ({ex.Message}) in \"{line}\"");
-}}else{outLines.Add(line);}}return outLines;}static TemplateDef ParseTemplateHeader(string line){string rest=line.Substring("@template".Length).Trim();int paren=rest.IndexOf('(');
-if(paren<0)throw new FormatException("missing '(' in @template header");string name=rest.Substring(0,paren).Trim();string argsStr=ExtractParenArgs(rest,paren);var t=new TemplateDef{
-Name=name};foreach(var p in SplitArgs(argsStr)){var kv=p.Split(new[]{'='},2);string pName=NormalizeParam(kv[0]);t.ParamNames.Add(pName);if(kv.Length>1)t.Defaults[pName]=Unquote(kv[1].Trim());
-}return t;}static void ExpandTemplateCall(string line,Dictionary<string,TemplateDef>userTemplates,List<string>outLines,List<string>errors,int depth=0){string rest=line.Substring("@use".Length).Trim();
-int paren=rest.IndexOf('(');string name=paren>=0 ? rest.Substring(0,paren).Trim(): rest.Trim();string argsStr=paren>=0 ? ExtractParenArgs(rest,paren): "";TemplateDef t=null;
-if(!userTemplates.TryGetValue(name,out t)){if(!BuiltinTemplates.TryGetValue(name,out t))throw new FormatException($"unknown template '{name}'");}var bound=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
-foreach(var kv in t.Defaults)bound[kv.Key]=kv.Value;var args=SplitArgs(argsStr);for(int a=0;a<args.Count;a++){string arg=args[a];int eq=arg.IndexOf('=');if(eq>=0){
-string key=NormalizeParam(arg.Substring(0,eq));string val=Unquote(arg.Substring(eq+1).Trim());bound[key]=val;}else{if(a<t.ParamNames.Count){string key=t.ParamNames[a];
-bound[key]=Unquote(arg.Trim());}}}foreach(var bodyLine in t.BodyLines){string expanded=bodyLine;foreach(var kv in bound){expanded=expanded.Replace("$"+kv.Key,kv.Value).Replace("{"+kv.Key+"}",kv.Value);
-}if(expanded.StartsWith("@use")){if(depth>3)throw new FormatException("@use nested too deep");ExpandTemplateCall(expanded,userTemplates,outLines,errors,depth+1);
-}else outLines.Add(expanded);}}static void RequireScreen(ScreenDef current,string directive){if(current==null)throw new FormatException($"'{directive}' used before any @screen declared");
-}static string StripComment(string s){if(string.IsNullOrEmpty(s))return s;bool inQuote=false;for(int i=0;i<s.Length;i++){char c=s[i];if(c=='"'){inQuote= !inQuote;
-}else if(!inQuote){if(c=='/'&&i+1<s.Length&&s[i+1]=='/'){return s.Substring(0,i);}if(c=='#'){if(IsHexColorAt(s,i)){continue;}return s.Substring(0,i);}}}return s;
-}static bool IsHexColorAt(string s,int index){int len=0;for(int i=index+1;i<s.Length;i++){char c=s[i];if((c>='0'&&c<='9')||(c>='a'&&c<='f')||(c>='A'&&c<='F'))len++;
-else break;}if(len==3||len==4||len==6||len==8){int nextIdx=index+1+len;if(nextIdx>=s.Length||char.IsWhiteSpace(s[nextIdx])||s[nextIdx]==')'||s[nextIdx]==','||s[nextIdx]==':')return true;
+int i=0;while(i<rawLines.Length){string raw=rawLines[i++];if(raw.TrimStart().StartsWith("@banner ",StringComparison.OrdinalIgnoreCase)){var art=new List<string>();
+while(i<rawLines.Length){string a=rawLines[i++].Replace("\t","    ").TrimEnd();if(a.Trim().Equals("@end",StringComparison.OrdinalIgnoreCase))break;art.Add(a);}while(art.Count>0&&art[0].Length==0)art.RemoveAt(0);
+while(art.Count>0&&art[art.Count-1].Length==0)art.RemoveAt(art.Count-1);int indent=int.MaxValue;foreach(var a in art)if(a.Length>0)indent=Math.Min(indent,a.Length-a.TrimStart().Length);
+for(int k=0;k<art.Count;k++)if(art[k].Length>0)art[k]=art[k].Substring(indent);banners[raw.TrimStart().Substring(8).Trim()]=art;continue;}string line=StripComment(raw).Trim();
+if(line.Length==0)continue;if(line.StartsWith("@template")){try{var t=ParseTemplateHeader(line);while(i<rawLines.Length){string bodyRaw=rawLines[i++];string bodyLine=StripComment(bodyRaw).Trim();
+if(bodyLine.Equals("@end",StringComparison.OrdinalIgnoreCase))break;if(bodyLine.Length>0)t.BodyLines.Add(bodyLine);}userTemplates[t.Name]=t;}catch(Exception ex){
+errors.Add($"Template parse error ({ex.Message}) in \"{line}\"");}}else if(line.StartsWith("@use")){try{ExpandTemplateCall(line,userTemplates,outLines,errors);}
+catch(Exception ex){errors.Add($"@use error ({ex.Message}) in \"{line}\"");}}else{outLines.Add(line);}}return outLines;}static TemplateDef ParseTemplateHeader(string line){
+string rest=line.Substring("@template".Length).Trim();int paren=rest.IndexOf('(');if(paren<0)throw new FormatException("missing '(' in @template header");string name=rest.Substring(0,paren).Trim();
+string argsStr=ExtractParenArgs(rest,paren);var t=new TemplateDef{Name=name};foreach(var p in SplitArgs(argsStr)){var kv=p.Split(new[]{'='},2);string pName=NormalizeParam(kv[0]);
+t.ParamNames.Add(pName);if(kv.Length>1)t.Defaults[pName]=Unquote(kv[1].Trim());}return t;}static void ExpandTemplateCall(string line,Dictionary<string,TemplateDef>userTemplates,List<string>outLines,List<string>errors,int depth=0){
+string rest=line.Substring("@use".Length).Trim();int paren=rest.IndexOf('(');string name=paren>=0 ? rest.Substring(0,paren).Trim(): rest.Trim();string argsStr=paren>=0 ? ExtractParenArgs(rest,paren): "";
+TemplateDef t=null;if(!userTemplates.TryGetValue(name,out t)){if(!BuiltinTemplates.TryGetValue(name,out t))throw new FormatException($"unknown template '{name}'");
+}var bound=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);foreach(var kv in t.Defaults)bound[kv.Key]=kv.Value;var args=SplitArgs(argsStr);for(int a=0;
+a<args.Count;a++){string arg=args[a];int eq=arg.IndexOf('=');if(eq>=0){string key=NormalizeParam(arg.Substring(0,eq));string val=Unquote(arg.Substring(eq+1).Trim());
+bound[key]=val;}else{if(a<t.ParamNames.Count){string key=t.ParamNames[a];bound[key]=Unquote(arg.Trim());}}}foreach(var bodyLine in t.BodyLines){string expanded=bodyLine;
+foreach(var kv in bound){expanded=expanded.Replace("$"+kv.Key,kv.Value).Replace("{"+kv.Key+"}",kv.Value);}if(expanded.StartsWith("@use")){if(depth>3)throw new FormatException("@use nested too deep");
+ExpandTemplateCall(expanded,userTemplates,outLines,errors,depth+1);}else outLines.Add(expanded);}}static void RequireScreen(ScreenDef current,string directive){
+if(current==null)throw new FormatException($"'{directive}' used before any @screen declared");}static string StripComment(string s){if(string.IsNullOrEmpty(s))return s;
+bool inQuote=false;for(int i=0;i<s.Length;i++){char c=s[i];if(c=='"'){inQuote= !inQuote;}else if(!inQuote){if(c=='/'&&i+1<s.Length&&s[i+1]=='/'){return s.Substring(0,i);
+}if(c=='#'){if(IsHexColorAt(s,i)){continue;}return s.Substring(0,i);}}}return s;}static bool IsHexColorAt(string s,int index){int len=0;for(int i=index+1;i<s.Length;
+i++){char c=s[i];if((c>='0'&&c<='9')||(c>='a'&&c<='f')||(c>='A'&&c<='F'))len++;else break;}if(len==3||len==4||len==6||len==8){int nextIdx=index+1+len;if(nextIdx>=s.Length||char.IsWhiteSpace(s[nextIdx])||s[nextIdx]==')'||s[nextIdx]==','||s[nextIdx]==':')return true;
 }return false;}static BindDef ParseBind(string line){string rest=line.Substring("@bind".Length).Trim();int eq=rest.IndexOf('=');if(eq<0)throw new FormatException("missing '=' in @bind");
 string name=rest.Substring(0,eq).Trim();string expr=rest.Substring(eq+1).Trim();int paren=expr.IndexOf('(');if(paren<0)throw new FormatException("missing '(' in @bind target");
 string funcName=expr.Substring(0,paren).Trim().ToLowerInvariant();string argsStr=ExtractParenArgs(expr,paren);var args=SplitArgs(argsStr);if(args.Count==0)throw new FormatException("@bind target has no arguments");

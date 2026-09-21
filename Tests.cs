@@ -212,6 +212,23 @@ line: ""O2""  bar(o2_$screen.percent) flat(cyan)
         Check(Math.Abs(HelmParser.Parse("@screen a\nboot_duration: 2s").Screens[0].BootDuration - 2.0f) < 0.01f, "boot_duration: 2s is 2 s");
         Check(HelmParser.Parse("@screen a\nboot_duration: 0").Screens[0].BootDuration == 0f, "boot_duration: 0 disables the boot");
 
+        Check(HelmParser.Parse("@screen a\nboot_batch: 4").Screens[0].BootBatch == 4, "boot_batch: 4 parsed");
+        Check(HelmParser.Parse("@screen a").Screens[0].BootBatch == 1, "boot_batch defaults to 1");
+        Check(HelmParser.Parse("@screen a\nboot_batch: 0").Screens[0].BootBatch == 1, "boot_batch below 1 is clamped to 1");
+
+        // --- Banners: raw ASCII art blocks ---
+        string bannerDsl = "@banner logo\n\n        ZZ   # \"q\"\n     ZZ ZZ\n\n@end\n@screen a\noutput: \"x\", 0\nbanner: logo\nboot_logo: logo\nbanner_color: red\n";
+        var cfgBan = HelmParser.Parse(bannerDsl);
+        Check(cfgBan.Errors.Count == 0, "banner parses without errors: " + string.Join(" | ", cfgBan.Errors));
+        Check(cfgBan.Banners.ContainsKey("logo") && cfgBan.Banners["logo"].Count == 2, "banner keeps 2 lines and drops the blank lines around it");
+        Check(cfgBan.Banners["logo"][0] == "   ZZ   # \"q\"", "banner keeps '#', quotes and inner spaces, and removes the common left indent: '" + cfgBan.Banners["logo"][0] + "'");
+        Check(cfgBan.Banners["logo"][1] == "ZZ ZZ", "banner second line: '" + cfgBan.Banners["logo"][1] + "'");
+        Check(cfgBan.Screens[0].Banner == "logo" && cfgBan.Screens[0].BootLogo == "logo", "banner: and boot_logo: parsed");
+        Check(cfgBan.Screens[0].BootColor == "red", "banner_color: sets the logo colour");
+        var cfgBan2 = HelmParser.Parse("@screen a\noutput: \"x\", 0\nbanner: nope\nboot_logo: nada\nbanner_gradient(cyan, blue)\n");
+        Check(cfgBan2.Errors.Count == 2 && cfgBan2.Errors[0].Contains("'nope' is not defined"), "undefined banner and boot_logo are reported: " + string.Join(" | ", cfgBan2.Errors));
+        Check(cfgBan2.Screens[0].BootGradientColors != null && cfgBan2.Screens[0].BootGradientColors.Length == 2, "banner_gradient(...) sets the logo gradient");
+
         // --- Boot log reveal ---
         Check(Layout.BootLogCount(0.0, 5) == 1, "boot: first log shown as soon as the boot starts");
         Check(Layout.BootLogCount(0.5, 5) == 3, "boot: half way shows 3 of 5 logs");

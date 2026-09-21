@@ -515,7 +515,7 @@ namespace IngameScript
         // ---------------- boot sequence ----------------
 
         // Startup logo. Drawn line by line with the screen's boot gradient.
-        private static readonly string[] BootLogo =
+        private static readonly List<string> BootLogo = new List<string>
         {
             "        ZZ     ZZ",
             "     ZZ ZZ     ZZ ZZ",
@@ -538,13 +538,15 @@ namespace IngameScript
             for (int i = 0; i < _config.Screens.Count; i++)
             {
                 var s = _config.Screens[i];
-                if (s.BootDuration > 0f) _bootT0[s] = _time + i * s.BootStaggerTicks / 60.0;
+                if (s.BootDuration > 0f) _bootT0[s] = _time + (i / Math.Max(1, s.BootBatch)) * s.BootStaggerTicks / 60.0;
             }
         }
 
         private void RenderBoots()
         {
+            // At most 4 boot frames are drawn per run, rotating, so many screens cannot exceed the instruction limit.
             List<ScreenDef> done = null;
+            int groups = (_bootT0.Count + 3) / 4, k = 0;
             foreach (var kv in _bootT0)
             {
                 double p = (_time - kv.Value) / kv.Key.BootDuration;
@@ -555,7 +557,7 @@ namespace IngameScript
                     done.Add(kv.Key);
                     continue;
                 }
-                DrawBoot(kv.Key, p);
+                if ((k++ + _tickCounter) % groups == 0) DrawBoot(kv.Key, p);
             }
             if (done == null) return;
             foreach (var s in done)
@@ -574,6 +576,39 @@ namespace IngameScript
             sp.Add(t);
         }
 
+        // Draws ASCII art line by line with the screen's logo colours (boot_color, boot_gradient).
+        private static void AddArt(List<MySprite> sp, List<string> art, ScreenDef screen, float x, float y, float scale, float lh)
+        {
+            string[] stops = screen.BootGradientColors != null && screen.BootGradientColors.Length > 0 ? screen.BootGradientColors : new[] { screen.BootColor };
+            for (int i = 0; i < art.Count; i++)
+            {
+                HelmColor c = Layout.GradientLerp(stops, art.Count > 1 ? 100.0 * i / (art.Count - 1) : 0.0);
+                AddBootText(sp, art[i], new Color(c.R, c.G, c.B), x, y + i * lh, scale);
+            }
+        }
+
+        // A full-screen banner: the art is scaled to fill the surface and drawn once.
+        private bool RenderBanner(ScreenDef screen, IMyTextSurface surface)
+        {
+            List<string> art;
+            if (_lastSignature.ContainsKey(screen) || !_config.Banners.TryGetValue(screen.Banner, out art)) return false;
+            _lastSignature[screen] = "banner";
+            Vector2 size = surface.SurfaceSize;
+            Vector2 off = (surface.TextureSize - size) / 2f;
+            int chars = 1;
+            foreach (var l in art) chars = Math.Max(chars, l.Length);
+            Vector2 cell = surface.MeasureStringInPixels(new StringBuilder("M"), "Monospace", 1f);
+            float scale = Math.Min(size.X * 0.94f / (chars * cell.X), size.Y * 0.94f / (art.Count * cell.Y));
+            var sp = new List<MySprite>();
+            sp.Add(new MySprite { Type = SpriteType.TEXTURE, Data = "SquareSimple", Position = off + size / 2f, Size = size, Color = string.IsNullOrEmpty(screen.Background) ? new Color(10, 12, 16) : ResolveColor(screen.Background) });
+            AddArt(sp, art, screen, off.X + (size.X - chars * cell.X * scale) / 2f, off.Y + (size.Y - art.Count * cell.Y * scale) / 2f, scale, cell.Y * scale);
+            using (var frame = surface.DrawFrame())
+            {
+                frame.AddRange(sp);
+            }
+            return true;
+        }
+
         // One boot frame at progress p (0 to 1): logo, message and the diagnostic lines revealed so far.
         private void DrawBoot(ScreenDef screen, double p)
         {
@@ -585,12 +620,14 @@ namespace IngameScript
             var logs = screen.GetEffectiveBootLogs();
             string msg = screen.BootMessage ?? "HELM TELEMETRY KERNEL ONLINE";
             bool logo = size.Y >= 200f;
+            List<string> art;
+            if (screen.BootLogo == null || !_config.Banners.TryGetValue(screen.BootLogo, out art)) art = BootLogo;
 
             // Fit the block to the surface with the real font metrics.
             int chars = msg.Length + 3;
             foreach (var l in logs) chars = Math.Max(chars, l.Length + 5);
-            if (logo) foreach (var l in BootLogo) chars = Math.Max(chars, l.Length);
-            int rows = (logo ? BootLogo.Length + 1 : 0) + 2 + logs.Count;
+            if (logo) foreach (var l in art) chars = Math.Max(chars, l.Length);
+            int rows = (logo ? art.Count + 1 : 0) + 2 + logs.Count;
             Vector2 cell = surface.MeasureStringInPixels(new StringBuilder("M"), "Monospace", 1f);
             float scale = Math.Min(1f, Math.Min(size.X * 0.94f / (chars * cell.X), size.Y * 0.94f / (rows * cell.Y)));
             float x0 = off.X + (size.X - chars * cell.X * scale) / 2f;
@@ -602,14 +639,8 @@ namespace IngameScript
 
             if (logo)
             {
-                string[] stops = screen.BootGradientColors != null && screen.BootGradientColors.Length > 0 ? screen.BootGradientColors : new[] { screen.BootColor };
-                for (int i = 0; i < BootLogo.Length; i++)
-                {
-                    HelmColor c = Layout.GradientLerp(stops, BootLogo.Length > 1 ? 100.0 * i / (BootLogo.Length - 1) : 0.0);
-                    AddBootText(sp, BootLogo[i], new Color(c.R, c.G, c.B), x0, y, scale);
-                    y += lh;
-                }
-                y += lh;
+                AddArt(sp, art, screen, x0, y, scale, lh);
+                y += (art.Count + 1) * lh;
             }
 
             AddBootText(sp, ">> " + msg, new Color(34, 197, 94), x0, y, scale);
@@ -1348,6 +1379,7 @@ namespace IngameScript
             if (!_resolvedOutputs.TryGetValue(screen, out surface))
                 return false;
 
+            if (screen.Banner != null) return RenderBanner(screen, surface);
             if (screen.Border.Equals("ascii", StringComparison.OrdinalIgnoreCase))
             {
                 return RenderScreenAscii(screen, surface);

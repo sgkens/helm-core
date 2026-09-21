@@ -183,6 +183,9 @@ namespace HelmCore
         public string Background;
         public string BootMessage;
         public int BootStaggerTicks = 10;
+        public int BootBatch = 1; // screens that power on together
+        public string Banner;     // name of a @banner shown full screen instead of panels
+        public string BootLogo;   // name of a @banner drawn instead of the default boot emblem
         public float BootDuration = 2.5f; // Seconds
         public string BootColor = "cyan";
         public string[] BootGradientColors;
@@ -235,6 +238,8 @@ namespace HelmCore
         public List<BindDef> Binds = new List<BindDef>();
         public List<ScreenDef> Screens = new List<ScreenDef>();
         public List<string> Errors = new List<string>();
+        // ASCII art blocks from "@banner name" ... "@end", one entry per line, left indentation removed.
+        public Dictionary<string, List<string>> Banners = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
     }
 
     // ---------- Parser ----------
@@ -421,7 +426,7 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
             ScreenDef current = null;
             PanelDef currentPanel = null;
 
-            var preprocessed = PreprocessTemplates(customData, cfg.Errors);
+            var preprocessed = PreprocessTemplates(customData, cfg.Errors, cfg.Banners);
 
             for (int i = 0; i < preprocessed.Count; i++)
             {
@@ -538,6 +543,11 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                         RequireScreen(current, "boot_stagger:");
                         current.BootStaggerTicks = int.Parse(line.Substring("boot_stagger:".Length).Trim());
                     }
+                    else if (line.StartsWith("boot_batch:"))
+                    {
+                        RequireScreen(current, "boot_batch:");
+                        current.BootBatch = Math.Max(1, int.Parse(line.Substring("boot_batch:".Length).Trim()));
+                    }
                     else if (line.StartsWith("boot_duration:"))
                     {
                         RequireScreen(current, "boot_duration:");
@@ -556,18 +566,29 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                         RequireScreen(current, "boot_log:");
                         current.BootLogs.Add(Unquote(line.Substring("boot_log:".Length).Trim()));
                     }
-                    else if (line.StartsWith("boot_gradient:") || line.StartsWith("boot_gradient("))
+                    else if (line.StartsWith("banner:"))
+                    {
+                        RequireScreen(current, "banner:");
+                        current.Banner = Unquote(line.Substring("banner:".Length).Trim());
+                    }
+                    else if (line.StartsWith("boot_logo:"))
+                    {
+                        RequireScreen(current, "boot_logo:");
+                        current.BootLogo = Unquote(line.Substring("boot_logo:".Length).Trim());
+                    }
+                    else if (line.StartsWith("boot_gradient:") || line.StartsWith("boot_gradient(") || line.StartsWith("banner_gradient:") || line.StartsWith("banner_gradient("))
                     {
                         RequireScreen(current, "boot_gradient");
-                        string gStr = line.StartsWith("boot_gradient:") ? line.Substring("boot_gradient:".Length) : line.Substring("boot_gradient".Length);
+                        int gi = line.IndexOfAny(new[] { ':', '(' });
+                        string gStr = line.Substring(line[gi] == ':' ? gi + 1 : gi);
                         gStr = gStr.Trim();
                         if (gStr.StartsWith("(") && gStr.Contains(")")) gStr = ExtractParenArgs(gStr, 0);
                         current.BootGradientColors = SplitArgs(gStr).Select(s => s.Trim()).ToArray();
                     }
-                    else if (line.StartsWith("boot_color:"))
+                    else if (line.StartsWith("boot_color:") || line.StartsWith("banner_color:"))
                     {
                         RequireScreen(current, "boot_color:");
-                        current.BootColor = line.Substring("boot_color:".Length).Trim();
+                        current.BootColor = line.Substring(line.IndexOf(':') + 1).Trim();
                     }
                     else if (line.StartsWith("orientation:"))
                     {
@@ -618,6 +639,11 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     cfg.Errors.Add($"@screen {s.Name}: missing required 'output:' — a screen must declare which physical block/surface it renders to");
             }
 
+            foreach (var sc in cfg.Screens)
+            {
+                if (sc.Banner != null && !cfg.Banners.ContainsKey(sc.Banner)) cfg.Errors.Add("Screen '" + sc.Name + "': banner '" + sc.Banner + "' is not defined (@banner " + sc.Banner + " ... @end)");
+                if (sc.BootLogo != null && !cfg.Banners.ContainsKey(sc.BootLogo)) cfg.Errors.Add("Screen '" + sc.Name + "': boot_logo '" + sc.BootLogo + "' is not defined (@banner " + sc.BootLogo + " ... @end)");
+            }
             return cfg;
         }
 
@@ -729,7 +755,7 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
             return sp >= 0 ? val.Substring(0, sp) : val;
         }
 
-        private static List<string> PreprocessTemplates(string customData, List<string> errors)
+        private static List<string> PreprocessTemplates(string customData, List<string> errors, Dictionary<string, List<string>> banners)
         {
             var userTemplates = new Dictionary<string, TemplateDef>(StringComparer.OrdinalIgnoreCase);
             var rawLines = (customData ?? "").Replace("\r\n", "\n").Split('\n');
@@ -739,6 +765,26 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
             while (i < rawLines.Length)
             {
                 string raw = rawLines[i++];
+
+                // A banner is raw text: '#', quotes and spaces are art, not syntax, so it is read before comments are stripped.
+                if (raw.TrimStart().StartsWith("@banner ", StringComparison.OrdinalIgnoreCase))
+                {
+                    var art = new List<string>();
+                    while (i < rawLines.Length)
+                    {
+                        string a = rawLines[i++].Replace("\t", "    ").TrimEnd();
+                        if (a.Trim().Equals("@end", StringComparison.OrdinalIgnoreCase)) break;
+                        art.Add(a);
+                    }
+                    while (art.Count > 0 && art[0].Length == 0) art.RemoveAt(0);
+                    while (art.Count > 0 && art[art.Count - 1].Length == 0) art.RemoveAt(art.Count - 1);
+                    int indent = int.MaxValue;
+                    foreach (var a in art) if (a.Length > 0) indent = Math.Min(indent, a.Length - a.TrimStart().Length);
+                    for (int k = 0; k < art.Count; k++) if (art[k].Length > 0) art[k] = art[k].Substring(indent);
+                    banners[raw.TrimStart().Substring(8).Trim()] = art;
+                    continue;
+                }
+
                 string line = StripComment(raw).Trim();
                 if (line.Length == 0) continue;
 

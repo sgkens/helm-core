@@ -1,0 +1,37 @@
+# Startup Banner
+# The same ASCII art as a full-screen banner and as the boot logo of a second screen.
+# The in-game script and the docs preview draw banners; helmv.ps1 does not.
+@bind v = dynamic("demo.v", default: 60)
+
+@banner emblem
+        ZZ     ZZ
+     ZZ ZZ     ZZ ZZ
+   ZZVZ ZZ     ZZ ZVZZ
+  ZZZZZ ZZZZZZZZZ ZZZZZ
+ ZVZ    ZZ     ZZ    ZVZ
+ ZGZ    ZZ     ZZ    ZGZ
+ ZVVZ   ZZ     ZZ   ZVVZ
+  ZVVZ ZZ       ZZ ZUVZ
+   ZZZ Z         Z ZZZ
+     ZZZZZZZ ZZZZZZZ
+        ZZZZ ZZZZ
+@end
+
+@screen Banner
+output: "Banner LCD", 0
+profile: standard
+banner: emblem
+banner_gradient(#e879f9, #c026d3, #7c3aed)
+bg: #0a0c10
+
+@screen Status
+output: "Status LCD", 0
+profile: standard
+layout: grid(1, 1)
+boot_logo: emblem
+boot_gradient(#22d3ee, #38bdf8, #6366f1)
+bg: #0a0c10
+border_color: #38bdf8
+
+@panel p at(0, 0, 1, 1) title: "POWER"
+line: "BATTERY " bar(v.percent) gradient(#ef4444, #eab308, #22c55e)
