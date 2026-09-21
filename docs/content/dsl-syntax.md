@@ -49,6 +49,7 @@ Wildcards (`*`) are supported in names (e.g. `battery("Battery *")`).
 - **Only your own construct is used:** the same grid, plus subgrids attached with rotors, pistons or hinges. A ship docked on a connector is ignored, even when its block names match yours, and HELM never draws on a docked ship's screens. A ship joined by a merge block counts as part of your construct, because the game treats the merged grids as one.
 - If the first match belongs to another ship, HELM looks through your own blocks for one that matches.
 - Run the block with argument `scan` to see how many blocks were ignored because they are on docked ships.
+- **To read a docked ship on purpose**, add `scope: all` to the bind: `@bind visitor = group("Guest Batteries", agg: avg, scope: all)`. That bind alone then also matches blocks on ships docked on a connector, so a station can show a visitor's cargo. Use a name that only the visiting ship has.
 
 ---
 
@@ -73,6 +74,8 @@ title_color: #<hexcolor>
 - `output: "Name", index`: Terminal block name and 0-based surface index.
 - `profile`: Hardware screen profile controlling aspect ratio and viewport adaptation.
 - `layout: grid(cols, rows)`: Defines the layout grid dimensions (e.g. `grid(2, 2)`).
+- `refresh: <ticks>`: Draws this screen at most every N game ticks (`600` is every 10 seconds). Use it on screens that change slowly to save instructions. Default: every run.
+- `alert_period: <seconds>`: Length of one red-alert flash cycle (default `1.6`). The flash follows the clock, not the run rate.
 - `bg: #hex`: Screen background color (e.g. `#090b0f`). See [Backgrounds](#backgrounds) for gradients, panel colours and the alert background.
 - `border_color: #hex`: Screen border frame color.
 - `border: style`: Modular border character set.
@@ -200,6 +203,7 @@ line: "<LABEL8>" <kind>(<bind>.<field>) <color_spec> [unit("<unit>")] [dir:<up|d
    - `gradient(#hex1, #hex2, ...)`: Procedural multi-stop color gradient calculated from current value.
 5. **Optional Modifiers**:
    - `unit("MW")`: Overrides or specifies engineering measurement units.
+   - `max(bind.field)`: The same, with the full amount read from a block field, for example `bar(fuel.ingot:Uranium) max(reactor.max)`.
    - `max(N)`: Treats `N` as the full amount. Bars, sparklines, gradients and colour rules work on the percentage of `N` (capped at 100%), and the printed value stays the real amount. Use it with [item amounts](#item-amounts-cargo-and-reactor-contents) or any raw value:
      `line: "GATLING " bar(guns.ammo:NATO_25x184mm) max(1200) gradient(#ef4444, #eab308, #22c55e)`.
    - `dir: up|down`: Sets flow direction.

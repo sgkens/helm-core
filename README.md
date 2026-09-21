@@ -97,7 +97,8 @@ line: "<LABEL>" text(<bind>.<field>) [color(<conditions>, default: <color>)]
 | `border_color:`         | `@screen` / `@panel`| Frame and accent divider color (`#HEX`, `R,G,B`, `name`)           | `#283c55`       | No         |
 | `font_size:`            | `@screen` / `@panel`| Text and gauge scaling factor                                      | `1.0`           | No         |
 | `width:`                | `@screen`           | Content width in characters (for ASCII mode)                       | `30`            | No         |
-| `refresh:`              | `@screen`           | Redraw evaluation cadence in game ticks                            | `100`           | No         |
+| `refresh:`              | `@screen`           | Draw this screen at most every N game ticks (`600` = every 10 s). Saves instructions on screens that change slowly | `0` (every run) | No         |
+| `alert_period:`         | `@screen`           | Seconds for one red-alert flash cycle (`0.8s`)                     | `1.6`           | No         |
 | `line:`                 | `@screen` / `@panel`| Visual gauge (`bar`, `led`, `spark`) or text readout definition    | —               | At least 1 |
 
 ---
