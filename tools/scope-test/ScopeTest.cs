@@ -5,13 +5,16 @@
 using System; using System.Collections.Generic; using System.Linq; using System.Reflection;
 using HelmCore; using IngameScript; using Sandbox.ModAPI.Ingame;
 class Ship { public string Name; public Ship(string n) { Name = n; } }
+class FInv { public double Iron, Ice; public dynamic GetItemAmount(params object[] a) { var t = (VRage.Game.ModAPI.Ingame.MyItemType)a[0]; return t.TypeId == "MyObjectBuilder_Ingot" && t.SubtypeId == "Iron" ? Iron : t.TypeId == "MyObjectBuilder_Ore" && t.SubtypeId == "Ice" ? Ice : 0.0; } }
 class FBlock : IMyTerminalBlock {
+  public FInv[] Invs = new FInv[0]; public dynamic InventoryCount { get { return Invs.Length; } set { } } public dynamic GetInventory(params object[] a) { return Invs[(int)a[0]]; }
   public Ship Ship; public string CustomName { get; set; } public string CustomData { get; set; }
   public IMyCubeGrid CubeGrid { get { return null; } }
   public dynamic IsSameConstructAs(params object[] a) { return Ship == ((FBlock)a[0]).Ship; }
   public override string ToString() { return Ship.Name + ":" + CustomName; }
 }
 class FLcd : Dump.MockSurface, IMyTerminalBlock {
+  public dynamic InventoryCount { get { return 0; } set { } } public dynamic GetInventory(params object[] a) { return null; }
   public Ship Ship; public FLcd(Ship s, string n) : base(512, 512) { Ship = s; CustomName = n; }
   public string CustomName { get; set; } public string CustomData { get; set; }
   public IMyCubeGrid CubeGrid { get { return null; } }
@@ -37,13 +40,16 @@ static class ScopeTest {
     var fBat = new FBlock { Ship = dock, CustomName = "Main Battery" }; var mBat = new FBlock { Ship = mine, CustomName = "Main Battery" };
     var fTank = new FBlock { Ship = dock, CustomName = "H2 Tank Alpha" }; var mTank = new FBlock { Ship = sub, CustomName = "H2 Tank Alpha" };
     var fLcd = new FLcd(dock, "Cockpit"); var mLcd = new FLcd(mine, "Cockpit");
+    mBat.Invs = new[] { new FInv { Iron = 100, Ice = 5 }, new FInv { Iron = 50 } };
+    mTank.Invs = new[] { new FInv { Iron = 25 } };
+    fBat.Invs = new[] { new FInv { Iron = 9999 } };
     var gts = new FGts();
     gts.All.AddRange(new IMyTerminalBlock[] { fBat, fTank, fLcd, mBat, mTank, mLcd, me });
     var gDock = new FGroup { Name = "Fleet" }; gDock.Blocks.Add(fBat); gDock.Blocks.Add(fTank);
     var gMine = new FGroup { Name = "Fleet" }; gMine.Blocks.Add(mBat); gMine.Blocks.Add(mTank);
     gts.Groups.Add(gDock); gts.Groups.Add(gMine);
     var gOnlyDock = new FGroup { Name = "DockOnly" }; gOnlyDock.Blocks.Add(fBat); gts.Groups.Add(gOnlyDock);
-    me.CustomData = "@bind bat = block(\"Main Battery\")\n@bind tank = block(\"H2 Tank\")\n@bind fleet = group(\"Fleet\", agg: avg)\n@bind wild = group(\"*Tank*\", agg: avg)\n@bind lost = group(\"DockOnly\", agg: avg)\n@bind none = block(\"Nothing Here\")\n@screen S\noutput: \"Cockpit\", 0\nlayout: grid(1, 1)\n@panel p at(0, 0, 1, 1) title: \"T\"\nline: \"B\" bar(bat.percent) flat(cyan)\n";
+    me.CustomData = "@bind bat = block(\"Main Battery\")\n@bind tank = block(\"H2 Tank\")\n@bind fleet = group(\"Fleet\", agg: avg)\n@bind wild = group(\"*Tank*\", agg: avg)\n@bind lost = group(\"DockOnly\", agg: avg)\n@bind none = block(\"Nothing Here\")\n@bind fleetsum = group(\"Fleet\", agg: sum)\n@screen S\noutput: \"Cockpit\", 0\nlayout: grid(1, 1)\n@panel p at(0, 0, 1, 1) title: \"T\"\nline: \"B\" bar(bat.percent) flat(cyan)\n";
     MyGridProgram.BootstrapMe = me; MyGridProgram.BootstrapGts = gts;
     var prog = new Program();
     var binds = (Dictionary<string, List<IMyTerminalBlock>>)Dump.Get(prog, "_resolvedBinds");
@@ -58,6 +64,15 @@ static class ScopeTest {
     Check(binds["lost"].Count == 0, "group that exists only on the docked ship resolves to nothing");
     Check(binds["none"].Count == 0, "unknown name resolves to nothing");
     Check(outs.Count == 1 && outs.Values.First() == (IMyTextSurface)mLcd, "output 'Cockpit': this ship's LCD is drawn on, the docked ship's LCD is not touched");
+    // Item amounts: "kind:Subtype" reads the amount of one item across all of a block's inventories.
+    var rfv = typeof(Program).GetMethod("ResolveFieldValue", BindingFlags.Instance | BindingFlags.NonPublic);
+    Func<string, string, double> field = (b, f) => (double)rfv.Invoke(prog, new object[] { b, f });
+    Check(field("bat", "ingot:Iron") == 150, "items: 'ingot:Iron' adds both inventories of one block (100 + 50), not the docked ship's 9999");
+    Check(field("bat", "ore:Ice") == 5, "items: 'ore:Ice' reads another item type");
+    Check(field("bat", "component:SteelPlate") == 0, "items: an item the block does not hold is 0");
+    Check(field("fleetsum", "ingot:Iron") == 175, "items: a group with agg: sum adds its blocks (150 + 25)");
+    Check(field("fleet", "ingot:Iron") == 87.5, "items: a group with agg: avg averages them");
+
     // Console: the same model is echoed to the info pane and drawn on the Programmable Block's own screen.
     var echo = new System.Text.StringBuilder();
     prog.Echo = t => echo.Append(t);
@@ -68,7 +83,7 @@ static class ScopeTest {
     Console.WriteLine("--- info pane ---\n" + text + "-----------------");
     Check(text.Contains("HELM-[Kernel-(v0.0.0)]"), "console: header with the version");
     Check(text.Contains("krn-cfg") && text.Contains("cfg-dsp") && text.Contains("perf"), "console: krn-cfg, cfg-dsp and perf sections");
-    Check(text.Contains("screens 1") && text.Contains("binds 4/6"), "console: 1 screen; 4 of 6 binds matched a block");
+    Check(text.Contains("screens 1") && text.Contains("binds 5/7"), "console: 1 screen; 5 of 7 binds matched a block");
     Check(text.Contains("docked-ignored 3"), "console: three blocks on the docked ship were ignored");
     Check(text.Contains("512x512"), "console: display list shows the surface size");
     Check(text.Contains(" instr ") && text.Contains(" peak "), "console: perf shows the last run's instructions and the peak");
