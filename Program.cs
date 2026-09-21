@@ -10,8 +10,10 @@
 // with the game's usings, as C# 6. Build-Release.ps1 therefore writes HelmCombined.min.cs as the body of
 // this class with the HelmCore.cs types nested inside it. Keep both source files to C# 6: no "out var",
 // pattern matching ("x is T y"), tuples, local functions or throw expressions. System.Tuple and other
-// APIs the game prohibits are banned in tools/spritedump/CombinedCheck/BannedSymbols.txt; add to that
-// list whenever the game reports a new one.
+// APIs the game prohibits are banned in tools/spritedump/CombinedCheck/BannedSymbols.txt (CI).
+// tools/pb-check compiles the script against the game's own assemblies and the MDK prohibited-API
+// analyzer (set SE_BIN64 to the game's Bin64 folder; Build-Release.ps1 then runs it). Run it before
+// pasting into the game: the stand-in API used in CI cannot tell whether a block member really exists.
 
 using System;
 using System.Collections.Generic;
@@ -685,7 +687,7 @@ namespace IngameScript
 
             var proj = block as IMyProjector;
             if (proj != null)
-                return proj.TotalBlocks > 0 ? ((double)proj.BuiltBlocks / proj.TotalBlocks) * 100.0 : 0.0;
+                return proj.TotalBlocks > 0 ? ((double)(proj.TotalBlocks - proj.RemainingBlocks) / proj.TotalBlocks) * 100.0 : 0.0;
 
             var gyro = block as IMyGyro;
             if (gyro != null)
@@ -864,7 +866,7 @@ namespace IngameScript
             var proj = block as IMyProjector;
             if (proj != null)
             {
-                if (f == "built") return proj.BuiltBlocks;
+                if (f == "built") return proj.TotalBlocks - proj.RemainingBlocks;
                 if (f == "remaining") return proj.RemainingBlocks;
                 if (f == "total") return proj.TotalBlocks;
                 if (f == "projecting") return proj.IsProjecting ? 1.0 : 0.0;
@@ -932,7 +934,7 @@ namespace IngameScript
             if (warhead != null)
             {
                 if (f == "armed") return warhead.IsArmed ? 1.0 : 0.0;
-                if (f == "countdown") return warhead.CountdownTime;
+                if (f == "countdown") return warhead.DetonationTime;
             }
 
             var sensor = block as IMySensorBlock;
@@ -958,8 +960,8 @@ namespace IngameScript
             if (tcb != null)
             {
                 if (f == "target" || f == "hastarget") return tcb.HasTarget ? 1.0 : 0.0;
-                if (f == "azimuth") return tcb.Azimuth * 180.0 / Math.PI;
-                if (f == "elevation") return tcb.Elevation * 180.0 / Math.PI;
+                if (f == "azimuth") return tcb.AzimuthRotor != null ? tcb.AzimuthRotor.Angle * 180.0 / Math.PI : 0.0;
+                if (f == "elevation") return tcb.ElevationRotor != null ? tcb.ElevationRotor.Angle * 180.0 / Math.PI : 0.0;
             }
 
             var func = block as IMyFunctionalBlock;

@@ -74,7 +74,7 @@ if(susp!=null)return susp.Brake ? 100.0 :(susp.Friction*100.0);var connector=blo
 var prod=block as IMyProductionBlock;if(prod!=null)return prod.IsProducing ? 100.0 : 0.0;var drill=block as IMyShipDrill;if(drill!=null)return drill.Enabled ? 100.0 : 0.0;
 var tool=block as IMyShipToolBase;if(tool!=null)return tool.Enabled ? 100.0 : 0.0;var gen=block as IMyGasGenerator;if(gen!=null)return gen.AutoRefill ? 100.0 :(gen.Enabled ? 50.0 : 0.0);
 var turret=block as IMyLargeTurretBase;if(turret!=null)return turret.IsShooting ? 100.0 :(turret.HasTarget ? 50.0 :(turret.Enabled ? 10.0 : 0.0));var proj=block as IMyProjector;
-if(proj!=null)return proj.TotalBlocks>0 ?((double)proj.BuiltBlocks/proj.TotalBlocks)*100.0 : 0.0;var gyro=block as IMyGyro;if(gyro!=null)return gyro.GyroOverride ? 100.0 :(gyro.Enabled ? 50.0 : 0.0);
+if(proj!=null)return proj.TotalBlocks>0 ?((double)(proj.TotalBlocks-proj.RemainingBlocks)/proj.TotalBlocks)*100.0 : 0.0;var gyro=block as IMyGyro;if(gyro!=null)return gyro.GyroOverride ? 100.0 :(gyro.Enabled ? 50.0 : 0.0);
 var grav=block as IMyGravityGeneratorBase;if(grav!=null)return Math.Min(100.0,Math.Abs(grav.GravityAcceleration)/9.81*100.0);var gear=block as IMyLandingGear;if(gear!=null)return gear.IsLocked ? 100.0 :(gear.LockMode==LandingGearMode.ReadyToLock ? 50.0 : 0.0);
 var ant=block as IMyRadioAntenna;if(ant!=null)return(ant.Radius/50000.0)*100.0;var beacon=block as IMyBeacon;if(beacon!=null)return(beacon.Radius/50000.0)*100.0;
 var light=block as IMyLightingBlock;if(light!=null)return light.Intensity*10.0;var piston=block as IMyPistonBase;if(piston!=null)return piston.HighestPosition>0 ?(piston.CurrentPosition/piston.HighestPosition)*100.0 : 0.0;
@@ -96,7 +96,7 @@ if(connector!=null){return connector.Status==MyShipConnectorStatus.Connected ? 1
 if(f=="queue")return prod.IsQueueEmpty ? 0.0 : 1.0;}var asm=block as IMyAssembler;if(asm!=null){if(f=="disassembling")return asm.Mode==MyAssemblerMode.Disassembly ? 1.0 : 0.0;
 if(f=="repeating"||f=="loop")return asm.Repeating ? 1.0 : 0.0;}var gen=block as IMyGasGenerator;if(gen!=null){if(f=="autorefill")return gen.AutoRefill ? 1.0 : 0.0;
 if(f=="active")return gen.Enabled ? 1.0 : 0.0;}var turret=block as IMyLargeTurretBase;if(turret!=null){if(f=="shooting")return turret.IsShooting ? 1.0 : 0.0;if(f=="target"||f=="hastarget")return turret.HasTarget ? 1.0 : 0.0;
-if(f=="range")return turret.Range;}var proj=block as IMyProjector;if(proj!=null){if(f=="built")return proj.BuiltBlocks;if(f=="remaining")return proj.RemainingBlocks;
+if(f=="range")return turret.Range;}var proj=block as IMyProjector;if(proj!=null){if(f=="built")return proj.TotalBlocks-proj.RemainingBlocks;if(f=="remaining")return proj.RemainingBlocks;
 if(f=="total")return proj.TotalBlocks;if(f=="projecting")return proj.IsProjecting ? 1.0 : 0.0;}var gyro=block as IMyGyro;if(gyro!=null){if(f=="override")return gyro.GyroOverride ? 1.0 : 0.0;
 if(f=="pitch")return gyro.Pitch;if(f=="yaw")return gyro.Yaw;if(f=="roll")return gyro.Roll;if(f=="power")return gyro.GyroPower*100.0;}var grav=block as IMyGravityGeneratorBase;
 if(grav!=null){if(f=="g"||f=="accel")return grav.GravityAcceleration;}var gear=block as IMyLandingGear;if(gear!=null){if(f=="locked")return gear.IsLocked ? 1.0 : 0.0;
@@ -104,14 +104,15 @@ if(grav!=null){if(f=="g"||f=="accel")return grav.GravityAcceleration;}var gear=b
 }var light=block as IMyLightingBlock;if(light!=null){if(f=="intensity")return light.Intensity;if(f=="radius")return light.Radius;}var piston=block as IMyPistonBase;
 if(piston!=null){if(f=="pos"||f=="position"||f=="extension")return piston.CurrentPosition;if(f=="velocity")return piston.Velocity;if(f=="max")return piston.HighestPosition;
 }var rotor=block as IMyMotorStator;if(rotor!=null){if(f=="angle"||f=="deg")return rotor.Angle*180.0/Math.PI;if(f=="rad")return rotor.Angle;if(f=="velocity"||f=="rpm")return rotor.TargetVelocityRPM;
-if(f=="locked")return rotor.RotorLock ? 1.0 : 0.0;}var warhead=block as IMyWarhead;if(warhead!=null){if(f=="armed")return warhead.IsArmed ? 1.0 : 0.0;if(f=="countdown")return warhead.CountdownTime;
+if(f=="locked")return rotor.RotorLock ? 1.0 : 0.0;}var warhead=block as IMyWarhead;if(warhead!=null){if(f=="armed")return warhead.IsArmed ? 1.0 : 0.0;if(f=="countdown")return warhead.DetonationTime;
 }var sensor=block as IMySensorBlock;if(sensor!=null){if(f=="detected")return!sensor.LastDetectedEntity.IsEmpty()? 1.0 : 0.0;}var camera=block as IMyCameraBlock;
 if(camera!=null){if(f=="range")return camera.AvailableScanRange;if(f=="active")return camera.IsActive ? 1.0 : 0.0;}var chute=block as IMyParachute;if(chute!=null){
 if(f=="open"||f=="openratio")return(double)chute.OpenRatio;}var tcb=block as IMyTurretControlBlock;if(tcb!=null){if(f=="target"||f=="hastarget")return tcb.HasTarget ? 1.0 : 0.0;
-if(f=="azimuth")return tcb.Azimuth*180.0/Math.PI;if(f=="elevation")return tcb.Elevation*180.0/Math.PI;}var func=block as IMyFunctionalBlock;if(func!=null){return func.Enabled ? 1.0 : 0.0;
-}return 0.0;}private double ResolveFieldValue(string bindName,string field){BindDef bindDef;_bindMap.TryGetValue(bindName,out bindDef);if(bindDef!=null&&bindDef.Kind==BindKind.Dynamic){
-string k= !string.IsNullOrEmpty(bindDef.DynamicKey)? bindDef.DynamicKey : bindName;double dVal;if(_dynamicValues.TryGetValue(k,out dVal))return dVal;return bindDef.DefaultValue;
-}double dynVal;if(_dynamicValues.TryGetValue(bindName,out dynVal))return dynVal;List<IMyTerminalBlock>blocks;if(!_resolvedBinds.TryGetValue(bindName,out blocks)||blocks.Count==0)throw new InvalidOperationException($"HELM: bind '{bindName}' resolved to zero blocks — check the name/typo");
+if(f=="azimuth")return tcb.AzimuthRotor!=null ? tcb.AzimuthRotor.Angle*180.0/Math.PI : 0.0;if(f=="elevation")return tcb.ElevationRotor!=null ? tcb.ElevationRotor.Angle*180.0/Math.PI : 0.0;
+}var func=block as IMyFunctionalBlock;if(func!=null){return func.Enabled ? 1.0 : 0.0;}return 0.0;}private double ResolveFieldValue(string bindName,string field){
+BindDef bindDef;_bindMap.TryGetValue(bindName,out bindDef);if(bindDef!=null&&bindDef.Kind==BindKind.Dynamic){string k= !string.IsNullOrEmpty(bindDef.DynamicKey)? bindDef.DynamicKey : bindName;
+double dVal;if(_dynamicValues.TryGetValue(k,out dVal))return dVal;return bindDef.DefaultValue;}double dynVal;if(_dynamicValues.TryGetValue(bindName,out dynVal))return dynVal;
+List<IMyTerminalBlock>blocks;if(!_resolvedBinds.TryGetValue(bindName,out blocks)||blocks.Count==0)throw new InvalidOperationException($"HELM: bind '{bindName}' resolved to zero blocks — check the name/typo");
 if(blocks.Count==1)return ResolveBlockField(blocks[0],field);var values=new List<double>();foreach(var b in blocks)values.Add(ResolveBlockField(b,field));return Aggregator.Aggregate(bindDef!=null ? bindDef.Aggregation : Agg.Avg,values);
 }private double ResolvePercentForBind(string bindName){BindDef bindDef;_bindMap.TryGetValue(bindName,out bindDef);if(bindDef!=null&&bindDef.Kind==BindKind.Dynamic){
 string k= !string.IsNullOrEmpty(bindDef.DynamicKey)? bindDef.DynamicKey : bindName;double dVal;if(_dynamicValues.TryGetValue(k,out dVal))return dVal;return bindDef.DefaultValue;

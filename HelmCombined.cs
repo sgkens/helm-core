@@ -664,7 +664,7 @@
 
             var proj = block as IMyProjector;
             if (proj != null)
-                return proj.TotalBlocks > 0 ? ((double)proj.BuiltBlocks / proj.TotalBlocks) * 100.0 : 0.0;
+                return proj.TotalBlocks > 0 ? ((double)(proj.TotalBlocks - proj.RemainingBlocks) / proj.TotalBlocks) * 100.0 : 0.0;
 
             var gyro = block as IMyGyro;
             if (gyro != null)
@@ -843,7 +843,7 @@
             var proj = block as IMyProjector;
             if (proj != null)
             {
-                if (f == "built") return proj.BuiltBlocks;
+                if (f == "built") return proj.TotalBlocks - proj.RemainingBlocks;
                 if (f == "remaining") return proj.RemainingBlocks;
                 if (f == "total") return proj.TotalBlocks;
                 if (f == "projecting") return proj.IsProjecting ? 1.0 : 0.0;
@@ -911,7 +911,7 @@
             if (warhead != null)
             {
                 if (f == "armed") return warhead.IsArmed ? 1.0 : 0.0;
-                if (f == "countdown") return warhead.CountdownTime;
+                if (f == "countdown") return warhead.DetonationTime;
             }
 
             var sensor = block as IMySensorBlock;
@@ -937,8 +937,8 @@
             if (tcb != null)
             {
                 if (f == "target" || f == "hastarget") return tcb.HasTarget ? 1.0 : 0.0;
-                if (f == "azimuth") return tcb.Azimuth * 180.0 / Math.PI;
-                if (f == "elevation") return tcb.Elevation * 180.0 / Math.PI;
+                if (f == "azimuth") return tcb.AzimuthRotor != null ? tcb.AzimuthRotor.Angle * 180.0 / Math.PI : 0.0;
+                if (f == "elevation") return tcb.ElevationRotor != null ? tcb.ElevationRotor.Angle * 180.0 / Math.PI : 0.0;
             }
 
             var func = block as IMyFunctionalBlock;

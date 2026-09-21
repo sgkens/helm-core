@@ -4,8 +4,8 @@ namespace Sandbox.ModAPI.Ingame
 {
     public partial interface IMyGridTerminalSystem
     {
-        dynamic GetBlockGroupWithName(params object[] a);
         dynamic GetBlocks(params object[] a);
+        dynamic GetBlockGroupWithName(params object[] a);
         dynamic GetBlockWithName(params object[] a);
     }
     public partial interface IMyBatteryBlock
@@ -96,7 +96,6 @@ namespace Sandbox.ModAPI.Ingame
     public partial interface IMyProjector
     {
         dynamic TotalBlocks { get; set; }
-        dynamic BuiltBlocks { get; set; }
         dynamic RemainingBlocks { get; set; }
         dynamic IsProjecting { get; set; }
     }
@@ -146,7 +145,7 @@ namespace Sandbox.ModAPI.Ingame
     public partial interface IMyWarhead
     {
         dynamic IsArmed { get; set; }
-        dynamic CountdownTime { get; set; }
+        dynamic DetonationTime { get; set; }
     }
     public partial interface IMySensorBlock
     {
@@ -168,8 +167,8 @@ namespace Sandbox.ModAPI.Ingame
         dynamic HasTarget { get; set; }
         dynamic IsUnderControl { get; set; }
         dynamic Enabled { get; set; }
-        dynamic Azimuth { get; set; }
-        dynamic Elevation { get; set; }
+        dynamic AzimuthRotor { get; set; }
+        dynamic ElevationRotor { get; set; }
     }
     public partial interface IMyFunctionalBlock
     {
