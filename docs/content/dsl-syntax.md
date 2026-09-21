@@ -77,6 +77,32 @@ title_color: #<hexcolor>
 - `border_color: #hex`: Screen border frame color.
 - `border: style`: Modular border character set.
 
+### Item Amounts (Cargo and Reactor Contents)
+
+A field of the form `kind:Subtype` reads how much of one item a block holds, adding up all of its inventories. For a group, the bind's `agg:` decides whether the blocks are summed, averaged, and so on.
+
+```helm
+@bind cargo   = group("Cargo Containers", agg: sum)
+@bind reactor = block("Main Reactor")
+...
+line: "IRON    " text(cargo.ingot:Iron) unit("kg")
+line: "ICE     " text(cargo.ore:Ice) unit("kg")
+line: "STEEL   " text(cargo.component:SteelPlate)
+line: "URANIUM " text(reactor.ingot:Uranium) unit("kg")
+```
+
+| Kind | Items | Example |
+| :--- | :--- | :--- |
+| `ingot` | Ingots | `ingot:Iron`, `ingot:Uranium` |
+| `ore` | Ores | `ore:Ice`, `ore:Iron` |
+| `component` | Components | `component:SteelPlate` |
+| `ammo` | Ammunition magazines | `ammo:NATO_25x184mm` |
+
+- The subtype is the game's internal name (`SteelPlate`, not "Steel Plate"), and it must not contain a dot.
+- Use `text(...)`. A `bar(...)` on an item field draws the block's fill percentage, as it does for other fields, and prints the amount.
+- Each item line reads every block in its bind on every redraw. Bind a group instead of many single blocks, and check the `instr` figure in the console on a large grid before adding many item lines.
+- Listing everything a container holds is not supported.
+
 ### ASCII Banners
 
 A banner is a block of your own ASCII art. Paste it between `@banner <name>` and `@end`. The lines are kept exactly as written, so `#`, quotes and spaces in the art are safe, and the common left indent is removed.
