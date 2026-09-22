@@ -133,7 +133,7 @@
         private double _topAt;
         private Dictionary<ScreenDef, double> _calibT0 = new Dictionary<ScreenDef, double>(); // when a screen's calibration sweep started
         private int _tickCounter = 0;
-        private const string HELM_VERSION = "0.11.0"; // stamped from the VERSION file by Build-Release.ps1
+        private const string HELM_VERSION = "0.38.3"; // stamped from the VERSION file by Build-Release.ps1
         private IMyTextSurface _pbSurface;             // the Programmable Block's own screen (console)
         private bool _consoleOn = true;
         private double _consoleAt = 0;

@@ -15,7 +15,7 @@ int mZ=0;double iW=0;double ew=0;double T=0;int eu=0;Dictionary<E,double>bB=new 
 Dictionary<E,double>iO=new Dictionary<E,double>();Dictionary<string,int>ge=new Dictionary<string,int>();List<string>df=new List<string>();
 Dictionary<string,int>gf=new Dictionary<string,int>();double iY,iV;HashSet<string>gc=new HashSet<string>();Dictionary<string,double[]>iU=new Dictionary<string,double[]>();
 Dictionary<string,double>ey=new Dictionary<string,double>();List<MyInventoryItem>iR=new List<MyInventoryItem>();int b3= -1,gd;double iX;
-Dictionary<E,double>f8=new Dictionary<E,double>();int ex=0;const string rz="0.11.0";IMyTextSurface a5;bool iN=true;
+Dictionary<E,double>f8=new Dictionary<E,double>();int ex=0;const string rz="0.38.3";IMyTextSurface a5;bool iN=true;
 double f9=0;string mY="";string iT="";int gb=0,iQ=0;List<KeyValuePair<string,int>>dd=new List<KeyValuePair<string,int>>();
 const double rR=120;const float q4=22f;public Program(){Runtime.UpdateFrequency=UpdateFrequency.Update10;try{et=IGC.RegisterBroadcastListener("HELM");
 et.SetMessageCallback("HELM_IGC");}catch{}f2();iE();mx();}public void Main(string nb,UpdateType vD){
