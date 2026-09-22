@@ -6,7 +6,7 @@
   <title>{{ title }} | HELM Core Docs</title>
   <meta name="description" content="{{ description or 'Documentation for HELM Core, a Space Engineers telemetry display script.' }}">
   <meta name="helm-base" content="{{ '/' | url }}">
-  <link rel="icon" type="image/x-icon" href="/assets/helm-core-logo-256x256.ico">
+  <link rel="icon" type="image/webp" href="/assets/helm-core-logo-256x256.webp">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Share+Tech+Mono&display=swap">
@@ -39,6 +39,7 @@
     <!-- Drawer Content (Navbar + Main Article + Footer) -->
     <div class="drawer-content flex flex-col min-h-screen min-w-0">
 
+      {% if not splash %}
       <!-- Top Navbar: brand | search | links and theme -->
       <header class="navbar bg-base-200/80 backdrop-blur border-b border-base-300 sticky top-0 z-30 px-4 gap-2">
         {% if not splash %}<div class="flex-none lg:hidden">
@@ -116,12 +117,14 @@
           </a>
         </div>
       </header>
+      {% endif %}
 
       <!-- Page Main Content -->
       <main class="flex-grow p-4 sm:p-6 lg:p-10 max-w-6xl mx-auto w-full min-w-0">
         {{ content | safe }}
       </main>
 
+      {% if not splash %}
       <!-- Global Docs Footer -->
       <footer class="site-footer bg-base-200/50 border-t border-base-300 text-sm">
         <div class="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-10 py-10 grid grid-cols-2 md:grid-cols-4 gap-8">
@@ -176,6 +179,7 @@
           </div>
         </div>
       </footer>
+      {% endif %}
     </div>
 
     {% if not splash %}

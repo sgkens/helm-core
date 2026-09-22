@@ -9,7 +9,19 @@ eleventyComputed:
 
 There are {{ presets.count }} layout files in `layouts/default/`. Each can be loaded directly into your Programmable Block's Custom Data or tested via `helmv.ps1 -Preset <name>`.
 
-## Default Layouts
+## Browse by Category
+
+<nav class="preset-category-grid not-prose" aria-label="Preset categories">
+{% for group in presets.groups %}
+  <a class="preset-category-card" href="#{{ group.id }}">
+    <span class="preset-category-title">{{ group.title }}</span>
+    <span class="badge badge-primary badge-sm">{{ group.presets.length }}</span>
+    <span class="preset-category-description">{{ group.description }}</span>
+  </a>
+{% endfor %}
+</nav>
+
+## Featured Layouts
 
 ### Planetary Base (`planetary_base`)
 
@@ -107,15 +119,23 @@ There are {{ presets.count }} layout files in `layouts/default/`. Each can be lo
 
 ---
 
-## More Layouts
+## All Layouts by Category
 
-Simple layouts, complex layouts and edge cases that are used to test the parser and the renderers.
+The remaining layouts are grouped by what they help you build. Test labs and edge cases are kept together so production-ready templates are easier to find.
 
-{% for p in presets.others %}
+{% for group in presets.groups %}
+<div id="{{ group.id }}" class="preset-group" aria-hidden="true"></div>
+
+## {{ group.title }}
+
+{{ group.description }}
+
+{% for p in group.presets %}
 ### {{ p.title }} (`{{ p.name }}`)
 
 {% presetShot p.name, p.profile %}
 
 {{ p.description }}
 
+{% endfor %}
 {% endfor %}

@@ -7,15 +7,31 @@ description: "Telemetry display script for Space Engineers Programmable Blocks."
 eleventyExcludeFromCollections: true
 ---
 <section class="splash-hero text-center pt-4 sm:pt-8">
-  <h1 class="text-4xl sm:text-5xl font-black font-mono"><span class="text-primary">HELM</span> Core</h1>
+  <h1 class="text-4xl sm:text-5xl font-black font-mono"><span class="text-primary">HELM</span> Core <span class="badge badge-sm badge-outline font-mono align-middle">{{ site.versionLabel }}</span></h1>
+  <p class="mt-2 text-sm sm:text-base text-primary/80 font-mono tracking-wide">Telemetry for the whole grid, from one Custom Data field.</p>
   <p class="mt-4 text-base sm:text-lg text-base-content/70 max-w-2xl mx-auto" style="font-family: 'Inter', system-ui, sans-serif;">
     Draws telemetry on Space Engineers LCDs and cockpit screens from a Programmable Block. You describe screens in a text configuration; there is nothing to mod.
   </p>
   <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
     <a href="/docs/getting-started/" class="btn btn-primary btn-sm font-mono">Get started</a>
     <a href="/docs/" class="btn btn-outline btn-sm font-mono">Documentation</a>
+    <a href="/webutil/" class="btn btn-outline btn-sm font-mono">Try webutil</a>
     <a href="{{ site.repoUrl }}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm font-mono">Repository</a>
   </div>
+  <ul class="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto text-left" aria-label="Features">
+    {% set features = [
+      ["15 gauge kinds", "Bars, dials, tanks, sparklines, LEDs, checkboxes and more, all one @bind away."],
+      ["Colour and gradient rules", "Flat, gradient or condition-driven colour on every gauge, with a live red alert."],
+      ["One screen redrawn per tick", "Round-robin scheduling keeps the instruction cost near zero when nothing changes."],
+      ["No mods, one script", "Paste it into a Programmable Block; the rest is a text configuration."]
+    ] %}
+    {% for f in features %}
+    <li class="splash-feature rounded-lg border border-base-300 bg-base-200/40 p-3">
+      <div class="font-mono text-sm font-bold text-primary">{{ f[0] }}</div>
+      <div class="text-xs text-base-content/60 mt-1">{{ f[1] }}</div>
+    </li>
+    {% endfor %}
+  </ul>
 </section>
 
 <section class="mt-10" aria-label="Example displays">

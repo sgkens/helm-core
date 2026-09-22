@@ -10,6 +10,22 @@ const FLAGSHIP = ["planetary_base", "command_carrier", "survival_essentials", "d
 // Hardware profile used for the preview when the layout targets something other than a 1x1 panel.
 const PROFILE_OVERRIDE = { command_carrier: "WideLCD", atmospheric_lander: "CockpitSmall", corner_gauge_cluster: "CockpitCorner" };
 
+const CATEGORIES = [
+  { id: "flight-vehicles", title: "Flight & Vehicles", description: "Cockpits, landers, rovers, propulsion and navigation." },
+  { id: "industry-power", title: "Industry & Power", description: "Production, power generation, fuel and machinery." },
+  { id: "cargo-logistics", title: "Cargo & Logistics", description: "Storage, docking, construction and station operations." },
+  { id: "combat-safety", title: "Combat & Safety", description: "Weapons, alerts, security, hangars and life support." },
+  { id: "examples-tests", title: "Examples & Test Labs", description: "Gauge showcases, styling recipes and renderer edge cases." },
+];
+
+function categoryFor(name) {
+  if (/(fighter_hud|lander|rover|thruster|jump_drive|flight_deck|bridge_matrix|deep_space)/.test(name)) return "flight-vehicles";
+  if (/(assembler|battery|reactor|refinery|hydrogen|solar|mining_rig|piston|power_only)/.test(name)) return "industry-power";
+  if (/(cargo|docking|projector|trading|planetary_base|mining_fleet|survival_essentials)/.test(name)) return "cargo-logistics";
+  if (/(airlock|hazard|medical|security|tactical|hangar|command_carrier)/.test(name)) return "combat-safety";
+  return "examples-tests";
+}
+
 const isDecoration = (line) => /^#[\s=\-#]*$/.test(line.trim());
 
 function titleCase(s) {
@@ -27,7 +43,7 @@ function describe(name, text) {
   if (!description && panels.length) description = "Panels: " + panels.join(", ") + ".";
   const profileLine = (text.match(/^profile:\s*(\w+)/m) || [])[1] || "standard";
   const profile = PROFILE_OVERRIDE[name] || (profileLine === "corner" ? "CornerLCD" : "TextPanel");
-  return { name, title, description, profile, panels };
+  return { name, title, description, profile, panels, category: categoryFor(name) };
 }
 
 const all = fs.existsSync(DIR)
@@ -38,6 +54,10 @@ module.exports = {
   all,
   count: all.length,
   others: all.filter((p) => !FLAGSHIP.includes(p.name)),
+  groups: CATEGORIES.map((category) => ({
+    ...category,
+    presets: all.filter((p) => !FLAGSHIP.includes(p.name) && p.category === category.id),
+  })).filter((group) => group.presets.length),
   // Layouts cycled on the splash page, as "name:Profile" pairs.
   splash: ["planetary_base:TextPanel", "command_carrier:WideLCD", "atmospheric_lander:CockpitSmall", "survival_essentials:TextPanel", "all_gauges_showcase:TextPanel"]
     .filter((s) => all.some((p) => p.name === s.split(":")[0])),
