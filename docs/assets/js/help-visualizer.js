@@ -10,29 +10,11 @@
 //          data-controls="minimal" shows only pause and the current layout name.
 // Frames:  <base>/assets/frames/<layout>.json
 import { buildBezel, PROFILES } from "./se-lcd-bezel.mjs";
+import { makeSpriteNode, paintSpriteNode, FONTS } from "./sprite-svg.mjs";
 
 const BASE = ((document.querySelector('meta[name="helm-base"]') || {}).content || "/").replace(/\/$/, "");
 const FRAMES_URL = (layout) => `${BASE}/assets/frames/${layout}.json`;
 
-// Font families. "Monospace" in game maps to the IBM VGA 8x14 face, everything else to Share Tech Mono
-// (tools/Set-TerminalFont.ps1). Cell width is the harness assumption (13 px per unit of text scale).
-const FONTS = {
-  standard: { label: "SE Standard (Share Tech Mono)", family: '"Share Tech Mono", monospace', probe: "Share Tech Mono" },
-  monospace: { label: "SE Monospace (IBM VGA 8x14)", family: '"Helm IBM VGA", monospace', probe: "Helm IBM VGA" },
-};
-const CELL_WIDTH = 13;
-const advanceCache = {};
-
-function advanceOf(key) {
-  if (advanceCache[key]) return advanceCache[key];
-  try {
-    const ctx = document.createElement("canvas").getContext("2d");
-    ctx.font = `100px ${FONTS[key].family}`;
-    const w = ctx.measureText("M").width / 100;
-    if (w > 0.2 && w < 1.2) return (advanceCache[key] = w);
-  } catch (e) {}
-  return 0.6;
-}
 
 const frameCache = new Map();
 function loadFrames(layout) {
@@ -44,14 +26,6 @@ function loadFrames(layout) {
   }
   return frameCache.get(layout);
 }
-
-const SVGNS = "http://www.w3.org/2000/svg";
-const el = (name, attrs) => {
-  const n = document.createElementNS(SVGNS, name);
-  for (const k in attrs) n.setAttribute(k, attrs[k]);
-  return n;
-};
-const hex2 = (n) => n.toString(16).padStart(2, "0");
 
 export class HelmVisualizer {
   constructor(root) {
@@ -182,51 +156,14 @@ export class HelmVisualizer {
     this.nodes.forEach((n) => n && this.slot.append(n));
   }
 
-  fontKey(s) {
-    if (this.fontChoice === "standard" || this.fontChoice === "monospace") return this.fontChoice;
-    return /mono/i.test(s.f || "") ? "monospace" : "standard";
-  }
-
   make(s) {
-    const node = s.t === "text" ? el("text", {}) : s.d === "Circle" ? el("ellipse", {}) : s.d === "Triangle" ? el("polygon", {}) : s.t === "tex" ? el("rect", {}) : null;
+    const node = makeSpriteNode(s);
     if (node) this.paint(node, s);
     return node;
   }
 
   paint(node, s) {
-    const x = (s.x || 0) - this.ox, y = (s.y || 0) - this.oy;
-    const c = s.c || [255, 255, 255, 255];
-    const fill = `rgb(${c[0]},${c[1]},${c[2]})`;
-    node.setAttribute("fill", fill);
-    node.setAttribute("fill-opacity", (c[3] / 255).toFixed(3));
-    if (s.t === "text") {
-      const key = this.fontKey(s);
-      const size = (CELL_WIDTH * (s.s || 1)) / advanceOf(key);
-      node.setAttribute("x", x);
-      node.setAttribute("y", y);
-      node.setAttribute("font-family", FONTS[key].family);
-      node.setAttribute("font-size", size.toFixed(2));
-      node.setAttribute("text-anchor", s.a === "center" ? "middle" : s.a === "right" ? "end" : "start");
-      node.setAttribute("dominant-baseline", "hanging");
-      node.setAttribute("xml:space", "preserve");
-      node.style.whiteSpace = "pre";
-      if (node.textContent !== s.d) node.textContent = s.d;
-      return;
-    }
-    const w = s.w || 0, h = s.h || 0;
-    if (s.d === "Circle") {
-      node.setAttribute("cx", x); node.setAttribute("cy", y);
-      node.setAttribute("rx", w / 2); node.setAttribute("ry", h / 2);
-    } else if (s.d === "Triangle") {
-      node.setAttribute("points", `${x},${y - h / 2} ${x + w / 2},${y + h / 2} ${x - w / 2},${y + h / 2}`);
-    } else {
-      node.setAttribute("x", x - w / 2); node.setAttribute("y", y - h / 2);
-      node.setAttribute("width", w); node.setAttribute("height", h);
-    }
-    if (s.r) node.setAttribute("transform", `rotate(${(s.r * 180) / Math.PI} ${x} ${y})`);
-    node.dataset.hex = "#" + hex2(c[0]) + hex2(c[1]) + hex2(c[2]);
-    if (!node.firstChild) node.append(el("title", {}));
-    node.firstChild.textContent = `${node.dataset.hex}${c[3] < 255 ? " alpha " + c[3] : ""}`;
+    paintSpriteNode(node, s, { ox: this.ox, oy: this.oy, fontChoice: this.fontChoice });
   }
 
   // ---- Playback -------------------------------------------------------
