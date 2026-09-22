@@ -1,6 +1,10 @@
 // Host.cs: browser entry point for the web utility. Renders a layout with the real script and returns the sprite list as JSON.
-//   Render(dsl, width, height, values, seconds, screenIndex) -> {"errors":[..],"warnings":[..],"screens":[..],"sprites":[..]}
+//   Render(dsl, width, height, values, seconds, screenIndex) ->
+//     {"errors":[..],"warnings":[..],"screens":[..],"binds":[{"name":..,"kind":..}],"surface":[w,h],"texture":[m,m],"sprites":[..]}
 // values is "bind=50;other=12"; every value is on the script's 0-100 scale. seconds drives the script's clock (waves, easing).
+// The sprite list is in TEXTURE-space coordinates (surface + the bezel-side viewport offset already added),
+// the same convention docs/assets/frames/*.json uses: subtract (texture - surface) / 2 before drawing, as
+// docs/assets/js/sprite-svg.mjs and se-lcd-bezel.mjs's #content-slot expect.
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -124,6 +128,20 @@ public static partial class Host
             var names = new List<string>();
             if (config != null) foreach (var s in config.Screens) names.Add(s.Name);
             sb.Append(",\"screens\":"); Strings(sb, names);
+            sb.Append(",\"binds\":[");
+            if (config != null)
+            {
+                bool firstBind = true;
+                foreach (var b in config.Binds)
+                {
+                    if (!firstBind) sb.Append(',');
+                    firstBind = false;
+                    sb.Append("{\"name\":").Append(Esc(b.Name)).Append(",\"kind\":").Append(Esc(b.Kind.ToString().ToLowerInvariant()))
+                      .Append(",\"target\":").Append(Esc(b.TargetName)).Append(",\"isText\":").Append(b.DynamicKey != null && b.DefaultText != null ? "true" : "false").Append('}');
+                }
+            }
+            sb.Append(']');
+            sb.Append(",\"surface\":[").Append(width).Append(',').Append(height).Append("],\"texture\":[").Append(Math.Max(width, height)).Append(',').Append(Math.Max(width, height)).Append(']');
             sb.Append(",\"sprites\":[");
             if (config != null && config.Screens.Count > 0)
             {
