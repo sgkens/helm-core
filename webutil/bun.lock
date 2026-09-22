@@ -1,0 +1,18 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "helm-webutil",
+      "dependencies": {
+        "@staticcanvas/logcad": "0.6.0",
+        "@staticcanvas/lume": "0.37.1",
+      },
+    },
+  },
+  "packages": {
+    "@staticcanvas/logcad": ["@staticcanvas/logcad@0.6.0", "", {}, "sha512-aR9QSNjaWj3avivfjeHJSUfWGz7PWAJvJnYxbQFfgw1Q2//IqjgaePtEjr2Q24W5MGUtPXvIe/GsfGrQz/SZTQ=="],
+
+    "@staticcanvas/lume": ["@staticcanvas/lume@0.37.1", "", { "peerDependencies": { "@staticcanvas/logcad": "^0.6.0" }, "optionalPeers": ["@staticcanvas/logcad"] }, "sha512-tKYIjDiCng9gkEtli3i/4qqU/hmcXhNQR8YvyRBCpE2hXo8jiO9bzz8hpdW4Z+Ty2XK7lJM8KUwfEwTW9gR+2Q=="],
+  }
+}

@@ -26,9 +26,10 @@ webutil/
     gen-blocks.js    parses docs/content/block-matrix.md -> data/blocks.json (TASK-39.12)
     gen-starters.js  copies a few layouts/default/*.txt presets -> data/starters.json
   data/              generated (gitignored)
+  vendor/            pinned Lume/Logcad browser files staged by `bun run vendor` (gitignored)
   wasm/              tools/webutil-wasm, published here by `bun run wasm` (gitignored, ~9 MB uncompressed)
   server.mjs         local dev server; serves this directory, falling back to ../public for
-                      the shared docs assets (/assets/js/*.mjs, /css/style.css)
+                      the shared docs assets (assets/js/*.mjs, css/style.css)
 ```
 
 `../docs/assets/js/sprite-svg.mjs` and `se-lcd-bezel.mjs` are shared with the docs preview widget (`help-visualizer.js`), not duplicated here, so the two cannot draw sprites differently.
@@ -39,11 +40,14 @@ webutil/
 # repository root, bash. Needs the .NET 10 SDK (see tools/webutil-wasm/README.md) and Bun.
 cd docs && bun run css:build && cd ..   # webutil reuses the docs site's compiled CSS
 cd webutil
-bun run build   # bun run data && bun run wasm
+bun install
+bun run build   # bun run data && bun run vendor && bun run wasm
 bun run serve   # http://127.0.0.1:8891/
 ```
 
 `bun run dev` does both in one step. Rerun `bun run data` after editing `docs/content/block-matrix.md` or `layouts/default/*.txt`, and `bun run wasm` after editing `Program.cs` or `HelmCore.cs`.
+
+Lume supplies mutation-aware contextual help for both static controls and generated field buttons. Logcad supplies the branded startup message and retained error diagnostics. The vendor step stages both packages locally, so the deployed tool does not depend on a CDN. Shared asset URLs are relative, and CI preserves the `wasm/wwwroot/` directory, so the artifact also works when GitLab Pages hosts it beneath a project path.
 
 ## Verified
 

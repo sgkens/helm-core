@@ -1,9 +1,11 @@
 // app.mjs: wires the webutil page together. No layout logic lives here (TASK-39.1/39.5/39.7):
 // the DSL text is the source of truth, the WebAssembly build of the real script (wasm-bridge.mjs)
 // renders it, and sprite-svg.mjs + se-lcd-bezel.mjs draw the result exactly as the docs preview does.
-import { buildBezel, PROFILES } from "/assets/js/se-lcd-bezel.mjs";
-import { renderSprites } from "/assets/js/sprite-svg.mjs";
+import { buildBezel, PROFILES } from "../../assets/js/se-lcd-bezel.mjs";
+import { renderSprites } from "../../assets/js/sprite-svg.mjs";
 import { render as wasmRender } from "./wasm-bridge.mjs";
+import { Lume } from "../vendor/lume.mjs";
+import logcad from "../vendor/logcad.mjs";
 
 // This module lives in webutil/js/; data/ is its sibling. Resolved from import.meta.url (not a
 // hardcoded "/webutil/"), so it works whether the page is served at the site root (local dev) or
@@ -26,6 +28,9 @@ const state = {
 let blocks = null, itemFields = [], starters = [];
 let debounceTimer = null;
 let renderToken = 0;
+const logger = { name: "webutil", logname: " HELM ", bg: "#0891b2", logbg: "#0f172a" };
+
+new Lume({ motion: "lift", showDelay: 120, hideDelay: 40, offset: 10 });
 
 async function loadData() {
   const [b, s] = await Promise.all([
@@ -75,6 +80,7 @@ async function doRender() {
   } catch (e) {
     if (myToken !== renderToken) return;
     $("#preview-status").textContent = "The renderer failed to load: " + e.message;
+    logcad.logd(logger, "render", "Renderer failed", { message: e.message });
     return;
   }
   if (myToken !== renderToken) return; // a newer render started while this one was in flight
@@ -128,7 +134,7 @@ function renderValueSliders(binds) {
     const v = state.values[b.name] ?? 50;
     if (b.isText) return "";
     return `<label class="flex items-center gap-2 text-xs font-mono">
-      <span class="w-20 truncate" title="${escapeAttr(b.name)} = ${escapeAttr(b.kind)}(&quot;${escapeAttr(b.target)}&quot;)">${escapeHtml(b.name)}</span>
+      <span class="w-20 truncate" tabindex="0" data-lume-title="${escapeAttr(b.name)}" data-lume="${escapeAttr(b.kind)}(&quot;${escapeAttr(b.target)}&quot;)" data-lume-direction="left">${escapeHtml(b.name)}</span>
       <input type="range" min="0" max="100" value="${v}" class="range range-xs range-primary flex-1" data-bind="${escapeAttr(b.name)}">
       <span class="w-9 text-right tabular-nums" data-bind-val="${escapeAttr(b.name)}">${v}</span>
     </label>`;
@@ -173,7 +179,7 @@ function renderBlockPalette() {
             ${b.units ? `<span class="text-[10px] text-base-content/40 font-mono">${escapeHtml(b.units)}</span>` : ""}
           </div>
           <div class="flex flex-wrap gap-1 mt-1">
-            ${b.fields.map((f) => `<button type="button" class="btn btn-2xs btn-ghost font-mono px-1.5" data-insert-field="${escapeAttr(f)}" data-insert-gauge="${escapeAttr(b.gauges[0] || "bar")}" title="Insert a line: using .${escapeAttr(f)}">.${escapeHtml(f)}</button>`).join("")}
+            ${b.fields.map((f) => `<button type="button" class="btn btn-2xs btn-ghost font-mono px-1.5" data-insert-field="${escapeAttr(f)}" data-insert-gauge="${escapeAttr(b.gauges[0] || "bar")}" data-lume-title=".${escapeAttr(f)}" data-lume="Insert a ${escapeAttr(b.gauges[0] || "bar")} line using this telemetry field." data-lume-direction="right">.${escapeHtml(f)}</button>`).join("")}
           </div>
         </div>`).join("")}
     </div>`).join("") || '<p class="text-xs text-base-content/50 font-mono p-2">No match.</p>';
@@ -257,6 +263,10 @@ function flashButton(btn, text) {
 }
 
 async function main() {
+  logcad.logc([
+    { text: " HELM webutil ", c: "#08111f", bg: "#38bdf8", b: true },
+    { text: " renderer starting", c: "#94a3b8" },
+  ]);
   await loadData();
   wireControls();
   renderBlockPalette();
@@ -270,5 +280,5 @@ async function main() {
 
 main().catch((e) => {
   $("#preview-status").textContent = "Could not start: " + e.message;
-  console.error(e);
+  logcad.logd(logger, "start", "Application failed to start", { message: e.message });
 });

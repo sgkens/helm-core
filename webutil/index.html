@@ -5,11 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HELM Webutil</title>
   <meta name="description" content="Write a HELM layout and see it rendered by the real script, in the browser.">
-  <link rel="icon" type="image/x-icon" href="/assets/helm-core-logo-256x256.ico">
+  <link rel="icon" type="image/webp" href="../assets/helm-core-logo-256x256.webp">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
-  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="./vendor/lume.css">
   <script>
     try { var t = localStorage.getItem('helm_docs_theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) {}
   </script>
@@ -20,20 +21,27 @@
     #preview-stage svg { max-width: 100%; max-height: 100%; }
     #dsl-editor { tab-size: 2; }
     .btn-2xs { height: 1.25rem; min-height: 1.25rem; font-size: 0.6875rem; }
+    :root {
+      --lume-bg: oklch(var(--b2)); --lume-panel: oklch(var(--b3)); --lume-text: oklch(var(--bc));
+      --lume-border: oklch(var(--bc) / 0.16); --lume-border-hi: oklch(var(--p) / 0.55);
+      --lume-accent: oklch(var(--p)); --lume-radius: 0.45rem;
+      --lume-font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      --lume-font-mono: "JetBrains Mono", ui-monospace, monospace;
+    }
   </style>
 </head>
 <body class="min-h-screen bg-base-100 text-base-content antialiased font-sans">
   <header class="navbar bg-base-200/80 backdrop-blur border-b border-base-300 px-4 gap-2 h-13">
     <div class="flex-none">
-      <a href="/docs/" class="flex items-center gap-2 px-1">
-        <img src="/assets/helm-core-logo-256x256.webp" alt="" width="24" height="24" class="w-6 h-6 rounded">
+      <a href="../docs/" class="flex items-center gap-2 px-1">
+        <img src="../assets/helm-core-logo-256x256.webp" alt="" width="24" height="24" class="w-6 h-6 rounded">
         <span class="font-mono font-black tracking-wider hidden sm:inline"><span class="text-primary">HELM</span> Core</span>
       </a>
     </div>
-    <div class="flex-1 font-mono text-sm text-base-content/60">webutil <span class="badge badge-xs badge-outline ml-1">alpha</span></div>
+    <div class="flex-1 font-mono text-sm text-base-content/60">webutil <span class="badge badge-xs badge-outline ml-1" tabindex="0" data-lume-title="Alpha preview" data-lume="The renderer is real; canvas editing and complete simulation controls are still being built." data-lume-direction="bottom">alpha</span></div>
     <div class="flex-none flex items-center gap-2">
-      <a href="/docs/dsl-syntax/" class="btn btn-ghost btn-xs font-mono" target="_blank" rel="noopener">DSL reference</a>
-      <a href="/docs/getting-started/" class="btn btn-ghost btn-xs font-mono" target="_blank" rel="noopener">Getting started</a>
+      <a href="../docs/dsl-syntax/" class="btn btn-ghost btn-xs font-mono" target="_blank" rel="noopener">DSL reference</a>
+      <a href="../docs/getting-started/" class="btn btn-ghost btn-xs font-mono" target="_blank" rel="noopener">Getting started</a>
     </div>
   </header>
 
@@ -43,7 +51,7 @@
       <!-- Left: block / field reference -->
       <aside class="bg-base-200/50 border border-base-300 rounded-lg p-2 overflow-y-auto" style="grid-row: 1 / span 2;">
         <label class="input input-sm input-bordered flex items-center gap-2 mb-2 font-mono">
-          <input id="block-search" type="search" class="grow" placeholder="Search blocks or fields...">
+          <input id="block-search" type="search" class="grow" placeholder="Search blocks or fields..." data-lume="Filter by block name, category, or telemetry field." data-lume-direction="right">
         </label>
         <div class="tabs tabs-boxed tabs-xs mb-2">
           <button type="button" class="tab tab-active" data-tab="blocks">Blocks</button>
@@ -57,12 +65,12 @@
       <!-- Centre: live preview -->
       <section class="bg-base-200/50 border border-base-300 rounded-lg p-2 flex flex-col min-w-0">
         <div class="flex flex-wrap items-center gap-2 mb-2">
-          <select id="starter-picker" class="select select-xs select-bordered font-mono"></select>
-          <select id="profile-picker" class="select select-xs select-bordered font-mono"></select>
+          <select id="starter-picker" class="select select-xs select-bordered font-mono" data-lume="Replace the editor with an included layout template." data-lume-direction="bottom"></select>
+          <select id="profile-picker" class="select select-xs select-bordered font-mono" data-lume="Preview the exact surface and texture dimensions of this LCD profile." data-lume-direction="bottom"></select>
           <span id="screen-picker-wrap" class="hidden">
             <select id="screen-picker" class="select select-xs select-bordered font-mono"></select>
           </span>
-          <button type="button" id="play-toggle" class="btn btn-xs font-mono">Pause animation</button>
+          <button type="button" id="play-toggle" class="btn btn-xs font-mono" data-lume="Pause or resume simulated time for animated gauges." data-lume-direction="bottom">Pause animation</button>
           <span id="preview-status" class="text-xs font-mono text-base-content/50 ml-auto"></span>
         </div>
         <div id="preview-stage" class="flex-1 flex items-center justify-center min-h-0 overflow-hidden">
