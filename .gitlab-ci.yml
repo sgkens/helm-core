@@ -355,6 +355,31 @@ docs-frames:
     - if: '$CI_COMMIT_BRANCH == "main"'
 
 # ---------------------------------------------------------------------------
+# webutil — Build the browser layout tool (webutil/) into public/webutil/: regenerates its data
+# files from docs/content/block-matrix.md and layouts/default/*.txt (TASK-39.12), publishes the
+# real script compiled to WebAssembly (tools/webutil-wasm, TASK-39.0), and copies the static page.
+# Independent of the docs-* jobs; pages merges its artifact in alongside the docs build.
+# ---------------------------------------------------------------------------
+webutil:
+  stage: build
+  needs: []
+  script:
+    - cd webutil
+    - bun run data
+    - bun run wasm
+    - mkdir -p ../public/webutil/js ../public/webutil/data
+    - cp index.html ../public/webutil/
+    - cp js/*.mjs ../public/webutil/js/
+    - cp data/*.json ../public/webutil/data/
+    - cp -r wasm/wwwroot ../public/webutil/wasm
+  artifacts:
+    paths:
+      - public/webutil
+    expire_in: 1 day
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+# ---------------------------------------------------------------------------
 # pages — Build the 11ty + DaisyUI docs site and publish to GitLab Pages.
 # GitLab Pages requires the job name "pages" and an artifact at public/.
 # ---------------------------------------------------------------------------
@@ -362,6 +387,8 @@ pages:
   stage: deploy
   needs:
     - job: docs-frames
+      artifacts: true
+    - job: webutil
       artifacts: true
   variables:
     PAGES_PATH_PREFIX: "/${CI_PROJECT_NAME}/"
