@@ -6,14 +6,14 @@ section: "Getting Started"
 badge: "Quickstart"
 ---
 
-## 1. Prerequisites
+## Prerequisites
 
 Before installing HELM Core:
 - Ensure **In-Game Scripts** are enabled in your Space Engineers world settings:
   `World Settings -> Advanced -> Enable In-Game Scripts [x]`.
 - Have at least one **Programmable Block** and at least one **Text Panel** or cockpit surface on your grid.
 
-## 2. How HELM Is Organized
+## How HELM Is Organized
 
 HELM is configured in one place: the **Custom Data of the Programmable Block that runs the script**. The screens it draws on are only targets. They need no script and no configuration of their own.
 
@@ -31,7 +31,7 @@ flowchart LR
 - One Programmable Block can drive many screens. Add one `@screen` per display to the same Custom Data.
 - `@bind` lines connect names in your layout to real blocks or groups on the grid.
 
-## 3. Installing the Script
+## Installing the Script
 
 1. Build or locate a **Programmable Block** on your grid.
 2. Open its terminal interface and click **Edit Code**.
@@ -43,7 +43,7 @@ flowchart LR
 [Programmable Block] -> Edit -> Paste -> Check Code -> OK
 ```
 
-## 4. Configuring Custom Data
+## Configuring Custom Data
 
 HELM Core reads its display configuration directly from the Programmable Block's **Custom Data** field.
 
@@ -85,7 +85,7 @@ line: "CARGO   " bar(cargo.percent) flat(#94a3b8)
 
 HELM will detect the changes, compile the AST, bind to matching grid blocks, and begin rendering immediately.
 
-## 5. Setting Up Target Screens
+## Setting Up Target Screens
 
 The `output:` directive specifies where the layout renders:
 
@@ -104,7 +104,7 @@ output: "<Block Name>", <surface_index>
 
 > **Tip:** You can declare multiple `@screen` blocks in Custom Data to power 10+ different LCDs from a single Programmable Block!
 
-## 6. Verify & Troubleshoot
+## Verify & Troubleshoot
 
 Select the Programmable Block in the terminal. The info pane on the right shows the HELM console, and the same console is drawn in grays and magenta on the Programmable Block's own screen (example values):
 

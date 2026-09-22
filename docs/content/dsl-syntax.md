@@ -17,7 +17,7 @@ A HELM configuration consists of four primary building blocks:
 
 ---
 
-## 1. Hardware Binding (`@bind`)
+## Hardware Binding (`@bind`)
 
 Bindings map game terminal blocks to variable names used across panels:
 
@@ -53,7 +53,7 @@ Wildcards (`*`) are supported in names (e.g. `battery("Battery *")`).
 
 ---
 
-## 2. Screen Declaration (`@screen`)
+## Screen Declaration (`@screen`)
 
 A screen maps to a physical LCD surface on your grid.
 
@@ -315,7 +315,7 @@ boot_log: "Telemetry telemetry bus online."
 
 ---
 
-## 3. Panel Cards (`@panel`)
+## Panel Cards (`@panel`)
 
 Panels organize telemetry lines into visual cards arranged on the screen grid:
 
@@ -336,7 +336,7 @@ title_color: #<hexcolor>
 
 ---
 
-## 4. Telemetry Lines (`line:`)
+## Telemetry Lines (`line:`)
 
 Telemetry lines render within panels, binding a property to a gauge widget:
 

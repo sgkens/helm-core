@@ -6,7 +6,7 @@ section: "Styling"
 badge: "Styling"
 ---
 
-## 1. Modular Border Styles
+## Modular Border Styles
 
 Set the border style on a screen, or on a single panel by writing `border:` after its `@panel` line:
 
@@ -40,7 +40,7 @@ border: <style>
 
 ---
 
-## 2. Positional Titles (`title_align:`)
+## Positional Titles (`title_align:`)
 
 Titles can be positioned anywhere along the panel's top frame:
 
@@ -54,7 +54,7 @@ Titles can be positioned anywhere along the panel's top frame:
 
 ---
 
-## 3. Independent Title Typography Colors (`title_color:`)
+## Independent Title Typography Colors (`title_color:`)
 
 Decouple your title text color from the panel's border color for improved readability and high-tech contrast:
 
@@ -66,7 +66,7 @@ Decouple your title text color from the panel's border color for improved readab
 
 ---
 
-## 4. Multi-Stop Border Gradients (`border_gradient(...)`)
+## Multi-Stop Border Gradients (`border_gradient(...)`)
 
 Apply dynamic multi-color gradients across panel and screen borders:
 
@@ -79,7 +79,7 @@ In sprite mode (`MySprite`), the quad renderer computes linear interpolation acr
 
 ---
 
-## 5. Reusable Templates (`layouts/templates.txt`)
+## Reusable Templates (`layouts/templates.txt`)
 
 You can define reusable color schemes, border frames, and styling presets in `layouts/templates.txt` and reference them using `@use`:
 

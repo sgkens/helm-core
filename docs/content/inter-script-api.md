@@ -6,7 +6,7 @@ section: "Advanced"
 badge: "API"
 ---
 
-## 1. Dynamic In-Memory Directives (`@bind ... = dynamic(...)`)
+## Dynamic In-Memory Directives (`@bind ... = dynamic(...)`)
 
 Bind screen gauges to in-memory variables that do not correspond to any physical block:
 
@@ -38,7 +38,7 @@ Sending a number to a variable that held text replaces the text, and sending tex
 
 ---
 
-## 2. IGC Headless Display Server Channel (`"HELM"`)
+## IGC Headless Display Server Channel (`"HELM"`)
 
 Other Programmable Blocks on your grid or across antenna networks can broadcast telemetry updates to HELM over the Space Engineers Inter-Grid Communication (IGC) system.
 
@@ -58,7 +58,7 @@ HELM's parser updates the dynamic values and refreshes all mapped LCDs on the ne
 
 ---
 
-## 3. Programmable Block Argument Micro-Commands
+## Programmable Block Argument Micro-Commands
 
 External scripts, Timer Blocks, Sensors, Event Controllers, and cockpit hotbars can manipulate HELM via argument execution (`pb.TryRun(argument)`):
 
@@ -88,7 +88,7 @@ helmPB?.TryRun("alert red");
 
 ---
 
-## 4. Performance & Diagnostics
+## Performance & Diagnostics
 
 HELM reports all registered dynamic variables in its terminal diagnostics readout:
 

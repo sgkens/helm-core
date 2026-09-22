@@ -20,7 +20,7 @@ badge: "Profiles"
 
 ---
 
-## 1. TextPanel (512x512, 1:1)
+## TextPanel (512x512, 1:1)
 
 The classic Space Engineers 1x1 wall-mounted LCD panel. Offers balanced vertical and horizontal density, ideal for 2x2 or 2x3 panel grids.
 
@@ -35,7 +35,7 @@ layout: grid(2, 2)
 
 ---
 
-## 2. WideLCD (1024x512, 2:1)
+## WideLCD (1024x512, 2:1)
 
 Large 2x1 ship bridge screen. Designed for high-density multi-column horizontal layouts.
 
@@ -50,7 +50,7 @@ layout: grid(3, 2)
 
 ---
 
-## 3. CockpitSmall (512x256, 2:1)
+## CockpitSmall (512x256, 2:1)
 
 Compact cockpit HUD fitted into the center console of fighters, rovers, and dropships.
 
@@ -65,7 +65,7 @@ layout: grid(2, 1)
 
 ---
 
-## 4. CornerLCD (512x128, 4:1)
+## CornerLCD (512x128, 4:1)
 
 The angled LCD strip block placed along corridor ceilings or cockpit floor borders.
 
@@ -80,7 +80,7 @@ layout: grid(2, 1)
 
 ---
 
-## 5. CockpitCorner (256x128, 2:1)
+## CockpitCorner (256x128, 2:1)
 
 The small corner instrument cluster screen embedded in cockpits and flight seats.
 

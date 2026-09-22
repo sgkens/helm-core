@@ -6,7 +6,7 @@ section: "Display & Hardware"
 badge: "Units"
 ---
 
-## 1. Unit Modes
+## Unit Modes
 
 HELM supports three unit display modes:
 
@@ -18,7 +18,7 @@ HELM supports three unit display modes:
 
 ---
 
-## 2. Engineering Measurement Scaling
+## Engineering Measurement Scaling
 
 When measurement mode is active, HELM scales raw values according to typical Space Engineers magnitudes:
 
@@ -38,7 +38,7 @@ When measurement mode is active, HELM scales raw values according to typical Spa
 
 ---
 
-## 3. Dynamic 3-Phase Alignment Engine
+## Dynamic 3-Phase Alignment Engine
 
 In fixed-width terminal layouts, a value changing from `98%` (3 chars) to `1.42 GW` (7 chars) or `104.4 m/s` (9 chars) would ordinarily push right borders outward and tear the display.
 
@@ -59,7 +59,7 @@ If the value column needs 9 characters for `104.4 m/s`, the gauge bar width auto
 
 ---
 
-## 4. Live Hotkey Switching in `helmv`
+## Live Hotkey Switching in `helmv`
 
 When running the interactive terminal visualizer (`helmv.ps1`), you can toggle units live with single keypresses:
 

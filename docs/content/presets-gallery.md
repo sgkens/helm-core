@@ -11,7 +11,7 @@ There are {{ presets.count }} layout files in `layouts/default/`. Each can be lo
 
 ## Default Layouts
 
-### 1. Planetary Base (`planetary_base`)
+### Planetary Base (`planetary_base`)
 
 {% presetShot "planetary_base", "TextPanel" %}
 
@@ -28,7 +28,7 @@ There are {{ presets.count }} layout files in `layouts/default/`. Each can be lo
 
 ---
 
-### 2. Command Carrier (`command_carrier`)
+### Command Carrier (`command_carrier`)
 
 {% presetShot "command_carrier", "WideLCD" %}
 
@@ -45,7 +45,7 @@ There are {{ presets.count }} layout files in `layouts/default/`. Each can be lo
 
 ---
 
-### 3. Survival Essentials (`survival_essentials`)
+### Survival Essentials (`survival_essentials`)
 
 {% presetShot "survival_essentials", "TextPanel" %}
 
@@ -60,7 +60,7 @@ There are {{ presets.count }} layout files in `layouts/default/`. Each can be lo
 
 ---
 
-### 4. Deep Space Explorer (`deep_space_explorer`)
+### Deep Space Explorer (`deep_space_explorer`)
 
 {% presetShot "deep_space_explorer", "TextPanel" %}
 
@@ -75,7 +75,7 @@ There are {{ presets.count }} layout files in `layouts/default/`. Each can be lo
 
 ---
 
-### 5. Mining Fleet Coordinator (`mining_fleet_coordinator`)
+### Mining Fleet Coordinator (`mining_fleet_coordinator`)
 
 {% presetShot "mining_fleet_coordinator", "TextPanel" %}
 
@@ -92,7 +92,7 @@ There are {{ presets.count }} layout files in `layouts/default/`. Each can be lo
 
 ---
 
-### 6. Atmospheric Lander (`atmospheric_lander`)
+### Atmospheric Lander (`atmospheric_lander`)
 
 {% presetShot "atmospheric_lander", "CockpitSmall" %}
 
