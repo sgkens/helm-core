@@ -12,6 +12,8 @@ In the Live column, **[x]** means `Program.cs` has code for that block type. **[
 
 State fields such as `.locked`, `.connected`, `.brake`, `.producing`, `.projecting` and `.working` read 100 when true and 0 when false, and ratios such as a door's `.open` are 0 to 100, the same scale as `.percent`. That is what `checkbox`, `toggle`, `status`, `led` and `bar` expect. Item amounts and other raw values need `max(N)` to be drawn as a bar.
 
+Block icons are cached from the [Official Space Engineers Wiki](https://spaceengineers.wiki.gg/) and link to their source file pages. Wiki content is available under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/); Space Engineers game content remains owned by Keen Software House.
+
 | Category | In-Game Block Type | SE Interface | Live | Supported Properties | Recommended Gauge | Default Units |
 | :--- | :--- | :--- | :---: | :--- | :--- | :--- |
 | **Power** | Battery Block | `IMyBatteryBlock` | **[x]** | `.percent`, `.stored`, `.max`, `.input`, `.output` | `bar`, `flow`, `spark` | `MW` / `%` |

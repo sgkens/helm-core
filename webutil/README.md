@@ -49,6 +49,8 @@ bun run serve   # http://127.0.0.1:8891/
 
 Lume supplies mutation-aware contextual help for both static controls and generated field buttons. Logcad supplies the branded startup message and retained error diagnostics. The vendor step stages both packages locally, so the deployed tool does not depend on a CDN. Shared asset URLs are relative, and CI preserves the `wasm/wwwroot/` directory, so the artifact also works when GitLab Pages hosts it beneath a project path.
 
+The block palette also uses the same cached Official Space Engineers Wiki icon manifest as the docs support matrix. Refresh those attributed, up-to-128 px PNGs with `cd ../docs && bun run icons:refresh`; normal docs builds validate and reuse the cache.
+
 ## Verified
 
 Loaded and exercised in a real headless Chromium (22 SEP 2026): the block palette, starter presets, the multi-screen picker, value sliders re-rendering the preview, and a parser error surfacing with its real line number, all with no console errors. Not yet checked in a non-Chromium browser.

@@ -158,9 +158,26 @@ pre[class*="language-"], code[class*="language-"] { font-family: "JetBrains Mono
 .preset-category-description { grid-column: 1 / -1; color: oklch(var(--bc) / 0.62); font-size: 0.75rem; line-height: 1.45; }
 .preset-group { scroll-margin-top: 5rem; }
 
+/* Wiki-backed block references used by the support matrix and available as {% blockIcon %}. */
+.block-ref { --block-tone: var(--p); display: inline-flex; align-items: center; gap: 0.45rem; color: oklch(var(--block-tone)); font-weight: 650; }
+.block-ref a { flex: 0 0 auto; border: 1px solid oklch(var(--block-tone) / 0.32); border-radius: 0.45rem; background: oklch(var(--block-tone) / 0.08); transition: transform 0.14s ease, border-color 0.14s ease, background-color 0.14s ease; }
+.block-ref a:hover, .block-ref a:focus-visible { transform: scale(1.06); border-color: oklch(var(--block-tone) / 0.72); background: oklch(var(--block-tone) / 0.16); }
+.block-ref img { display: block; width: 2rem; height: 2rem; object-fit: contain; }
+.block-ref-power { --block-tone: 0.82 0.17 88; }
+.block-ref-life { --block-tone: 0.80 0.14 170; }
+.block-ref-storage { --block-tone: 0.78 0.13 230; }
+.block-ref-production { --block-tone: 0.79 0.15 65; }
+.block-ref-mechanical { --block-tone: 0.76 0.12 285; }
+.block-ref-drive { --block-tone: 0.80 0.16 215; }
+.block-ref-weapons { --block-tone: 0.72 0.19 25; }
+.block-ref-comms { --block-tone: 0.78 0.16 320; }
+.block-ref-sensors { --block-tone: 0.82 0.13 135; }
+.block-ref-control { --block-tone: 0.80 0.10 255; }
+
 @media (prefers-reduced-motion: reduce) {
   .toc-list a, .toc-chevron, .prose .heading-anchor, .preset-category-card, .splash-feature,
-  .doc-pager > a, .site-footer a, .doc-tools a, .doc-tools button, .hv-btn, .hv-select { transition: none; }
+  .doc-pager > a, .site-footer a, .doc-tools a, .doc-tools button, .hv-btn, .hv-select, .block-ref a { transition: none; }
   .preset-category-card:hover, .preset-category-card:focus-visible, .splash-feature:hover,
-  .doc-pager > a:hover, .doc-pager > a:focus-visible, .hv-btn:hover, .hv-select:hover { transform: none; }
+  .doc-pager > a:hover, .doc-pager > a:focus-visible, .hv-btn:hover, .hv-select:hover,
+  .block-ref a:hover, .block-ref a:focus-visible { transform: none; }
 }

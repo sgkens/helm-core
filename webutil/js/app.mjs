@@ -11,6 +11,7 @@ import logcad from "../vendor/logcad.mjs";
 // hardcoded "/webutil/"), so it works whether the page is served at the site root (local dev) or
 // under /webutil/ (production, alongside the docs site).
 const DATA_BASE = new URL("../data/", import.meta.url).pathname;
+const ASSET_BASE = new URL("../../assets/", import.meta.url).pathname;
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -174,12 +175,19 @@ function renderBlockPalette() {
       <div class="text-[10px] uppercase tracking-wider text-base-content/40 font-mono mb-1">${escapeHtml(cat)}</div>
       ${list.map((b) => `
         <div class="rounded border border-base-300 p-2 mb-1.5">
-          <div class="flex items-baseline justify-between gap-2">
-            <span class="font-mono text-xs font-bold">${escapeHtml(b.name)}</span>
-            ${b.units ? `<span class="text-[10px] text-base-content/40 font-mono">${escapeHtml(b.units)}</span>` : ""}
-          </div>
-          <div class="flex flex-wrap gap-1 mt-1">
-            ${b.fields.map((f) => `<button type="button" class="btn btn-2xs btn-ghost font-mono px-1.5" data-insert-field="${escapeAttr(f)}" data-insert-gauge="${escapeAttr(b.gauges[0] || "bar")}" data-lume-title=".${escapeAttr(f)}" data-lume="Insert a ${escapeAttr(b.gauges[0] || "bar")} line using this telemetry field." data-lume-direction="right">.${escapeHtml(f)}</button>`).join("")}
+          <div class="flex items-start gap-2">
+            <a href="${escapeAttr(b.icon.source)}" target="_blank" rel="noopener" class="shrink-0 rounded bg-base-300/40" data-lume="Icon source: Official Space Engineers Wiki" data-lume-direction="right">
+              <img src="${ASSET_BASE}blocks/${escapeAttr(b.icon.slug)}.png" alt="" width="40" height="40" class="w-10 h-10 object-contain" loading="lazy">
+            </a>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-baseline justify-between gap-2">
+                <span class="font-mono text-xs font-bold">${escapeHtml(b.name)}</span>
+                ${b.units ? `<span class="text-[10px] text-base-content/40 font-mono">${escapeHtml(b.units)}</span>` : ""}
+              </div>
+              <div class="flex flex-wrap gap-1 mt-1">
+                ${b.fields.map((f) => `<button type="button" class="btn btn-2xs btn-ghost font-mono px-1.5" data-insert-field="${escapeAttr(f)}" data-insert-gauge="${escapeAttr(b.gauges[0] || "bar")}" data-lume-title=".${escapeAttr(f)}" data-lume="Insert a ${escapeAttr(b.gauges[0] || "bar")} line using this telemetry field." data-lume-direction="right">.${escapeHtml(f)}</button>`).join("")}
+              </div>
+            </div>
           </div>
         </div>`).join("")}
     </div>`).join("") || '<p class="text-xs text-base-content/50 font-mono p-2">No match.</p>';

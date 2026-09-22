@@ -4,7 +4,9 @@ module.exports = {
     "./_includes/**/*.njk",
     "./content/**/*.md",
     "./assets/js/**/*.js",
-    "./*.njk"
+    "./*.njk",
+    "../webutil/index.html",
+    "../webutil/js/*.mjs"
   ],
   theme: {
     extend: {

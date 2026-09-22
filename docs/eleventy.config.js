@@ -5,10 +5,22 @@ const syntaxHighlight = require("@11ty/eleventy-plugin-syntaxhighlight");
 const { EleventyHtmlBasePlugin } = require("@11ty/eleventy");
 const registerHelmGrammar = require("./helm-prism.js");
 const { exampleId, isCompleteExample } = require("./scripts/extract-examples.js");
+const blockIcons = require("./_data/blockIcons.json");
 
 const REPO_ROOT = path.resolve(__dirname, "..");
 
 module.exports = function (eleventyConfig) {
+  const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[char]));
+
+  function blockIconMarkup(name, assetBase = "/assets/") {
+    const icon = blockIcons[name];
+    if (!icon) return escapeHtml(name);
+    const filePage = `https://spaceengineers.wiki.gg/wiki/File:${encodeURIComponent(icon.file.replaceAll(" ", "_"))}`;
+    return `<span class="block-ref block-ref-${icon.tone}"><a href="${filePage}" target="_blank" rel="noopener" title="Icon source: Official Space Engineers Wiki"><img src="${assetBase}blocks/${icon.slug}.png" alt="" width="32" height="32" loading="lazy"></a><span>${escapeHtml(name)}</span></span>`;
+  }
+
   // Plugins
   eleventyConfig.addPlugin(syntaxHighlight, {
     init({ Prism }) {
@@ -59,6 +71,20 @@ module.exports = function (eleventyConfig) {
       }
     }
     return `<div class="hv not-prose" data-helm-viz data-layout="${name}" data-profile="${profile}">${fallback}</div>`;
+  });
+
+  // Reusable inline block reference. The matrix is decorated after Markdown rendering so its
+  // plain-text table remains the source consumed by webutil/scripts/gen-blocks.js.
+  eleventyConfig.addShortcode("blockIcon", function (name) {
+    return blockIconMarkup(name);
+  });
+  eleventyConfig.addTransform("block-icons", function (content) {
+    if (!this.page.outputPath || !this.page.outputPath.endsWith("/docs/block-matrix/index.html")) return content;
+    for (const name of Object.keys(blockIcons)) {
+      const escapedName = escapeHtml(name).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      content = content.replace(new RegExp(`<td([^>]*)>${escapedName}</td>`), `<td$1>${blockIconMarkup(name, "../../assets/")}</td>`);
+    }
+    return content;
   });
 
   // Header search index: title, section, description and URL of every doc page, as JSON safe for a <script> tag.

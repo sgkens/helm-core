@@ -5,6 +5,16 @@ const path = require("node:path");
 
 const SRC = path.resolve(__dirname, "..", "..", "docs", "content", "block-matrix.md");
 const OUT = path.resolve(__dirname, "..", "data", "blocks.json");
+const ICONS = require("../../docs/_data/blockIcons.json");
+
+function iconFor(name) {
+  const icon = ICONS[name];
+  if (!icon) throw new Error(`gen-blocks: no icon mapping for ${name}`);
+  return {
+    slug: icon.slug,
+    source: `https://spaceengineers.wiki.gg/wiki/File:${encodeURIComponent(icon.file.replaceAll(" ", "_"))}`,
+  };
+}
 
 function cells(line) {
   return line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
@@ -37,6 +47,7 @@ for (const line of lines) {
       fields: backticks(c[4]).map((f) => f.replace(/^\./, "")),
       gauges: backticks(c[5]),
       units: c[6] === "-" ? null : c[6].replace(/`/g, ""),
+      icon: iconFor(c[1]),
     });
   } else if (section === "items" && line.includes("`")) {
     const c = cells(line);
