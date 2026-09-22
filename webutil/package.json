@@ -1,0 +1,12 @@
+{
+  "name": "helm-webutil",
+  "private": true,
+  "description": "A browser tool that renders a HELM layout with the real script (compiled to WebAssembly), for concepting screens (TASK-39.x). Deployed alongside the docs site under /webutil/; see webutil/README.md.",
+  "scripts": {
+    "data": "node scripts/gen-blocks.js && node scripts/gen-starters.js",
+    "wasm": "dotnet publish ../tools/webutil-wasm -c Release -o wasm",
+    "build": "bun run data && bun run wasm",
+    "serve": "bun server.mjs",
+    "dev": "bun run build && bun server.mjs"
+  }
+}
