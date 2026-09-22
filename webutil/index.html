@@ -17,10 +17,15 @@
   <style>
     /* Small, page-specific layout only; everything else is the docs site's compiled Tailwind/daisyUI. */
     .webutil-grid { display: grid; grid-template-columns: 300px 1fr 320px; grid-template-rows: 1fr 220px; gap: 0.75rem; height: calc(100vh - 3.25rem); }
-    @media (max-width: 1024px) { .webutil-grid { grid-template-columns: 1fr; grid-template-rows: auto auto auto auto; height: auto; } }
+    @media (max-width: 1024px) {
+      .webutil-grid { grid-template-columns: 1fr; grid-template-rows: auto; height: auto; }
+      #block-panel { grid-row: auto !important; }
+      #dsl-pane { grid-column: 1 !important; min-height: 24rem; }
+    }
     #preview-stage svg { max-width: 100%; max-height: 100%; }
     #dsl-editor { tab-size: 2; }
     .btn-2xs { height: 1.25rem; min-height: 1.25rem; font-size: 0.6875rem; }
+    :focus-visible { outline: 2px solid oklch(var(--p)); outline-offset: 2px; }
     :root {
       --lume-bg: oklch(var(--b2)); --lume-panel: oklch(var(--b3)); --lume-text: oklch(var(--bc));
       --lume-border: oklch(var(--bc) / 0.16); --lume-border-hi: oklch(var(--p) / 0.55);
@@ -33,7 +38,7 @@
 <body class="min-h-screen bg-base-100 text-base-content antialiased font-sans">
   <header class="navbar bg-base-200/80 backdrop-blur border-b border-base-300 px-4 gap-2 h-13">
     <div class="flex-none">
-      <a href="../docs/" class="flex items-center gap-2 px-1">
+      <a href="../docs/" class="flex items-center gap-2 px-1" aria-label="HELM Core documentation">
         <img src="../assets/helm-core-logo-256x256.webp" alt="" width="24" height="24" class="w-6 h-6 rounded">
         <span class="font-mono font-black tracking-wider hidden sm:inline"><span class="text-primary">HELM</span> Core</span>
       </a>
@@ -41,7 +46,7 @@
     <div class="flex-1 font-mono text-sm text-base-content/60">webutil <span class="badge badge-xs badge-outline ml-1" tabindex="0" data-lume-title="Alpha preview" data-lume="The renderer is real; canvas editing and complete simulation controls are still being built." data-lume-direction="bottom">alpha</span></div>
     <div class="flex-none flex items-center gap-2">
       <a href="../docs/dsl-syntax/" class="btn btn-ghost btn-xs font-mono" target="_blank" rel="noopener">DSL reference</a>
-      <a href="../docs/getting-started/" class="btn btn-ghost btn-xs font-mono" target="_blank" rel="noopener">Getting started</a>
+      <a href="../docs/getting-started/" class="btn btn-ghost btn-xs font-mono hidden sm:inline-flex" target="_blank" rel="noopener">Getting started</a>
     </div>
   </header>
 
@@ -49,49 +54,60 @@
     <div class="webutil-grid">
 
       <!-- Left: block / field reference -->
-      <aside class="bg-base-200/50 border border-base-300 rounded-lg p-2 overflow-y-auto" style="grid-row: 1 / span 2;">
+      <aside id="block-panel" class="bg-base-200/50 border border-base-300 rounded-lg p-2 overflow-y-auto" style="grid-row: 1 / span 2;" aria-label="Block and field palette">
         <label class="input input-sm input-bordered flex items-center gap-2 mb-2 font-mono">
-          <input id="block-search" type="search" class="grow" placeholder="Search blocks or fields..." data-lume="Filter by block name, category, or telemetry field." data-lume-direction="right">
+          <input id="block-search" type="search" class="grow" placeholder="Search blocks or fields..." aria-label="Search blocks or fields" data-lume="Filter by block name, category, or telemetry field." data-lume-direction="right">
         </label>
-        <div class="tabs tabs-boxed tabs-xs mb-2">
-          <button type="button" class="tab tab-active" data-tab="blocks">Blocks</button>
-          <button type="button" class="tab" data-tab="items">Item / LCD fields</button>
+        <div class="tabs tabs-boxed tabs-xs mb-2" role="tablist" aria-label="Field kind">
+          <button type="button" class="tab tab-active" role="tab" aria-selected="true" aria-controls="block-palette" data-tab="blocks">Blocks</button>
+          <button type="button" class="tab" role="tab" aria-selected="false" aria-controls="item-fields" data-tab="items">Item / LCD fields</button>
         </div>
-        <div id="block-palette" data-tabpanel="blocks"></div>
-        <div id="item-fields" data-tabpanel="items" class="hidden"></div>
+        <div id="block-palette" role="tabpanel" data-tabpanel="blocks"></div>
+        <div id="item-fields" role="tabpanel" data-tabpanel="items" class="hidden"></div>
         <p class="text-[11px] text-base-content/40 mt-2">Click a field to insert a <code>line:</code> using it at the cursor. Field lists come from the block matrix, so they cannot drift from the docs.</p>
       </aside>
 
       <!-- Centre: live preview -->
-      <section class="bg-base-200/50 border border-base-300 rounded-lg p-2 flex flex-col min-w-0">
+      <section class="bg-base-200/50 border border-base-300 rounded-lg p-2 flex flex-col min-w-0" aria-label="Live LCD preview">
         <div class="flex flex-wrap items-center gap-2 mb-2">
-          <select id="starter-picker" class="select select-xs select-bordered font-mono" data-lume="Replace the editor with an included layout template." data-lume-direction="bottom"></select>
-          <select id="profile-picker" class="select select-xs select-bordered font-mono" data-lume="Preview the exact surface and texture dimensions of this LCD profile." data-lume-direction="bottom"></select>
+          <select id="starter-picker" aria-label="Starter layout" class="select select-xs select-bordered font-mono" data-lume="Replace the editor with an included layout template." data-lume-direction="bottom"></select>
+          <select id="profile-picker" aria-label="LCD profile" class="select select-xs select-bordered font-mono" data-lume="Preview the exact surface and texture dimensions of this LCD profile." data-lume-direction="bottom"></select>
           <span id="screen-picker-wrap" class="hidden">
-            <select id="screen-picker" class="select select-xs select-bordered font-mono"></select>
+            <select id="screen-picker" aria-label="Screen to preview" class="select select-xs select-bordered font-mono"></select>
           </span>
           <button type="button" id="play-toggle" class="btn btn-xs font-mono" data-lume="Pause or resume simulated time for animated gauges." data-lume-direction="bottom">Pause animation</button>
-          <span id="preview-status" class="text-xs font-mono text-base-content/50 ml-auto"></span>
+          <span id="preview-status" class="text-xs font-mono text-base-content/50 ml-auto" role="status" aria-live="polite"></span>
         </div>
         <div id="preview-stage" class="flex-1 flex items-center justify-center min-h-0 overflow-hidden">
           <p class="text-base-content/40 font-mono text-sm">Loading the renderer…</p>
         </div>
-        <div id="issues" class="mt-2 max-h-24 overflow-y-auto space-y-0.5 hidden"></div>
+        <div id="issues" class="mt-2 max-h-24 overflow-y-auto space-y-0.5 hidden" role="status" aria-live="polite"></div>
       </section>
 
       <!-- Right: telemetry sliders -->
-      <aside class="bg-base-200/50 border border-base-300 rounded-lg p-2 overflow-y-auto">
+      <aside class="bg-base-200/50 border border-base-300 rounded-lg p-2 overflow-y-auto" aria-label="Simulated telemetry">
         <div class="text-xs font-mono text-base-content/60 mb-2">Telemetry (drives the preview; not saved to the layout)</div>
         <div id="value-sliders" class="space-y-1.5"></div>
       </aside>
 
       <!-- Bottom: DSL editor -->
-      <section class="bg-base-200/50 border border-base-300 rounded-lg p-2 flex flex-col min-w-0" style="grid-column: 2 / span 2;">
-        <div class="flex items-center gap-2 mb-2">
-          <span class="text-xs font-mono text-base-content/60">Custom Data</span>
+      <section id="dsl-pane" class="bg-base-200/50 border border-base-300 rounded-lg p-2 flex flex-col min-w-0" style="grid-column: 2 / span 2;">
+        <div class="flex flex-wrap items-center gap-2 mb-2">
+          <label for="dsl-editor" class="text-xs font-mono text-base-content/60">Custom Data</label>
+          <input id="project-name" class="input input-xs input-bordered font-mono w-36" placeholder="Project name" aria-label="Project name">
+          <select id="project-picker" class="select select-xs select-bordered font-mono max-w-40" aria-label="Saved projects"><option value="">Saved projects</option></select>
+          <button type="button" id="save-project" class="btn btn-xs font-mono">Save</button>
+          <button type="button" id="import-dsl" class="btn btn-xs font-mono">Import</button>
+          <input id="import-file" type="file" accept=".txt,.helm,text/plain" class="hidden">
+          <button type="button" id="export-dsl" class="btn btn-xs font-mono">Export</button>
+          <button type="button" id="share-dsl" class="btn btn-xs font-mono">Share</button>
           <button type="button" id="copy-dsl" class="btn btn-xs btn-primary font-mono ml-auto">Copy</button>
         </div>
         <textarea id="dsl-editor" class="textarea textarea-bordered font-mono text-xs flex-1 resize-none" spellcheck="false"></textarea>
+        <details class="mt-1 text-[11px] text-base-content/50 font-mono">
+          <summary class="cursor-pointer">Export checklist</summary>
+          <span>Verify block/group names → paste into Programmable Block Custom Data → run <code>reload</code>. On an empty block, run <code>starter</code> first.</span>
+        </details>
       </section>
 
     </div>
@@ -100,12 +116,26 @@
   <script type="module">
     document.querySelectorAll(".tab").forEach((tab) => {
       tab.addEventListener("click", () => {
-        document.querySelectorAll(".tab").forEach((t) => t.classList.remove("tab-active"));
+        document.querySelectorAll(".tab").forEach((t) => { t.classList.remove("tab-active"); t.setAttribute("aria-selected", "false"); });
         tab.classList.add("tab-active");
+        tab.setAttribute("aria-selected", "true");
         document.querySelectorAll("[data-tabpanel]").forEach((p) => p.classList.toggle("hidden", p.dataset.tabpanel !== tab.dataset.tab));
       });
     });
   </script>
+  <dialog id="shortcut-dialog" class="modal" aria-labelledby="shortcut-title">
+    <div class="modal-box max-w-md">
+      <h2 id="shortcut-title" class="font-mono font-bold text-lg">Keyboard shortcuts</h2>
+      <dl class="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+        <dt><kbd class="kbd kbd-sm">Ctrl S</kbd></dt><dd>Save the named project</dd>
+        <dt><kbd class="kbd kbd-sm">Ctrl O</kbd></dt><dd>Import Custom Data from a file</dd>
+        <dt><kbd class="kbd kbd-sm">Ctrl Shift E</kbd></dt><dd>Export Custom Data</dd>
+        <dt><kbd class="kbd kbd-sm">?</kbd></dt><dd>Open this shortcut sheet</dd>
+      </dl>
+      <label class="mt-5 flex items-center gap-3 text-sm"><input id="reduce-motion" type="checkbox" class="toggle toggle-sm" aria-label="Pause preview motion"> Pause preview motion</label>
+      <div class="modal-action"><button type="button" id="close-shortcuts" class="btn btn-sm">Close</button></div>
+    </div>
+  </dialog>
   <script type="module" src="./js/app.mjs"></script>
 </body>
 </html>

@@ -12,6 +12,7 @@ import logcad from "../vendor/logcad.mjs";
 // under /webutil/ (production, alongside the docs site).
 const DATA_BASE = new URL("../data/", import.meta.url).pathname;
 const ASSET_BASE = new URL("../../assets/", import.meta.url).pathname;
+const PROJECTS_KEY = "webutil_projects_v1";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -27,6 +28,7 @@ const state = {
 };
 
 let blocks = null, itemFields = [], starters = [];
+let projects = {};
 let debounceTimer = null;
 let renderToken = 0;
 const logger = { name: "webutil", logname: " HELM ", bg: "#0891b2", logbg: "#0f172a" };
@@ -94,6 +96,7 @@ async function doRender() {
   const svg = stage.querySelector("svg");
   svg.removeAttribute("height");
   svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", `HELM preview for ${state.profile}, screen ${state.screenIndex + 1}`);
   const slot = svg.querySelector("#content-slot");
   const ox = (result.texture[0] - result.surface[0]) / 2;
   const oy = (result.texture[1] - result.surface[1]) / 2;
@@ -153,6 +156,83 @@ function cssEscape(s) { return s.replace(/[^a-zA-Z0-9_-]/g, (c) => "\\" + c); }
 function escapeHtml(s) { return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
 function escapeAttr(s) { return escapeHtml(s).replace(/"/g, "&quot;"); }
 
+function readProjects() {
+  try {
+    const value = JSON.parse(localStorage.getItem(PROJECTS_KEY) || "{}");
+    return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  } catch (e) { return {}; }
+}
+
+function writeProjects() {
+  try { localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects)); return true; } catch (e) { return false; }
+}
+
+function refreshProjectPicker(selected = "") {
+  const picker = $("#project-picker");
+  const names = Object.keys(projects).sort((a, b) => a.localeCompare(b));
+  picker.innerHTML = '<option value="">Saved projects</option>' + names.map((name) =>
+    `<option value="${escapeAttr(name)}">${escapeHtml(name)}</option>`).join("");
+  picker.value = names.includes(selected) ? selected : "";
+}
+
+function replaceDsl(dsl) {
+  $("#dsl-editor").value = dsl;
+  state.values = {};
+  state.screenIndex = 0;
+  onDslChanged();
+}
+
+function saveProject() {
+  const name = $("#project-name").value.trim();
+  if (!name) { flashButton($("#save-project"), "Name required"); $("#project-name").focus(); return; }
+  projects[name] = { dsl: state.dsl, profile: state.profile, updated: new Date().toISOString() };
+  if (!writeProjects()) { flashButton($("#save-project"), "Storage failed"); return; }
+  refreshProjectPicker(name);
+  flashButton($("#save-project"), "Saved");
+}
+
+function loadProject(name) {
+  const project = projects[name];
+  if (!project || typeof project.dsl !== "string") return;
+  $("#project-name").value = name;
+  if (project.profile && PROFILES[project.profile]) {
+    state.profile = project.profile;
+    $("#profile-picker").value = project.profile;
+  }
+  replaceDsl(project.dsl);
+}
+
+function projectFilename() {
+  const base = $("#project-name").value.trim() || "helm-layout";
+  return base.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "helm-layout";
+}
+
+function exportDsl() {
+  const blob = new Blob([state.dsl], { type: "text/plain;charset=utf-8" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `${projectFilename()}.txt`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 0);
+  flashButton($("#export-dsl"), "Exported");
+}
+
+function encodeShare(text) {
+  let binary = "";
+  for (const byte of new TextEncoder().encode(text)) binary += String.fromCharCode(byte);
+  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
+}
+
+function decodeShare() {
+  if (!location.hash.startsWith("#dsl=")) return null;
+  try {
+    let encoded = location.hash.slice(5).replaceAll("-", "+").replaceAll("_", "/");
+    while (encoded.length % 4) encoded += "=";
+    const binary = atob(encoded);
+    return new TextDecoder().decode(Uint8Array.from(binary, (char) => char.charCodeAt(0)));
+  } catch (e) { return null; }
+}
+
 function onDslChanged() {
   state.dsl = $("#dsl-editor").value;
   try { localStorage.setItem("webutil_dsl", state.dsl); } catch (e) {}
@@ -176,7 +256,7 @@ function renderBlockPalette() {
       ${list.map((b) => `
         <div class="rounded border border-base-300 p-2 mb-1.5">
           <div class="flex items-start gap-2">
-            <a href="${escapeAttr(b.icon.source)}" target="_blank" rel="noopener" class="shrink-0 rounded bg-base-300/40" data-lume="Icon source: Official Space Engineers Wiki" data-lume-direction="right">
+            <a href="${escapeAttr(b.icon.source)}" target="_blank" rel="noopener" aria-label="Open ${escapeAttr(b.name)} icon source on the Official Space Engineers Wiki" class="shrink-0 rounded bg-base-300/40" data-lume="Icon source: Official Space Engineers Wiki" data-lume-direction="right">
               <img src="${ASSET_BASE}blocks/${escapeAttr(b.icon.slug)}.png" alt="" width="40" height="40" class="w-10 h-10 object-contain" loading="lazy">
             </a>
             <div class="min-w-0 flex-1">
@@ -216,14 +296,16 @@ function renderItemFields() {
 
 function loadStarter(name) {
   const s = starters.find((x) => x.name === name) || starters[0];
-  $("#dsl-editor").value = s.dsl;
-  state.values = {};
-  state.screenIndex = 0;
-  onDslChanged();
+  replaceDsl(s.dsl);
 }
 
 function wireControls() {
-  $("#dsl-editor").addEventListener("input", onDslChanged);
+  $("#dsl-editor").addEventListener("input", () => {
+    // Once a shared layout is edited, a refresh should restore that edit from autosave rather
+    // than silently replacing it with the original fragment.
+    if (location.hash.startsWith("#dsl=")) history.replaceState(null, "", location.pathname + location.search);
+    onDslChanged();
+  });
 
   const starterSel = $("#starter-picker");
   starterSel.innerHTML = starters.map((s) => `<option value="${s.name}">${escapeHtml(s.title)}</option>`).join("");
@@ -243,6 +325,34 @@ function wireControls() {
     } catch (e) { flashButton($("#copy-dsl"), "Could not copy"); }
   });
 
+  projects = readProjects();
+  refreshProjectPicker();
+  $("#save-project").addEventListener("click", saveProject);
+  $("#project-picker").addEventListener("change", (event) => loadProject(event.target.value));
+  $("#import-dsl").addEventListener("click", () => $("#import-file").click());
+  $("#import-file").addEventListener("change", async (event) => {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    try {
+      replaceDsl(await file.text());
+      $("#project-name").value = file.name.replace(/\.(?:helm(?:\.txt)?|txt)$/i, "");
+      flashButton($("#import-dsl"), "Imported");
+    } catch (e) {
+      flashButton($("#import-dsl"), "Import failed");
+      logcad.logd(logger, "import", "Could not read layout file", { message: e.message });
+    }
+    event.target.value = "";
+  });
+  $("#export-dsl").addEventListener("click", exportDsl);
+  $("#share-dsl").addEventListener("click", async () => {
+    const url = new URL(location.href);
+    url.hash = `dsl=${encodeShare(state.dsl)}`;
+    try {
+      await navigator.clipboard.writeText(url.href);
+      flashButton($("#share-dsl"), "Link copied");
+    } catch (e) { flashButton($("#share-dsl"), "Copy failed"); }
+  });
+
   $("#block-search").addEventListener("input", renderBlockPalette);
 
   // A modest tick rate, not a 60 fps loop: each render replays 40 script passes (tools/webutil-wasm/Host.cs),
@@ -255,13 +365,32 @@ function wireControls() {
     state.seconds = (performance.now() - animStart) / 1000;
     doRender();
   }
-  playToggle.addEventListener("click", () => {
-    state.playing = !state.playing;
+  function setPlaying(playing) {
+    state.playing = playing;
     playToggle.textContent = state.playing ? "Pause animation" : "Play animation";
+    clearInterval(animTimer);
     if (state.playing) { animStart = null; animTimer = setInterval(tick, TICK_MS); }
-    else clearInterval(animTimer);
+  }
+  playToggle.addEventListener("click", () => {
+    if (!state.playing) $("#reduce-motion").checked = false;
+    setPlaying(!state.playing);
   });
-  animTimer = setInterval(tick, TICK_MS);
+
+  const shortcutDialog = $("#shortcut-dialog");
+  const reduceMotion = $("#reduce-motion");
+  reduceMotion.checked = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  reduceMotion.addEventListener("change", () => setPlaying(!reduceMotion.checked));
+  $("#close-shortcuts").addEventListener("click", () => shortcutDialog.close());
+  document.addEventListener("keydown", (event) => {
+    const mod = event.ctrlKey || event.metaKey;
+    if (mod && event.key.toLowerCase() === "s") { event.preventDefault(); saveProject(); }
+    else if (mod && event.key.toLowerCase() === "o") { event.preventDefault(); $("#import-file").click(); }
+    else if (mod && event.shiftKey && event.key.toLowerCase() === "e") { event.preventDefault(); exportDsl(); }
+    else if (event.key === "?" && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement && document.activeElement.tagName)) {
+      event.preventDefault(); shortcutDialog.showModal();
+    }
+  });
+  setPlaying(!reduceMotion.checked);
 }
 
 function flashButton(btn, text) {
@@ -280,9 +409,11 @@ async function main() {
   renderBlockPalette();
   renderItemFields();
 
+  const shared = decodeShare();
   let saved = null;
   try { saved = localStorage.getItem("webutil_dsl"); } catch (e) {}
-  if (saved && saved.trim()) { $("#dsl-editor").value = saved; onDslChanged(); }
+  if (shared && shared.trim()) replaceDsl(shared);
+  else if (saved && saved.trim()) replaceDsl(saved);
   else loadStarter(starters[0].name);
 }
 

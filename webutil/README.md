@@ -8,11 +8,13 @@ A browser tool that renders a HELM layout with the real script, compiled to WebA
 - Pick a starter layout or a screen surface profile.
 - A slider per `@bind`, on the script's own 0–100 scale, drives the live values (and the tank wave/bubbles, easing and calibration keep animating on a slow timer).
 - A block and field reference on the left, generated from `docs/content/block-matrix.md`; click a field to insert a `line:` for it at the cursor.
-- Copy the Custom Data to the clipboard. The DSL is auto-saved to the browser's `localStorage` between visits.
+- Copy, import or export the Custom Data as plain text. The current DSL is auto-saved to the browser's `localStorage` between visits.
+- Save multiple named projects locally, including their selected LCD profile, or copy a share URL that carries the DSL in its fragment.
+- Use the keyboard shortcut sheet (`?`) and pause simulated time manually or through the operating system's reduced-motion preference.
 
 ## What it does not do yet
 
-Dragging blocks and gauges onto a canvas, editing panel spans visually, colour and gradient pickers, mirror/multi-screen editing beyond picking which screen to preview, scenario buttons, saved named projects, a share link, and the CI parity check against `tools/spritedump`. These are TASK-39.2 to 39.4, 39.6, 39.8, 39.13, 39.14, 39.15, 39.17 and 39.18 in `DEVTRACKER-PENDING.md` (git-ignored).
+Dragging blocks and gauges onto a canvas, editing panel spans visually, colour and gradient pickers, mirror/multi-screen editing beyond picking which screen to preview, scenario buttons, undo/redo or a command palette, and the CI parity check against `tools/spritedump`. These are tracked under Epic 39 in `DEVTRACKER-PENDING.md` (git-ignored).
 
 ## Layout
 
@@ -53,4 +55,4 @@ The block palette also uses the same cached Official Space Engineers Wiki icon m
 
 ## Verified
 
-Loaded and exercised in a real headless Chromium (22 SEP 2026): the block palette, starter presets, the multi-screen picker, value sliders re-rendering the preview, and a parser error surfacing with its real line number, all with no console errors. Not yet checked in a non-Chromium browser.
+Loaded and exercised in a real headless Chromium (22 SEP 2026): the block palette, starter presets, the multi-screen picker, value sliders re-rendering the preview, named-project round trips, file import/export, fragment share links, keyboard shortcuts, reduced-motion control and the responsive single-column layout, all with no console errors. Not yet checked in a non-Chromium browser.
