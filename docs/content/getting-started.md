@@ -174,4 +174,4 @@ You can run these commands from a timer block, sensor, or cockpit hotbar:
 | `alert toggle` | Flips the alert state. |
 | `set <var> <val>` | Sets an in-memory dynamic telemetry variable. |
 
-Next, explore the [DSL Syntax Specification](/docs/dsl-syntax/) to customize panels and gauges.
+Next, explore the [DSL Syntax Specification](/docs/dsl-syntax/) to customize panels and gauges, or try the [webutil](/webutil/) tool to write a layout and see it rendered by the real script in the browser (an alpha: no drag-and-drop canvas yet).
