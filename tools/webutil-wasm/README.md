@@ -4,13 +4,18 @@ A WebAssembly build of the real HELM script and parser, used to prove that the w
 
 ## What it builds
 
-`Program.cs` and `HelmCore.cs` are compiled unchanged, together with the stand-in game API in `tools/spritedump/SeShim*.cs`, into one WebAssembly module. `Host.cs` exports one function to JavaScript:
+`Program.cs` and `HelmCore.cs` are compiled unchanged, together with the stand-in game API in `tools/spritedump/SeShim*.cs`, into one WebAssembly module. `Host.cs` exports two functions to JavaScript:
 
 ```text
 Render(dsl, width, height, values, seconds, screenIndex) -> JSON
+ListTemplates() -> JSON
 ```
 
-`values` is `"bind=50;other=12"` on the script's 0 to 100 scale, `seconds` drives the script's clock (waves, easing), and the result holds `errors`, `warnings`, the screen names and the sprite list (same fields as the docs frames: `t`, `d`, `x`, `y`, `w`, `h`, `c`, `f`, `a`, `s`, `r`).
+`values` is `"bind=50;other=12"` on the script's 0 to 100 scale, plus an optional `__alert=1` pseudo-entry (not a `@bind`) that previews the `alert red` run-argument command by setting `Program`'s own `_globalRedAlert` field before rendering. `seconds` drives the script's clock (waves, easing), and the result holds `errors`, `warnings`, the screen names and the sprite list (same fields as the docs frames: `t`, `d`, `x`, `y`, `w`, `h`, `c`, `f`, `a`, `s`, `r`).
+
+If the requested screen is a `mirror:`, its source screen is rendered first on every pass so the source's `_screenBuffers` entry exists by the time `RenderScreen` reads it — otherwise (only the requested screen ever rendering, unlike the game's own round-robin across ticks) a mirror always came back with zero sprites, silently, since `RenderMirror` fails closed rather than erroring.
+
+`ListTemplates()` reflects into `HelmParser`'s template table (built-ins plus `layouts/templates.txt`, embedded as a resource in `WebUtilWasm.csproj` — a browser has no filesystem, so it can't be read at run time the way `helmv.ps1` and `tools/spritedump/Dump.cs` read it) and returns `[{"name":..,"params":[{"name":..,"default":..}]}]`; a `default` of `null` means the `@template` header gave that parameter no default, so `@use` requires it.
 
 ## Build and run
 

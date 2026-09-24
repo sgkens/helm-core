@@ -10,22 +10,100 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
   <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/theme-syntax-highlighting.css">
   <link rel="stylesheet" href="./vendor/lume.css">
   <script>
-    try { var t = localStorage.getItem('helm_docs_theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+    (function () {
+      var AUTO = { night: 'tokyonight', dark: 'zerodark', synthwave: 'cyberpink', cyberpunk: 'citrus',
+                   dim: 'macchiato', dracula: 'mocha', forest: 'gruvbox', black: 'umbra' };
+      try {
+        var root = document.documentElement;
+        var theme = localStorage.getItem('helm_docs_theme');
+        if (theme) root.setAttribute('data-theme', theme);
+        var syntax = localStorage.getItem('helm_syntax_theme') || 'auto';
+        root.setAttribute('data-syntax-theme', syntax === 'auto' ? (AUTO[root.getAttribute('data-theme')] || 'tokyonight') : syntax);
+      } catch (e) { document.documentElement.setAttribute('data-syntax-theme', 'tokyonight'); }
+    })();
   </script>
   <style>
     /* Small, page-specific layout only; everything else is the docs site's compiled Tailwind/daisyUI. */
-    .webutil-grid { display: grid; grid-template-columns: 300px 1fr 320px; grid-template-rows: 1fr 220px; gap: 0.75rem; height: calc(100vh - 3.25rem); }
+    .webutil-grid {
+      --editor-height: 220px;
+      display: grid; grid-template-columns: 320px 1fr 320px;
+      grid-template-rows: minmax(12rem, 1fr) 0.75rem var(--editor-height); gap: 0.75rem;
+      height: calc(100vh - 4.75rem); height: calc(100dvh - 4.75rem);
+    }
+    #webutil-header { height: 3.25rem; min-height: 3.25rem; }
+    #pane-resizer {
+      position: relative; grid-column: 2 / span 2; cursor: ns-resize; touch-action: none;
+      border-radius: 999px;
+    }
+    #pane-resizer::before {
+      content: ""; position: absolute; inset: 50% 8%; height: 3px; transform: translateY(-50%);
+      border-radius: 999px; background: oklch(var(--bc) / .18);
+      transition: background-color .12s ease, height .12s ease;
+    }
+    #pane-resizer:is(:hover, :focus-visible)::before, body.pane-resizing #pane-resizer::before {
+      height: 5px; background: oklch(var(--p) / .75);
+    }
+    body.pane-resizing { cursor: ns-resize; user-select: none; }
     @media (max-width: 1024px) {
       .webutil-grid { grid-template-columns: 1fr; grid-template-rows: auto; height: auto; }
       #block-panel { grid-row: auto !important; }
       #dsl-pane { grid-column: 1 !important; min-height: 24rem; }
+      #pane-resizer, #expand-editor { display: none; }
     }
     #preview-stage svg { max-width: 100%; max-height: 100%; }
-    #dsl-editor { tab-size: 2; }
-    .btn-2xs { height: 1.25rem; min-height: 1.25rem; font-size: 0.6875rem; }
+    .dsl-editor-wrap { position: relative; flex: 1 1 0%; min-height: 8rem; }
+    .dsl-editor-surface {
+      position: absolute; inset: 0; box-sizing: border-box; width: 100%; height: 100%; margin: 0 !important;
+      padding: 0.5rem 0.75rem !important; border-radius: 0.5rem; tab-size: 2; white-space: pre;
+      overflow: auto; overflow-wrap: normal; font: 0.75rem/1.25rem "JetBrains Mono", ui-monospace, monospace;
+    }
+    #dsl-highlight { pointer-events: none; overflow: hidden; border: 1px solid transparent; }
+    #dsl-highlight code { padding: 0; background: transparent; color: inherit; font: inherit; white-space: inherit; }
+    #dsl-editor {
+      z-index: 1; resize: none; background: transparent; color: transparent;
+      -webkit-text-fill-color: transparent; caret-color: var(--syn-fg);
+    }
+    #dsl-editor::selection { background: oklch(var(--p) / .35); }
+    @media (forced-colors: active) {
+      #dsl-highlight { display: none; }
+      #dsl-editor { color: CanvasText; -webkit-text-fill-color: CanvasText; background: Canvas; }
+    }
+    /* height: auto (not a fixed height, and not omitted either - daisyUI's own .btn sets height:3rem,
+       which otherwise wins this cascade once nothing here overrides it) plus min-height as a floor: a
+       fixed height clipped the multi-line example buttons in the Components/Templates tabs, and their
+       wrapped text overflowed into whatever sat right below the button - the reported text overlap. */
+    .btn-2xs { height: auto; min-height: 1.25rem; font-size: 0.6875rem; }
     :focus-visible { outline: 2px solid oklch(var(--p)); outline-offset: 2px; }
+    /* The reference tabs wrap onto a second row instead of squeezing four labels into one, and the
+       tab strip gets a hairline base so the active tab reads as "selected", not just bold text. */
+    #block-panel .tabs { flex-wrap: wrap; row-gap: 0.3rem; border-bottom: 1px solid oklch(var(--bc) / 0.1); padding-bottom: 0.4rem; }
+    #block-panel .tab { white-space: nowrap; }
+    /* Pastel, low-opacity fills for the clickable "insert" chips, one hue per reference tab so the
+       colour itself signals what kind of thing a click inserts (blocks/items/components/templates). */
+    .chip-btn { border-width: 1px; border-style: solid; border-color: transparent; transition: background-color .12s ease, border-color .12s ease; }
+    .chip-blocks     { background: oklch(var(--in) / .16); color: oklch(var(--in)); border-color: oklch(var(--in) / .3); }
+    .chip-blocks:hover     { background: oklch(var(--in) / .28); }
+    .chip-items      { background: oklch(var(--s) / .16); color: oklch(var(--s)); border-color: oklch(var(--s) / .3); }
+    .chip-items:hover      { background: oklch(var(--s) / .28); }
+    .chip-components { background: oklch(var(--su) / .16); color: oklch(var(--su)); border-color: oklch(var(--su) / .3); }
+    .chip-components:hover { background: oklch(var(--su) / .28); }
+    .chip-templates  { background: oklch(var(--wa) / .16); color: oklch(var(--wa)); border-color: oklch(var(--wa) / .3); }
+    .chip-templates:hover  { background: oklch(var(--wa) / .28); }
+    /* Reference-panel cards: a faint fill and a border that brighten on hover, so each block/gauge/
+       template reads as a distinct raised row instead of an outline floating on the sidebar's own
+       tint. A wash of the content colour (not a base-* shade) reads consistently whether the active
+       theme is light or dark, since base-100/200/300 can sit close together in lightness either way. */
+    .ref-card { background: oklch(var(--bc) / .04); border: 1px solid oklch(var(--bc) / .12); border-radius: 0.4rem; transition: border-color .12s ease, background-color .12s ease; }
+    .ref-card:hover { background: oklch(var(--bc) / .07); border-color: oklch(var(--bc) / .25); }
+    .inspector-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.45rem; }
+    .inspector-grid .wide { grid-column: 1 / -1; }
+    .inspector-field { display: flex; min-width: 0; flex-direction: column; gap: 0.2rem; font-size: 0.625rem; font-family: "JetBrains Mono", ui-monospace, monospace; color: oklch(var(--bc) / .58); }
+    .inspector-field :is(input, select) { width: 100%; }
+    .color-input { display: grid; grid-template-columns: 2.25rem 1fr; gap: 0.3rem; }
+    .color-input input[type="color"] { width: 2.25rem; height: 2rem; padding: 0.15rem; }
     :root {
       --lume-bg: oklch(var(--b2)); --lume-panel: oklch(var(--b3)); --lume-text: oklch(var(--bc));
       --lume-border: oklch(var(--bc) / 0.16); --lume-border-hi: oklch(var(--p) / 0.55);
@@ -36,7 +114,7 @@
   </style>
 </head>
 <body class="min-h-screen bg-base-100 text-base-content antialiased font-sans">
-  <header class="navbar bg-base-200/80 backdrop-blur border-b border-base-300 px-4 gap-2 h-13">
+  <header id="webutil-header" class="navbar bg-base-200/80 backdrop-blur border-b border-base-300 px-4 gap-2">
     <div class="flex-none">
       <a href="../docs/" class="flex items-center gap-2 px-1" aria-label="HELM Core documentation">
         <img src="../assets/helm-core-logo-256x256.webp" alt="" width="24" height="24" class="w-6 h-6 rounded">
@@ -54,28 +132,34 @@
     <div class="webutil-grid">
 
       <!-- Left: block / field reference -->
-      <aside id="block-panel" class="bg-base-200/50 border border-base-300 rounded-lg p-2 overflow-y-auto" style="grid-row: 1 / span 2;" aria-label="Block and field palette">
-        <label class="input input-sm input-bordered flex items-center gap-2 mb-2 font-mono">
+      <aside id="block-panel" class="bg-base-200/50 border border-base-300 rounded-lg p-3 overflow-y-auto" style="grid-row: 1 / span 3;" aria-label="Block and field palette">
+        <label class="input input-sm input-bordered flex items-center gap-2 mb-3 font-mono">
           <input id="block-search" type="search" class="grow" placeholder="Search blocks or fields..." aria-label="Search blocks or fields" data-lume="Filter by block name, category, or telemetry field." data-lume-direction="right">
         </label>
-        <div class="tabs tabs-boxed tabs-xs mb-2" role="tablist" aria-label="Field kind">
+        <div class="tabs tabs-boxed tabs-xs mb-3" role="tablist" aria-label="Field kind">
           <button type="button" class="tab tab-active" role="tab" aria-selected="true" aria-controls="block-palette" data-tab="blocks">Blocks</button>
-          <button type="button" class="tab" role="tab" aria-selected="false" aria-controls="item-fields" data-tab="items">Item / LCD fields</button>
+          <button type="button" class="tab" role="tab" aria-selected="false" aria-controls="item-fields" data-tab="items" data-lume-title="Item / LCD fields" data-lume="Fields read from an inventory or another LCD/text panel." data-lume-direction="bottom">Items</button>
+          <button type="button" class="tab" role="tab" aria-selected="false" aria-controls="components-palette" data-tab="components">Components</button>
+          <button type="button" class="tab" role="tab" aria-selected="false" aria-controls="templates-palette" data-tab="templates">Templates</button>
         </div>
         <div id="block-palette" role="tabpanel" data-tabpanel="blocks"></div>
         <div id="item-fields" role="tabpanel" data-tabpanel="items" class="hidden"></div>
-        <p class="text-[11px] text-base-content/40 mt-2">Click a field to insert a <code>line:</code> using it at the cursor. Field lists come from the block matrix, so they cannot drift from the docs.</p>
+        <div id="components-palette" role="tabpanel" data-tabpanel="components" class="hidden"></div>
+        <div id="templates-palette" role="tabpanel" data-tabpanel="templates" class="hidden"></div>
+        <p class="text-[11px] text-base-content/40 mt-3 leading-relaxed">Click a field to insert a <code>line:</code> using it at the cursor, a component to insert its example lines, or fill in a template's form and insert its <code>@use</code> line. Item and component examples also add any missing <code>@bind</code> aliases near the top of Custom Data; existing binds are kept. These lists come from the block matrix, gauge reference and the real parser's own template table, so they cannot drift from the docs.</p>
       </aside>
 
       <!-- Centre: live preview -->
-      <section class="bg-base-200/50 border border-base-300 rounded-lg p-2 flex flex-col min-w-0" aria-label="Live LCD preview">
+      <section class="bg-base-200/50 border border-base-300 rounded-lg p-2 flex flex-col min-w-0 min-h-0" aria-label="Live LCD preview">
         <div class="flex flex-wrap items-center gap-2 mb-2">
           <select id="starter-picker" aria-label="Starter layout" class="select select-xs select-bordered font-mono" data-lume="Replace the editor with an included layout template." data-lume-direction="bottom"></select>
+          <span id="layout-count" class="badge badge-xs badge-outline font-mono" aria-live="polite"></span>
           <select id="profile-picker" aria-label="LCD profile" class="select select-xs select-bordered font-mono" data-lume="Preview the exact surface and texture dimensions of this LCD profile." data-lume-direction="bottom"></select>
           <span id="screen-picker-wrap" class="hidden">
             <select id="screen-picker" aria-label="Screen to preview" class="select select-xs select-bordered font-mono"></select>
           </span>
           <button type="button" id="play-toggle" class="btn btn-xs font-mono" data-lume="Pause or resume simulated time for animated gauges." data-lume-direction="bottom">Pause animation</button>
+          <button type="button" id="alert-toggle" class="btn btn-xs font-mono" aria-pressed="false" data-lume="Preview the &quot;alert red&quot; run-argument command: flashes each screen's background to its alert_bg color." data-lume-direction="bottom">Alert</button>
           <span id="preview-status" class="text-xs font-mono text-base-content/50 ml-auto" role="status" aria-live="polite"></span>
         </div>
         <div id="preview-stage" class="flex-1 flex items-center justify-center min-h-0 overflow-hidden">
@@ -84,11 +168,82 @@
         <div id="issues" class="mt-2 max-h-24 overflow-y-auto space-y-0.5 hidden" role="status" aria-live="polite"></div>
       </section>
 
-      <!-- Right: telemetry sliders -->
-      <aside class="bg-base-200/50 border border-base-300 rounded-lg p-2 overflow-y-auto" aria-label="Simulated telemetry">
-        <div class="text-xs font-mono text-base-content/60 mb-2">Telemetry (drives the preview; not saved to the layout)</div>
-        <div id="value-sliders" class="space-y-1.5"></div>
+      <!-- Right: visual DSL inspector and telemetry -->
+      <aside id="inspector-panel" class="bg-base-200/50 border border-base-300 rounded-lg p-2 overflow-y-auto min-h-0" aria-label="Layout inspector">
+        <div class="tabs tabs-boxed tabs-xs mb-3" role="tablist" aria-label="Layout inspector section">
+          <button type="button" class="tab tab-active" role="tab" aria-selected="true" data-inspector-tab="base">Base</button>
+          <button type="button" class="tab" role="tab" aria-selected="false" data-inspector-tab="panel">Panel</button>
+          <button type="button" class="tab" role="tab" aria-selected="false" data-inspector-tab="component">Component</button>
+          <button type="button" class="tab" role="tab" aria-selected="false" data-inspector-tab="telemetry">Telemetry</button>
+        </div>
+
+        <section data-inspector-panel="base">
+          <div class="flex gap-1 mb-2">
+            <select id="config-screen" class="select select-xs select-bordered font-mono flex-1" aria-label="Screen to configure"></select>
+            <button type="button" id="add-screen" class="btn btn-xs font-mono">+ Screen</button>
+            <button type="button" id="new-config" class="btn btn-xs btn-primary font-mono">New</button>
+          </div>
+          <div id="base-config-fields" class="inspector-grid">
+            <label class="inspector-field wide"><span>Screen name · <code>@screen</code></span><input class="input input-xs input-bordered" data-base-field="name"></label>
+            <label class="inspector-field wide"><span>LCD block · <code>output:</code></span><input class="input input-xs input-bordered" data-base-field="outputName"></label>
+            <label class="inspector-field"><span>Surface</span><input type="number" min="0" class="input input-xs input-bordered" data-base-field="outputSurface"></label>
+            <label class="inspector-field"><span>Profile · <code>profile:</code></span><select class="select select-xs select-bordered" data-base-field="profile"><option value="">auto</option><option>standard</option><option>wide</option><option>compact</option><option>corner</option></select></label>
+            <label class="inspector-field"><span>Grid columns</span><input type="number" min="1" max="16" class="input input-xs input-bordered" data-base-field="gridCols"></label>
+            <label class="inspector-field"><span>Grid rows</span><input type="number" min="1" max="16" class="input input-xs input-bordered" data-base-field="gridRows"></label>
+            <label class="inspector-field"><span>Font · <code>font:</code></span><select class="select select-xs select-bordered" data-base-field="font"><option>Monospace</option><option>Debug</option><option>White</option><option>Red</option><option>Green</option><option>Blue</option><option>DarkBlue</option></select></label>
+            <label class="inspector-field"><span>Font scale</span><input type="number" min="0.1" max="5" step="0.1" class="input input-xs input-bordered" data-base-field="font_size"></label>
+            <label class="inspector-field"><span>Border</span><select class="select select-xs select-bordered" data-base-field="border"><option>graphic</option><option>frame</option><option>corners</option><option>minimal</option><option>single</option><option>heavy</option><option>double</option><option>rounded</option><option>ascii</option><option>none</option></select></label>
+            <label class="inspector-field"><span>Padding</span><input type="number" min="0" step="1" class="input input-xs input-bordered" data-base-field="padding"></label>
+            <label class="inspector-field"><span>Panel gap</span><input type="number" min="0" step="1" class="input input-xs input-bordered" data-base-field="gap"></label>
+            <label class="inspector-field wide"><span>Screen background · <code>screen_bg:</code></span><span class="color-input"><input type="color" data-color-picker="screen_bg"><input class="input input-xs input-bordered" data-base-field="screen_bg" placeholder="#0a0c10, name, r,g,b,a"></span></label>
+            <label class="inspector-field wide"><span>Border colour · <code>border_color:</code></span><span class="color-input"><input type="color" data-color-picker="border_color"><input class="input input-xs input-bordered" data-base-field="border_color" placeholder="#38bdf8"></span></label>
+          </div>
+        </section>
+
+        <section data-inspector-panel="panel" class="hidden">
+          <div class="flex gap-1 mb-2"><select id="config-panel" class="select select-xs select-bordered font-mono flex-1" aria-label="Panel to configure"></select><button type="button" id="add-panel" class="btn btn-xs font-mono">Add panel</button></div>
+          <p id="implicit-panel-note" class="hidden text-[10px] text-warning mb-2">This is an implicit full-screen panel. Add a panel to edit its position and style visually.</p>
+          <div id="panel-config-fields" class="inspector-grid">
+            <label class="inspector-field"><span>Name · <code>@panel</code></span><input class="input input-xs input-bordered" data-panel-field="name"></label>
+            <label class="inspector-field"><span>Title</span><input class="input input-xs input-bordered" data-panel-field="title"></label>
+            <label class="inspector-field"><span>Column</span><input type="number" min="0" class="input input-xs input-bordered" data-panel-field="col"></label>
+            <label class="inspector-field"><span>Row</span><input type="number" min="0" class="input input-xs input-bordered" data-panel-field="row"></label>
+            <label class="inspector-field"><span>Column span</span><input type="number" min="1" class="input input-xs input-bordered" data-panel-field="spanX"></label>
+            <label class="inspector-field"><span>Row span</span><input type="number" min="1" class="input input-xs input-bordered" data-panel-field="spanY"></label>
+            <label class="inspector-field"><span>Title position</span><select class="select select-xs select-bordered" data-panel-field="title_align"><option>left</option><option>center</option><option>right</option></select></label>
+            <label class="inspector-field"><span>Orientation</span><select class="select select-xs select-bordered" data-panel-field="orientation"><option>horizontal</option><option>vertical</option></select></label>
+            <label class="inspector-field"><span>Border</span><select class="select select-xs select-bordered" data-panel-field="border"><option value="">inherit</option><option>frame</option><option>corners</option><option>minimal</option><option>single</option><option>heavy</option><option>double</option><option>rounded</option><option>none</option></select></label>
+            <label class="inspector-field wide"><span>Title colour</span><span class="color-input"><input type="color" data-panel-color-picker="title_color"><input class="input input-xs input-bordered" data-panel-field="title_color" placeholder="#f8fafc"></span></label>
+            <label class="inspector-field wide"><span>Background</span><span class="color-input"><input type="color" data-panel-color-picker="bg"><input class="input input-xs input-bordered" data-panel-field="bg" placeholder="none or #0f172a"></span></label>
+            <label class="inspector-field wide"><span>Border colour</span><span class="color-input"><input type="color" data-panel-color-picker="border_color"><input class="input input-xs input-bordered" data-panel-field="border_color" placeholder="#38bdf8"></span></label>
+          </div>
+        </section>
+
+        <section data-inspector-panel="component" class="hidden">
+          <select id="config-line" class="select select-xs select-bordered font-mono w-full mb-2" aria-label="Component to configure"></select>
+          <p id="unparsed-line-note" class="hidden text-[10px] text-warning mb-2">This custom line is preserved but cannot be edited by the visual controls.</p>
+          <div id="line-config-fields" class="inspector-grid">
+            <label class="inspector-field wide"><span>Label · <code>line:</code></span><input class="input input-xs input-bordered" data-line-field="label"></label>
+            <label class="inspector-field"><span>Gauge</span><select class="select select-xs select-bordered" data-line-field="kind"><option>bar</option><option>flow</option><option>spark</option><option>balance</option><option>dots</option><option>chevron</option><option>hazard</option><option>led</option><option>toggle</option><option>checkbox</option><option>ammo</option><option>text</option><option>tank</option><option>dial</option></select></label>
+            <label class="inspector-field wide"><span>Bind and field</span><input class="input input-xs input-bordered" data-line-field="ref" placeholder="batt.percent"></label>
+            <label class="inspector-field"><span>Colour mode</span><select class="select select-xs select-bordered" data-line-field="colorMode"><option value="none">automatic</option><option value="flat">flat</option><option value="gradient">gradient</option></select></label>
+            <label class="inspector-field wide"><span>Colour(s)</span><span class="color-input"><input type="color" data-line-color-picker="colors"><input class="input input-xs input-bordered" data-line-field="colors" placeholder="#38bdf8 or #22c55e, #ef4444"></span></label>
+            <label class="inspector-field"><span>Size</span><select class="select select-xs select-bordered" data-line-field="size"><option value="">auto</option><option>small</option><option>medium</option><option>large</option></select></label>
+            <label class="inspector-field"><span>Direction</span><select class="select select-xs select-bordered" data-line-field="dir"><option value="">auto</option><option>left</option><option>right</option><option>up</option><option>down</option></select></label>
+            <label class="inspector-field"><span>Unit</span><input class="input input-xs input-bordered" data-line-field="unit" placeholder="MW"></label>
+            <label class="inspector-field wide"><span>Label colour</span><span class="color-input"><input type="color" data-line-color-picker="labelColor"><input class="input input-xs input-bordered" data-line-field="labelColor" placeholder="#f8fafc"></span></label>
+            <label class="inspector-field wide"><span>Track colour</span><span class="color-input"><input type="color" data-line-color-picker="track"><input class="input input-xs input-bordered" data-line-field="track" placeholder="#1e293b"></span></label>
+          </div>
+        </section>
+
+        <section data-inspector-panel="telemetry" class="hidden">
+          <div class="text-xs font-mono text-base-content/60 mb-2">Telemetry drives the preview and is not saved to the layout.</div>
+          <div id="value-sliders" class="space-y-1.5"></div>
+        </section>
+        <a href="../docs/dsl-syntax/" target="_blank" rel="noopener" class="link link-primary text-[10px] font-mono mt-3 inline-block">DSL options reference ↗</a>
       </aside>
+
+      <div id="pane-resizer" role="separator" tabindex="0" aria-label="Resize preview and Custom Data editor" aria-orientation="horizontal" aria-controls="dsl-pane" aria-valuemin="160" aria-valuenow="220" data-lume="Drag to resize the editor, or use Up and Down while this divider is focused." data-lume-direction="top"></div>
 
       <!-- Bottom: DSL editor -->
       <section id="dsl-pane" class="bg-base-200/50 border border-base-300 rounded-lg p-2 flex flex-col min-w-0" style="grid-column: 2 / span 2;">
@@ -97,13 +252,18 @@
           <input id="project-name" class="input input-xs input-bordered font-mono w-36" placeholder="Project name" aria-label="Project name">
           <select id="project-picker" class="select select-xs select-bordered font-mono max-w-40" aria-label="Saved projects"><option value="">Saved projects</option></select>
           <button type="button" id="save-project" class="btn btn-xs font-mono">Save</button>
+          <button type="button" id="delete-project" class="btn btn-xs btn-ghost font-mono" data-lume="Delete the project selected in the picker." data-lume-direction="bottom">Delete</button>
           <button type="button" id="import-dsl" class="btn btn-xs font-mono">Import</button>
           <input id="import-file" type="file" accept=".txt,.helm,text/plain" class="hidden">
           <button type="button" id="export-dsl" class="btn btn-xs font-mono">Export</button>
           <button type="button" id="share-dsl" class="btn btn-xs font-mono">Share</button>
+          <button type="button" id="expand-editor" class="btn btn-xs btn-ghost font-mono" aria-controls="dsl-pane" aria-expanded="false">Expand editor</button>
           <button type="button" id="copy-dsl" class="btn btn-xs btn-primary font-mono ml-auto">Copy</button>
         </div>
-        <textarea id="dsl-editor" class="textarea textarea-bordered font-mono text-xs flex-1 resize-none" spellcheck="false"></textarea>
+        <div class="dsl-editor-wrap">
+          <pre id="dsl-highlight" class="dsl-editor-surface language-helm" aria-hidden="true"><code id="dsl-highlight-code" class="language-helm"></code></pre>
+          <textarea id="dsl-editor" class="dsl-editor-surface textarea textarea-bordered" aria-label="HELM Custom Data editor" spellcheck="false"></textarea>
+        </div>
         <details class="mt-1 text-[11px] text-base-content/50 font-mono">
           <summary class="cursor-pointer">Export checklist</summary>
           <span>Verify block/group names → paste into Programmable Block Custom Data → run <code>reload</code>. On an empty block, run <code>starter</code> first.</span>
@@ -114,12 +274,12 @@
   </main>
 
   <script type="module">
-    document.querySelectorAll(".tab").forEach((tab) => {
+    document.querySelectorAll("#block-panel .tab").forEach((tab) => {
       tab.addEventListener("click", () => {
-        document.querySelectorAll(".tab").forEach((t) => { t.classList.remove("tab-active"); t.setAttribute("aria-selected", "false"); });
+        document.querySelectorAll("#block-panel .tab").forEach((t) => { t.classList.remove("tab-active"); t.setAttribute("aria-selected", "false"); });
         tab.classList.add("tab-active");
         tab.setAttribute("aria-selected", "true");
-        document.querySelectorAll("[data-tabpanel]").forEach((p) => p.classList.toggle("hidden", p.dataset.tabpanel !== tab.dataset.tab));
+        document.querySelectorAll("#block-panel [data-tabpanel]").forEach((p) => p.classList.toggle("hidden", p.dataset.tabpanel !== tab.dataset.tab));
       });
     });
   </script>
@@ -136,6 +296,8 @@
       <div class="modal-action"><button type="button" id="close-shortcuts" class="btn btn-sm">Close</button></div>
     </div>
   </dialog>
+  <script src="./vendor/prism.js"></script>
+  <script src="./vendor/helm-prism.js"></script>
   <script type="module" src="./js/app.mjs"></script>
 </body>
 </html>

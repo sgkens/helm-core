@@ -81,10 +81,10 @@ In sprite mode (`MySprite`), the quad renderer computes linear interpolation acr
 
 ## Reusable Templates (`layouts/templates.txt`)
 
-You can define reusable color schemes, border frames, and styling presets in `layouts/templates.txt` and reference them using `@use`:
+You can define reusable color schemes, border frames, and styling presets as an `@template name(param="default", ...) ... @end` block in `layouts/templates.txt`, then expand one with `@use`, naming the template directly and passing positional or `key="value"` arguments:
 
 ```helm
-@use template("military_hud")
+@use heavy_command(screen="Bridge Display", core="Reactor*")
 ```
 
-This keeps your display layouts clean and consistent across your entire fleet.
+This expands to `heavy_command`'s body with `$screen` and `$core` substituted, `surf` and `batt` left at their own defaults. This keeps your display layouts clean and consistent across your entire fleet. `layouts/templates.txt` also documents 4 templates ready to use (`heavy_command`, `double_tactical`, `rounded_avionics`, `minimal_telemetry`); HELM Core itself ships 8 more built in (`fighter_hud`, `reactor_matrix`, `bridge_status`, `mining_ops`, `airlock`, `rover`, `cargo_overview`, `battery_monolith`) — try any of them in the [web utility](/webutil/)'s Templates tab, which fills in a form from each one's real parameters and inserts the `@use` line for you.

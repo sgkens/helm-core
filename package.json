@@ -1,0 +1,31 @@
+{
+  "name": "helm-core",
+  "private": true,
+  "description": "Root build orchestrator for the docs site (docs/) and the browser layout tool (webutil/). Each stays independently runnable; see docs/README.md and webutil/README.md.",
+  "scripts": {
+    "setup": "bun run setup:webutil && bun run setup:docs",
+    "setup:docs": "cd docs && bun install",
+    "setup:webutil": "cd webutil && bun install",
+
+    "build": "bun run webutil:build && bun run docs:build",
+
+    "webutil:data": "cd webutil && bun run data",
+    "webutil:vendor": "cd webutil && bun run vendor",
+    "webutil:wasm": "cd webutil && bun run wasm",
+    "webutil:test": "cd webutil && bun run test",
+    "webutil:build": "cd webutil && bun run build",
+    "webutil:serve": "cd webutil && bun run serve",
+    "webutil:dev": "cd webutil && bun run dev",
+
+    "docs:dev": "cd docs && bun run dev",
+    "docs:serve": "cd docs && bun run serve",
+    "docs:build": "cd docs && bun run build",
+    "docs:css:build": "cd docs && bun run css:build",
+    "docs:css:watch": "cd docs && bun run css:watch",
+    "docs:frames:check": "cd docs && bun run frames:check",
+    "docs:icons": "cd docs && bun run icons",
+    "docs:icons:refresh": "cd docs && bun run icons:refresh",
+    "docs:frames": "cd docs && bun run frames",
+    "docs:examples": "cd docs && bun run examples"
+  }
+}

@@ -25,6 +25,7 @@ helm-core-*.zip
 # Documentation site build output
 public/
 docs/node_modules/
+/node_modules/
 
 # Generated docs frames (tools/spritedump; built in CI or with "bun run frames" in docs/)
 docs/assets/frames/

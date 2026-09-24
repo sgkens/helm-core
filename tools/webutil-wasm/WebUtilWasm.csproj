@@ -27,4 +27,10 @@
     <Compile Include="../spritedump/SeShim.Blocks.cs" />
     <Compile Include="Host.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Same file helmv.ps1 and tools/spritedump load via HelmParser.LoadTemplateFile (HELM_TOOLS-only;
+         not part of the shipped Programmable Block script) - embedded so the WASM build has it too,
+         since a browser has no filesystem to read it from at run time. -->
+    <EmbeddedResource Include="../../layouts/templates.txt" LogicalName="templates.txt" />
+  </ItemGroup>
 </Project>

@@ -1,6 +1,6 @@
 // Prism grammar for the HELM DSL (Custom Data configuration language).
 // Used by @11ty/eleventy-plugin-syntaxhighlight through eleventy.config.js.
-module.exports = function registerHelmGrammar(Prism) {
+function registerHelmGrammar(Prism) {
   Prism.languages.helm = {
     comment: { pattern: /^[ \t]*#.*$/m, greedy: true },
     string: { pattern: /"(?:[^"\\\r\n]|\\.)*"/, greedy: true },
@@ -15,4 +15,12 @@ module.exports = function registerHelmGrammar(Prism) {
     punctuation: /[(),=:]/,
   };
   Prism.languages.hlm = Prism.languages.helm;
-};
+}
+
+// CommonJS is used by Eleventy at build time; the browser global is used by WebUtil's
+// live editor. Keeping one grammar prevents the docs examples and editor drifting apart.
+if (typeof module !== "undefined" && module.exports) module.exports = registerHelmGrammar;
+if (typeof window !== "undefined") {
+  window.registerHelmGrammar = registerHelmGrammar;
+  if (window.Prism) registerHelmGrammar(window.Prism);
+}

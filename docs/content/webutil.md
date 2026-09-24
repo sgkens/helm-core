@@ -10,13 +10,28 @@ Webutil renders HELM Custom Data with the same compiled C# parser and sprite ren
 
 ## Basic Workflow
 
-1. Pick a starter layout and an LCD profile.
-2. Edit the Custom Data pane. The preview updates after a short delay and shows the parser's real errors and warnings.
-3. Search the block palette. Select a telemetry field to insert a compatible gauge line at the editor cursor.
+1. Pick one of the layout presets and an LCD profile. The picker includes every layout in `layouts/default/` and groups them by the same categories as the preset gallery.
+2. Edit the Custom Data pane. Prism highlights the HELM DSL with the same grammar and selected code theme as the docs; the preview updates after a short delay and shows the parser's real errors and warnings.
+3. Search the block palette. Select a telemetry field or component to insert its example at the editor cursor. Item and component examples also add any missing `@bind` aliases near the top of Custom Data without changing existing binds. Replace the suggested block/group names with the names used in your grid.
 4. Adjust the generated telemetry sliders to inspect low, half-full and full states.
 5. Copy or export the result, paste it into the Programmable Block's Custom Data, and run `reload`.
 
+Drag the divider above Custom Data to resize the editor and preview together. The SVG display scales into the remaining preview space. The divider also accepts the Up and Down arrow keys, while **Expand editor** provides a quick full-height editing view and restores the preview when selected again. Webutil remembers the chosen height in the browser.
+
 The screen selector appears when the text contains more than one `@screen`. Its options come from the parsed layout, not a separate browser model.
+
+## Visual Configuration Inspector
+
+The right-hand inspector keeps Custom Data as the source of truth while making the common layout work form-driven:
+
+- **Base** creates or selects a screen and edits its LCD output, surface, profile, grid, font, spacing, border and colours. **New** starts from a valid screen, panel, bind and component instead of an unexplained blank preview.
+- **Panel** adds and selects panels, then edits their title, grid position and span, orientation, border and colours.
+- **Component** selects a `line:` in the current panel and edits its label, gauge, bind reference, flat or gradient colours, size, direction, unit, label colour and track colour.
+- **Telemetry** contains the simulated values used only by the preview.
+
+Choose a panel before inserting from Blocks, Items or Components. Webutil puts the new line in that panel, adds a missing `@bind` where needed, and opens the Component inspector for immediate adjustment.
+
+Each control names the HELM directive it changes, and every change remains visible in the highlighted Custom Data pane. The inspector rewrites only the selected directive or line: comments, templates, conditional colour rules and unknown future directives pass through unchanged. Complex custom `line:` syntax that cannot be read safely remains in the text and is marked read-only in the inspector, so the visual editor never flattens it.
 
 ## Projects, Files and Share Links
 
@@ -53,3 +68,5 @@ bun run serve
 ```
 
 Open `http://127.0.0.1:8891/`. See `webutil/README.md` for the generated data, WebAssembly and vendor-asset layout.
+
+For self-hosting, run `bun run build` at the repository root and serve the resulting `public/` directory. WebUtil intentionally remains beside the documentation because it shares the docs CSS, syntax theme, renderer assets and generated reference sources.

@@ -3,15 +3,18 @@
   "private": true,
   "description": "A browser tool that renders a HELM layout with the real script (compiled to WebAssembly), for concepting screens (TASK-39.x). Deployed alongside the docs site under /webutil/; see webutil/README.md.",
   "scripts": {
-    "data": "node scripts/gen-blocks.js && node scripts/gen-starters.js",
+    "data": "node scripts/gen-blocks.js && node scripts/gen-starters.js && node scripts/gen-components.js",
     "vendor": "node scripts/copy-vendor.js",
     "wasm": "dotnet publish ../tools/webutil-wasm -c Release -o wasm",
-    "build": "bun run data && bun run vendor && bun run wasm",
+    "stage": "node scripts/stage.js",
+    "test": "node scripts/test-dsl-model.mjs",
+    "build": "bun run data && bun run vendor && bun run wasm && bun run stage",
     "serve": "bun server.mjs",
     "dev": "bun run build && bun server.mjs"
   },
   "dependencies": {
     "@staticcanvas/logcad": "0.6.0",
-    "@staticcanvas/lume": "0.37.1"
+    "@staticcanvas/lume": "0.37.1",
+    "prismjs": "1.30.0"
   }
 }

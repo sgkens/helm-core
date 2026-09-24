@@ -367,14 +367,10 @@ webutil:
     - cd webutil
     - bun install --frozen-lockfile
     - bun run data
+    - bun run test
     - bun run vendor
     - bun run wasm
-    - mkdir -p ../public/webutil/js ../public/webutil/data ../public/webutil/vendor ../public/webutil/wasm
-    - cp index.html ../public/webutil/
-    - cp js/*.mjs ../public/webutil/js/
-    - cp data/*.json ../public/webutil/data/
-    - cp vendor/* ../public/webutil/vendor/
-    - cp -r wasm/wwwroot ../public/webutil/wasm/
+    - bun run stage
   artifacts:
     paths:
       - public/webutil
