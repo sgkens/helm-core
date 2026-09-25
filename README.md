@@ -1,4 +1,6 @@
-# HELM — High-Efficiency Lightweight Monitor
+<div align="center">
+
+<img src="https://r2os.staticcanvas.me/logos/helm-core/dist/webp/helm-core-logo-256x256.webp">
 
 <p>
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-0891b2?style=flat-square&amp;labelColor=ffffff&amp;logo=opensourceinitiative&amp;logoColor=0891b2"></a>
@@ -8,18 +10,20 @@
   <a href="https://app.codecov.io/gitlab/sgkens/helm-core"><img alt="Codecov coverage" src="https://img.shields.io/codecov/c/gitlab/sgkens/helm-core?style=flat-square&amp;label=coverage&amp;labelColor=ffffff&amp;color=0891b2&amp;logo=codecov&amp;logoColor=0891b2"></a>
 </p>
 
+# HELM-_Core_
 
-> **Deterministic, low-overhead console telemetry for Space Engineers.**
-> Vanilla-compatible • Zero-dependency • Sub-millisecond execution • Guaranteed multi-tick scheduling.
+> High-Efficiency Lightweight **Deterministic, low-overhead console telemetry for Space Engineers.**
+
+• Vanilla-compatible
+• Zero-dependency \
+• Sub-millisecond execution \
+• Guaranteed multi-tick scheduling.
+
+<div>
 
 ---
 
-## Overview & Philosophy
-
-In Space Engineers, cockpit and bridge displays typically rely on two popular workshop scripts:
-
-- **Automatic LCDs 2 (AutoLCD2):** Over 8+ years of incremental feature accretion turned it into a monolithic script that costs ~6ms to JIT-compile and has an enormous instruction footprint.
-- **Fancy Status Displays v2 (FSD2):** Delivers rich graphics, but renders all screens in a single tick pass, regularly breaching the game's 50,000 instruction safeguard on multi-screen grids.
+## **Overview & Philosophy**
 
 **HELM** is engineered with a strict performance budget from day one:
 
@@ -30,7 +34,10 @@ In Space Engineers, cockpit and bridge displays typically rely on two popular wo
 
 ---
 
-## Quick Start: Using HELM in Game
+## **Quick Start:**
+
+> [info]
+> Using HELM in Game
 
 You do not need Visual Studio or MDK to run HELM. A ready-to-paste script is provided in this repository.
 
@@ -53,7 +60,7 @@ If developing with Malware's Development Kit (MDK):
 
 ---
 
-## Configuration DSL Reference
+## **Configuration DSL Reference**
 
 Configurations are written directly in the Programmable Block's **Custom Data**.
 
@@ -91,37 +98,37 @@ line: "<LABEL>" text(<bind>.<field>) [color(<conditions>, default: <color>)]
 
 ### Directives Reference
 
-| Directive               | Scope               | Description                                                        | Default         | Required?  |
-| ----------------------- | ------------------- | ------------------------------------------------------------------ | --------------- | ---------- |
-| `@template <name>(...)` | Global              | Declares a reusable macro template with parameter substitution     | —               | No         |
-| `@use <name>(...)`      | Global              | Instantiates a template with custom arguments; templates may nest 4 levels | —       | No         |
-| `@bind <name> = ...`    | Global              | Binds a hardware device or block group to an alias                 | —               | Yes        |
-| `@screen <name>`        | Global              | Starts a new physical screen configuration                         | —               | Yes        |
-| `output:`               | `@screen`           | Physical block name and surface index (0-indexed)                  | Surface 0       | **Yes**    |
-| `layout:`               | `@screen`           | Defines a 2D matrix grid: `grid(<cols>, <rows>)`                   | `grid(1, 1)`    | No         |
-| `@panel <name> at(...)` | `@screen`           | Defines a snapped sub-panel at `(col, row, spanX, spanY)`         | Full Screen     | No         |
-| `title:`                | `@panel`            | Panel header title with divider accent bar                         | `none`          | No         |
-| `font:`                 | `@screen` / `@panel`| Vanilla font atlas (`Monospace`, `Debug`, `White`, `Red`, etc.)    | `Monospace`     | No         |
-| `bg:` / `background:`   | `@screen` / `@panel`| Custom background color (`#HEX`, `R,G,B`, `color_name`, `none`)   | `#0a0c10`       | No         |
-| `border:`               | `@screen`           | Display frame style: `graphic` (default), `none`, or `ascii`       | `graphic`       | No         |
-| `border_color:`         | `@screen` / `@panel`| Frame and accent divider color (`#HEX`, `R,G,B`, `name`)           | `#283c55`       | No         |
-| `font_size:`            | `@screen` / `@panel`| Text and gauge scaling factor                                      | `1.0`           | No         |
-| `width:`                | `@screen`           | Content width in characters (for ASCII mode)                       | `30`            | No         |
-| `refresh:`              | `@screen`           | Draw this screen at most every N game ticks (`600` = every 10 s). Saves instructions on screens that change slowly | `0` (every run) | No         |
-| `alert_period:`         | `@screen`           | Seconds for one red-alert flash cycle (`0.8s`)                     | `1.6`           | No         |
-| `alert_bg:`             | `@screen`           | Colour the background flashes to on a red alert; `none` turns it off | `#5b0f0f`     | No         |
-| `screen_bg:`            | `@screen`           | Background of the whole screen wherever the line is written        | —               | No         |
-| `panel_bg:`             | `@screen`           | Card colour behind every panel that has no `bg:` of its own        | none            | No         |
-| `bg_gradient(...)`      | `@screen` / `@panel`| Gradient background; `bg_gradient_dir:` `vertical` or `horizontal` | —               | No         |
-| `bg: color(...)` / `flash:` | `@screen` / `@panel` | Background that follows a value, or flashes on a threshold   | —               | No         |
-| `bg_texture:`           | `@screen`           | Built-in sprite drawn over the background (`bg_texture_color:` tints it) | —         | No         |
-| `gradient_mode:`        | `@screen`           | `smooth` blends between gradient stops, `steps` picks the nearest  | `smooth`        | No         |
-| `orientation:`          | `@panel`            | `vertical` lays lines out as columns (tanks and vertical bars)     | `horizontal`    | No         |
-| `mirror:` / `mirror_panel:` | `@screen`       | Copy another screen (or one of its panels) to this display, scaled | —               | No         |
-| `banner:` / `boot_logo:`| `@screen`           | Show an `@banner ... @end` ASCII block full screen, or as the boot logo | —          | No         |
-| `boot_batch:` / `boot_calibrate:` | `@screen` | Screens that boot together; seconds the gauges sweep 0 to 100 after boot | `1` / `1.2` | No    |
-| `gap:` / `padding:`     | `@screen`           | Pixels between panels, and around the screen (`0` puts the border on the edge) | `8` / about 2% | No         |
-| `line:`                 | `@screen` / `@panel`| Visual gauge (`bar`, `led`, `spark`) or text readout definition    | —               | At least 1 |
+| Directive                         | Scope                | Description                                                                                                        | Default         | Required?  |
+| --------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------ | --------------- | ---------- |
+| `@template <name>(...)`           | Global               | Declares a reusable macro template with parameter substitution                                                     | —               | No         |
+| `@use <name>(...)`                | Global               | Instantiates a template with custom arguments; templates may nest 4 levels                                         | —               | No         |
+| `@bind <name> = ...`              | Global               | Binds a hardware device or block group to an alias                                                                 | —               | Yes        |
+| `@screen <name>`                  | Global               | Starts a new physical screen configuration                                                                         | —               | Yes        |
+| `output:`                         | `@screen`            | Physical block name and surface index (0-indexed)                                                                  | Surface 0       | **Yes**    |
+| `layout:`                         | `@screen`            | Defines a 2D matrix grid: `grid(<cols>, <rows>)`                                                                   | `grid(1, 1)`    | No         |
+| `@panel <name> at(...)`           | `@screen`            | Defines a snapped sub-panel at `(col, row, spanX, spanY)`                                                          | Full Screen     | No         |
+| `title:`                          | `@panel`             | Panel header title with divider accent bar                                                                         | `none`          | No         |
+| `font:`                           | `@screen` / `@panel` | Vanilla font atlas (`Monospace`, `Debug`, `White`, `Red`, etc.)                                                    | `Monospace`     | No         |
+| `bg:` / `background:`             | `@screen` / `@panel` | Custom background color (`#HEX`, `R,G,B`, `color_name`, `none`)                                                    | `#0a0c10`       | No         |
+| `border:`                         | `@screen`            | Display frame style: `graphic` (default), `none`, or `ascii`                                                       | `graphic`       | No         |
+| `border_color:`                   | `@screen` / `@panel` | Frame and accent divider color (`#HEX`, `R,G,B`, `name`)                                                           | `#283c55`       | No         |
+| `font_size:`                      | `@screen` / `@panel` | Text and gauge scaling factor                                                                                      | `1.0`           | No         |
+| `width:`                          | `@screen`            | Content width in characters (for ASCII mode)                                                                       | `30`            | No         |
+| `refresh:`                        | `@screen`            | Draw this screen at most every N game ticks (`600` = every 10 s). Saves instructions on screens that change slowly | `0` (every run) | No         |
+| `alert_period:`                   | `@screen`            | Seconds for one red-alert flash cycle (`0.8s`)                                                                     | `1.6`           | No         |
+| `alert_bg:`                       | `@screen`            | Colour the background flashes to on a red alert; `none` turns it off                                               | `#5b0f0f`       | No         |
+| `screen_bg:`                      | `@screen`            | Background of the whole screen wherever the line is written                                                        | —               | No         |
+| `panel_bg:`                       | `@screen`            | Card colour behind every panel that has no `bg:` of its own                                                        | none            | No         |
+| `bg_gradient(...)`                | `@screen` / `@panel` | Gradient background; `bg_gradient_dir:` `vertical` or `horizontal`                                                 | —               | No         |
+| `bg: color(...)` / `flash:`       | `@screen` / `@panel` | Background that follows a value, or flashes on a threshold                                                         | —               | No         |
+| `bg_texture:`                     | `@screen`            | Built-in sprite drawn over the background (`bg_texture_color:` tints it)                                           | —               | No         |
+| `gradient_mode:`                  | `@screen`            | `smooth` blends between gradient stops, `steps` picks the nearest                                                  | `smooth`        | No         |
+| `orientation:`                    | `@panel`             | `vertical` lays lines out as columns (tanks and vertical bars)                                                     | `horizontal`    | No         |
+| `mirror:` / `mirror_panel:`       | `@screen`            | Copy another screen (or one of its panels) to this display, scaled                                                 | —               | No         |
+| `banner:` / `boot_logo:`          | `@screen`            | Show an `@banner ... @end` ASCII block full screen, or as the boot logo                                            | —               | No         |
+| `boot_batch:` / `boot_calibrate:` | `@screen`            | Screens that boot together; seconds the gauges sweep 0 to 100 after boot                                           | `1` / `1.2`     | No         |
+| `gap:` / `padding:`               | `@screen`            | Pixels between panels, and around the screen (`0` puts the border on the edge)                                     | `8` / about 2%  | No         |
+| `line:`                           | `@screen` / `@panel` | Visual gauge (`bar`, `led`, `spark`) or text readout definition                                                    | —               | At least 1 |
 
 ---
 
@@ -132,7 +139,9 @@ line: "<LABEL>" text(<bind>.<field>) [color(<conditions>, default: <color>)]
 HELM provides modular border and frame options for both the in-game VRage quad renderer and the offline TUI visualizer ([`helmv.ps1`](helmv.ps1)):
 
 #### Border Styles (`border:`)
+
 Configure borders globally per screen or locally per panel:
+
 - `border: heavy` — Heavy reinforced industrial bulkhead box (`┏━━━━┓` / `┃    ┃` / `┗━━━━┛`).
 - `border: double` — Military double-line tactical framing (`╔════╗` / `║    ║` / `╚════╝`).
 - `border: single` — Clean single-line engineering border (`┌────┐` / `│    │` / `└────┘`).
@@ -142,31 +151,38 @@ Configure borders globally per screen or locally per panel:
 - `border: frame` and `border: corners` — In-game frame drawn with quads: all four sides, or bracket corners only.
 
 In the game every style is drawn with quads: `graphic` and `minimal` are the top and bottom lines, `frame`, `single`, `heavy` (thicker) and `double` (a second inner frame) add the sides, `rounded` adds a circle at each corner, and `corners` draws brackets. `border_color` and `border_gradient` colour them, and `border:` on an `@panel` line frames that panel.
+
 - `border: graphic` — Default sci-fi HUD framing with recessed slot tracks.
 - `border: none` — Flush, edge-to-edge monitors without frame boundaries.
 
 Where each style applies:
 
-| Renderer | Behavior |
-| :--- | :--- |
+| Renderer                      | Behavior                                                                                                                                                                                                          |
+| :---------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | In-game script (`Program.cs`) | Screen-level `border:` only. `none` removes the frame, `ascii` uses the text renderer with `+----+` frames, and every other style draws the standard sprite frame. A panel-level `border:` is parsed but ignored. |
-| `helmv.ps1` | All styles, at screen and panel level. |
+| `helmv.ps1`                   | All styles, at screen and panel level.                                                                                                                                                                            |
 
 `border_color:`, `border_gradient:`, `title_align:` and `title_color:` work at screen and panel level in both renderers.
 
 #### Positional Titles (`title_align:`)
+
 Snap headers dynamically across top border frames without ragged line wrapping:
+
 - `title_align: left` (Default) — Classic left-aligned bracket header `+-- [ TITLE ] --------+`.
 - `title_align: center` — Balanced aerospace horizon title `+-------- [ TITLE ] --------+`.
 - `title_align: right` — High-visibility right-aligned alert header `+-------- [ TITLE ] --+`.
 
 #### Independent Title Typography Colors (`title_color:`)
+
 Decouple header text color from border frame lines:
+
 - `title_color: #fef08a` or `title_color: yellow` — Renders title text in crisp contrasting typography while borders retain their structural theme.
 - `border_color: #3b82f6` — Sets solid border stroke color.
 
 #### Procedural Multi-Stop Border Gradients (`border_gradient:`)
+
 Apply smooth multi-stop RGB transitions across border frames:
+
 - `border_gradient: #38bdf8, #2563eb, #1e40af` (or functional syntax `border_gradient(cyan, blue, darkblue)`).
 - Procedurally interpolates border lines across color stops in both in-game VRage sprites and ANSI terminal outputs.
 
@@ -205,6 +221,7 @@ HELM eliminates guesswork when binding blocks:
 
 - **Group Binding with Mandatory Aggregation:**
   When querying multiple blocks in a group, HELM **strictly forbids silent defaults**—you must explicitly state how values are aggregated:
+
     ```bash
     # Average charge across all main batteries:
     @bind fleet_pwr = group("Main Battery Bank", agg: avg)
@@ -231,29 +248,31 @@ HELM eliminates guesswork when binding blocks:
 
 HELM reads telemetry properties natively from standard vanilla blocks with safe fallbacks:
 
-| Block Type                                    | Ingame API Source                        | Supported Fields | Status / Fallback Behavior |
-| --------------------------------------------- | ---------------------------------------- | ---------------- | -------------------------- |
-| **Batteries** (`IMyBatteryBlock`)             | `CurrentStoredPower / MaxStoredPower`    | `percent`        | Native ratio               |
-| **Jump Drives** (`IMyJumpDrive`)              | `CurrentStoredPower / MaxStoredPower`    | `percent`        | Native ratio               |
-| **Gas Tanks** (`IMyGasTank` — O2 & H2)        | `FilledRatio`                            | `percent`        | Native ratio               |
-| **Air Vents** (`IMyAirVent`)                  | `GetOxygenLevel()`                       | `percent`        | Native ratio               |
-| **Cargo Containers** (`IMyCargoContainer`)    | `CurrentVolume / MaxVolume`              | `percent`        | Native ratio               |
-| **Nuclear Reactors** (`IMyReactor`)           | `CurrentOutput / MaxOutput`              | `percent`        | Native ratio               |
-| **Solar Panels** (`IMySolarPanel`)            | `CurrentOutput / MaxOutput`              | `percent`        | Native ratio               |
-| **Wind Turbines** (`IMyWindTurbine`)          | `CurrentOutput / MaxOutput`              | `percent`        | Native ratio               |
-| **Hydrogen Engines** (Generic Power Source)   | `CurrentOutput / MaxOutput`              | `percent`        | Output load ratio          |
-| **Doors & Airlocks** (`IMyDoor`)              | `OpenRatio * 100.0`                      | `percent`        | Open percentage (0%=Closed)|
-| **Thrusters** (`IMyThrust`)                   | `CurrentThrust / MaxEffectiveThrust`     | `percent`        | Current thrust output %    |
-| **Wheel Suspensions** (`IMyMotorSuspension`)  | `Brake` / `SteeringOverride`             | `percent`        | Brake / mechanical load    |
-| **Ship Connectors** (`IMyShipConnector`)      | `Status`                                 | `percent`        | Connected/Locked (100%)    |
-| **Generic Functional Block** (`IMyFunctional`)| `Enabled`                                | `percent`        | 100% (Enabled) / 0% (Off)  |
+| Block Type                                     | Ingame API Source                     | Supported Fields | Status / Fallback Behavior  |
+| ---------------------------------------------- | ------------------------------------- | ---------------- | --------------------------- |
+| **Batteries** (`IMyBatteryBlock`)              | `CurrentStoredPower / MaxStoredPower` | `percent`        | Native ratio                |
+| **Jump Drives** (`IMyJumpDrive`)               | `CurrentStoredPower / MaxStoredPower` | `percent`        | Native ratio                |
+| **Gas Tanks** (`IMyGasTank` — O2 & H2)         | `FilledRatio`                         | `percent`        | Native ratio                |
+| **Air Vents** (`IMyAirVent`)                   | `GetOxygenLevel()`                    | `percent`        | Native ratio                |
+| **Cargo Containers** (`IMyCargoContainer`)     | `CurrentVolume / MaxVolume`           | `percent`        | Native ratio                |
+| **Nuclear Reactors** (`IMyReactor`)            | `CurrentOutput / MaxOutput`           | `percent`        | Native ratio                |
+| **Solar Panels** (`IMySolarPanel`)             | `CurrentOutput / MaxOutput`           | `percent`        | Native ratio                |
+| **Wind Turbines** (`IMyWindTurbine`)           | `CurrentOutput / MaxOutput`           | `percent`        | Native ratio                |
+| **Hydrogen Engines** (Generic Power Source)    | `CurrentOutput / MaxOutput`           | `percent`        | Output load ratio           |
+| **Doors & Airlocks** (`IMyDoor`)               | `OpenRatio * 100.0`                   | `percent`        | Open percentage (0%=Closed) |
+| **Thrusters** (`IMyThrust`)                    | `CurrentThrust / MaxEffectiveThrust`  | `percent`        | Current thrust output %     |
+| **Wheel Suspensions** (`IMyMotorSuspension`)   | `Brake` / `SteeringOverride`          | `percent`        | Brake / mechanical load     |
+| **Ship Connectors** (`IMyShipConnector`)       | `Status`                              | `percent`        | Connected/Locked (100%)     |
+| **Generic Functional Block** (`IMyFunctional`) | `Enabled`                             | `percent`        | 100% (Enabled) / 0% (Off)   |
 
 ### Display Line Functions & Smart Sprite Patterns
 
 HELM supports multiple visual primitives, all rendered with hardware-accelerated vanilla textured quads:
 
 #### Fluid Damped Bars (`bar`)
+
 Draws a sleek, anti-aliased geometric bar on a recessed dark track. Features **aerospace fluid damping (springs)** so needles and bars glide smoothly instead of snapping abruptly:
+
 - **Flat Color:**
     ```bash
     line: "O2 " bar(o2.percent) flat(cyan)
@@ -266,137 +285,177 @@ Draws a sleek, anti-aliased geometric bar on a recessed dark track. Features **a
     ```
 
 #### Segmented LED Chiclets (`led`)
+
 Draws a bank of 10 discrete illuminated rectangular chiclets—perfect for heavy industrial loaders, miners, and military consoles:
+
 ```bash
 line: "SHLD" led(shield.percent) gradient(red, yellow, cyan)
 line: "CAPS" led(cap_bank.percent) flat(lime)
 ```
 
 #### Diagonal Hazard Caution Stripes (`hazard` / `pattern: hazard`)
+
 Draws angled 30° diagonal caution hazard stripes using hardware-accelerated rotated quads. Ideal for reactor overloads, jump drive spin-up, and warhead arming status:
+
 ```bash
 line: "WARN" hazard(core_temp.percent) flat(yellow)
 line: "OVER" bar(overload.percent) pattern(hazard) gradient(yellow, red)
 ```
 
 #### Directional Chevron Gauges (`chevron`)
+
 Draws directional progress arrowheads (`> > > >`) using vanilla `Triangle` sprites. Perfect for atmospheric ascent velocity, thruster output, and jump spooling:
+
 ```bash
 line: "THRN" chevron(main_thrust.percent) gradient(blue, cyan, white)
 line: "JUMP" chevron(jump_charge.percent) flat(magenta)
 ```
 
 #### Discrete Dot Matrix Arrays (`dots`)
+
 Draws discrete circular or square point indicators for battery cell health, magazine rounds, and ammunition counts:
+
 ```bash
 line: "CELL" dots(power_cells.percent) gradient(red, yellow, green)
 line: "AMMO" dots(magazine_count.percent) flat(yellow)
 ```
 
 #### Trend Sparklines (`spark` or `sparkline`)
+
 Draws an 8-column historical telemetry graph showing trend history directly on your bridge display:
+
 ```bash
 line: "DRAIN" spark(pwr.percent) flat(cyan)
 line: "ORE_RT" spark(cargo.percent) gradient(green, yellow, red)
 ```
 
 #### Numeric Readouts & Threshold Colors (`text`)
+
 Displays formatted values with rule-based conditional coloring:
+
 ```bash
 line: "CARGO" text(cargo.percent) color(cargo.percent > 90 : red, cargo.percent > 75 : yellow, default: white)
 line: "HYDRG" text(h2.percent) color(h2.percent < 20 : red, default: cyan)
 ```
+
 _(Note: A `default:` fallback color is strictly required on all `color()` directives)._
 
 #### Zero-Centered Horizon & Balance Charts (`balance` / `horizon` / `centered`)
+
 Draws a bi-directional zero-centered horizon balance gauge (`<----[ 0 ]---->`). Perfect for flight gyros, thruster trim balance, lateral vector velocity, and battery charge vs discharge:
+
 ```bash
 line: "PITCH" balance(gyro.pitch) gradient(cyan, white, cyan)
 line: "ROLL " balance(gyro.roll) flat(#38bdf8)
 line: "LAT  " pattern(balance) bar(th_lat.percent) gradient(red, yellow, green, yellow, red)
 ```
+
 - **Sprite Mode:** Recessed dark track with a prominent center divider and hardware-accelerated dynamic quads extending left (`< 50%`) or right (`> 50%`) from center zero.
 - **ASCII Monospace Mode:** Strict SE fixed-width character representation: `PITCH [---<<<|----] 35%`.
 
 #### Toggle Switches (`toggle` / `switch`)
+
 Interactive visual toggle switch displaying distinct sliding knob positions and clear ON/OFF states:
+
 ```bash
 line: "MAGNETS" toggle(containment.enabled) flat(cyan)
 line: "LIGHTS " switch(interior_lights.status) flat(yellow)
 ```
+
 - **Sprite Mode:** Recessed pill track with sliding circular knob quad that illuminates green/cyan when active (>= 50%) and dims dark gray when off.
 - **TUI / Text Mode:** Formats cleanly as `[====O] ON` / `[O====] OFF`.
 
 #### Checkboxes (`checkbox` / `check`)
+
 Status indicator box for automated protocols, subsystem interlocks, and security latches:
+
 ```bash
 line: "ISOLATE" checkbox(reactor.scram) flat(red)
 line: "RADAR_TR" check(targeting.enabled) flat(cyan)
 ```
+
 - **Sprite Mode:** Outer square boundary frame with an illuminated inner check quad when active.
 - **TUI / Text Mode:** Formats as `[X] ACTIVE` / `[ ] READY `.
 
 #### Online/Offline Status Badges (`status` / `badge` / `state`)
+
 Rounded badge indicator displaying tri-state system connectivity:
+
 ```bash
 line: "GRID_STS" status(shields.status) flat(lime)
 line: "REACTOR " badge(core.online) flat(green)
 ```
+
 - **States:** `ONLINE` (>= 75%), `STANDBY` (25% - 74%), `OFFLINE` (< 25%).
 - **TUI / Text Mode:** Formats as `[● ONLINE ]` / `[◐ STANDBY]` / `[○ OFFLINE]` in Unicode, and `[# ONLINE ]` / `[: STANDBY]` / `[. OFFLINE]` in strict SE ASCII.
 
 #### Ammo Magazine Counters (`ammo` / `pips`)
+
 Discrete pip cartridge readout representing remaining ordnance, rounds, or torpedos:
+
 ```bash
 line: "PDC_AMMO" ammo(gatling.ammo) flat(yellow)
 line: "MISSILES" pips(launch_tubes.percent) gradient(red, yellow, cyan)
 ```
+
 - **Sprite Mode:** 8 discrete segmented pip cartridges illuminated in sequence with active color gradient.
 - **TUI / Text Mode:** `[▮▮▮▮▮▯▯▯]` (Unicode) and `[||||....]` (Strict SE ASCII).
 
 #### Dynamic Charging & Discharging Flow Indicators (`flow` / `rate` / `spinner`)
+
 Real-time animated flow rate and charging/discharging dynamic spinner for battery banks, reactors, and fuel transfer manifolds:
+
 ```bash
 line: "FLOW    " flow(reactor.flow) flat(cyan)
 line: "NET_RATE" rate(sorters.rate) flat(orange)
 ```
+
 - **States:** Charging (`CHG`, > 55%), Discharging (`DSC`, < 45%), Standby (`STBY`, 45% - 55%).
 - **Sprite Mode:** Dynamic rotated directional indicator (`Triangle`) pointing up during recharge and down during discharge.
 - **TUI / Text Mode:** Rotating animated spinner: `⠋ ▲▲ CHG` vs `⠙ ▼▼ DSC` vs `●● STBY` (Unicode) and `| ^^ CHG` vs `/ vv DSC` vs `== STBY` (Strict SE ASCII).
 
 #### Dynamic Label & Title Formatting (`{percent}`, `{val}`)
+
 Any line label or panel title can interpolate live percentage or raw numeric values directly:
+
 ```bash
 line: "PWR [{percent}]" bar(pwr.percent) gradient(red, yellow, green)
 line: "CHARGE {val}%" dots(cells.percent) flat(cyan)
 ```
 
-
 #### Liquid Tanks and Vertical Bars (`tank` / `tube` / `bucket`)
+
 A tube that fills from the bottom, with a wave line of characters on the surface and rising bubbles. A panel that contains a tank, or has `orientation: vertical`, lays its lines out as columns. A panel spanning the screen is the large size; a grid of panels gives medium ones:
+
 ```bash
 @panel fuel at(0, 0, 1, 1) title: "H2"
 line: "H2" tank(h2.percent) gradient(#1e3a8a, #38bdf8)
 ```
+
 See `tank_fullscreen`, `tank_trio` and `vertical_bars`.
 
 #### Sizes, Colours and Conditions (options for every gauge)
+
 ```bash
 line: "POWER" bar(pwr.percent) size(large) gradient(#ef4444, #eab308, #22c55e) track(#111827) label_color(#94a3b8)
 line: "BATT " bar(pwr.percent) color(pwr.percent < 25 : red/orange, default: green/cyan)
 line: "CARGO" bar(cargo.percent) gradient(#22c55e, #ef4444) color_by(pwr.percent)
 ```
+
 - `size(medium|large)`: the row takes 2 or 4 shares of its panel (normal is 1) and the bar grows with it.
 - `color(...)` rules, then `gradient(...)`, then `flat(...)` decide the colour of every gauge kind. A rule can answer with a gradient written `a/b`. Inside `color(...)` use colour names for these; a `#` after a space starts a comment.
 - `color_by(bind.field)`: colour follows another value than the one the gauge shows. `track(color)` colours the empty part, `label_color(color)` the label.
 
 #### Dial (`dial` / `gauge` / `arc`)
+
 A half circle of segments that light up with the value, with a needle and a hub. A gradient runs along the arc by position:
+
 ```bash
 line: "POWER" dial(pwr.percent) size(large) gradient(#22c55e, #eab308, #ef4444) segments(20)
 ```
 
 #### Bar Dressing, Segments and Line Details
+
 ```bash
 line: "H2   " bar(h2.percent) ticks(5) marker(25, 80) outline(#94a3b8)   # division lines, threshold ticks, a frame
 line: "CARGO" bar(cargo.percent) dir: left                                # fills from the right end
@@ -404,25 +463,32 @@ line: "LED  " led(pwr.percent) segments(20)                              # 2 to 
 line: "TREND" spark(h2.percent) points(24)                               # 2 to 40 columns
 line: "BATT " bar(pwr.percent) value(off) icon(IconEnergy) blink(pwr.percent < 15)
 ```
+
 `value(off)` hides the value text, `icon(Name)` draws a built-in sprite before the label (`scan` lists the names), and `blink(...)` flashes a line while a condition holds, in any colour. See `gauge_lab`.
 
 #### Rate, ETA and Trend
+
 `text(batt.rate)` is the change per minute (`-2.4%/min`), `text(batt.eta)` the time until empty or full at that rate (`empty 18m 20s`), and `text(batt.trend)` an arrow (`^` `v` `=`). Sampled every 5 s and smoothed.
 
 #### Item Amounts, Contents and LCD Text
+
 - `bar(cargo.ingot:Iron) max(5000)`: amount of one item (`kind:Subtype`); `max(N)` or `max(bind.field)` is the full amount.
 - `text(cargo.top1)`: the largest item held, `top2` the next and so on (refreshed every 15 s).
 - `text(notes.line1)`: a line of the text on a text panel or LCD that is not a HELM screen (read every 2 s). Only text can be read; the game gives scripts no access to another screen's picture.
 - `scope: all` on a bind also reads blocks on ships docked on a connector.
 
 #### Mirroring Screens
+
 `mirror: "Bridge"` on a screen copies another screen's drawing to this display, scaled to fit; `mirror_panel: "POWER"` copies one panel. Only screens of the same Programmable Block can be mirrored.
 
 ### Emergency Hazard Alert Pulsing
+
 Any system that enters an emergency state (resolving to `red` via gradients or threshold rules) **automatically pulses** between emergency crimson and bright alert red in sync across all screens on your ship or station.
 
 ### Color Science & Hex / RGB Parsing
+
 HELM supports full 24-bit color fidelity across all directives (`flat(...)`, `gradient(...)`, `color(...)`, `bg:`, and `border_color:`):
+
 - **Hex 6-Digit:** `#RRGGBB` (e.g. `#38bdf8`, `#22c55e`, `#ef4444`)
 - **Hex 3-Digit:** `#RGB` (e.g. `#0fc`, `#f80`, `#f43`)
 - **RGB Triples:** `R, G, B` (e.g. `255, 128, 0` or `14, 18, 24`)
@@ -430,14 +496,18 @@ HELM supports full 24-bit color fidelity across all directives (`flat(...)`, `gr
 - **Transparency:** `transparent` or `none` (omits background quad to let underlying LCD textures show through).
 
 ### Vanilla Font Family Selection
+
 Control the typography per-screen or per-panel using Keen's native bitmap font atlases:
+
 - `font: Monospace` (Default fixed-pitch font for console readouts)
 - `font: Debug` (Crisp military HUD terminal font)
 - `font: White`, `Red`, `Green`, `Blue`, `DarkBlue` (Vanilla colored font atlases)
 - `font: UrlNormal`, `UrlHighlight`
 
 ### CLI/TUI Grid Layout Engine & Sub-Panels
+
 Bring curses/TUI multi-panel displays to Space Engineers. Define a matrix grid and snap sub-panels with coordinate isolation:
+
 ```bash
 @screen bridge_matrix
 output: "Bridge Main LCD", 0
@@ -461,12 +531,15 @@ line: "HYDR" bar(h2.percent) gradient(green, yellow, red)
 line: "JUMP" led(jump.percent) flat(magenta)
 line: "HIST" spark(h2.percent) flat(cyan)
 ```
+
 - Each panel calculates its sub-viewport automatically with uniform gutters and margins.
 - Panels can override `font:`, `font_size:`, `bg:`, and `border_color:`.
 - Includes an optional title header with a distinct accent divider line.
 
 ### Parameterized Template System
+
 Define an entire screen or subsystem once, then stamp it out across multiple LCDs by simply passing parameter overrides:
+
 ```bash
 @template engine_pod($screen, $batt_group, $tank_group)
 @bind pwr_$screen = group("$batt_group", agg: avg)
@@ -484,52 +557,69 @@ line: "H2 " bar(h2_$screen.percent) gradient(green, yellow, red)
 ```
 
 ### Built-In Predefined Template Gallery
+
 HELM ships with production-grade templates built right into the parser. You can use them immediately with zero boilerplate:
 
 #### `fighter_hud`
+
 Compact 2x1 cockpit layout with propulsion and storage sub-panels:
+
 ```bash
 @use fighter_hud(screen="Cockpit Display", pwr="Fighter Batteries", h2="Hydrogen Tanks", cargo="Cargo Containers")
 ```
 
 #### `reactor_matrix`
+
 Dual 1x2 industrial power grid monitor (Reactors + Battery Bank):
+
 ```bash
 @use reactor_matrix(screen="Reactor LCD", reactors="Main Reactors", batteries="Main Batteries")
 ```
 
 #### `bridge_status`
+
 Full 2x2 capital bridge display (Power Grid, Life Support, Navigation Jump, Logistics):
+
 ```bash
 @use bridge_status(screen="Bridge LCD", power="Batteries", o2="Air Vents", cargo="Cargo", jump="Jump Drives")
 ```
 
 #### `mining_ops`
+
 Industrial 1x2 ore hold capacity and drill status monitor:
+
 ```bash
 @use mining_ops(screen="Drill LCD", cargo="Cargo Containers", drills="Drills")
 ```
 
 #### `airlock`
+
 Atmosphere and dual-door security status display:
+
 ```bash
 @use airlock(screen="Airlock Console LCD", vent="Airlock Vent", inner_door="Inner Security Door", outer_door="Outer Security Door")
 ```
 
 #### `cargo_overview`
+
 Comprehensive 4-quadrant logistics matrix (Ores, Ingots, Components, Munitions):
+
 ```bash
 @use cargo_overview(screen="Cargo Manifest LCD", ores="Ore Cargo", ingots="Ingot Silos", comps="Component Bay", ammo="Ammo Container")
 ```
 
 #### `battery_monolith`
+
 Dedicated full-screen monolithic battery monitor with directional vertical meniscus fill:
+
 ```bash
 @use battery_monolith(screen="Battery Wall LCD", batt="Main Battery Bank")
 ```
 
 #### Modular Border & Frame Templates (`layouts/templates.txt`)
+
 External template definitions loaded dynamically via `[HelmParser]::LoadTemplateFile(...)` or reusable directly:
+
 - `heavy_command(screen="...", core="...", batt="...")`: Heavy reinforced industrial bulkhead frame with centered title and multi-stop blue gradient.
 - `double_tactical(screen="...", guns="...", ammo="...")`: Double-line crisp military tactical border with right-aligned title and amber/red munitions hazard bars.
 - `rounded_avionics(screen="...", gyro="...", fuel="...")`: Smooth curved aerospace cockpit border with centered title and zero-center pitch balance horizon gauge.
@@ -543,6 +633,7 @@ External template definitions loaded dynamically via `[HelmParser]::LoadTemplate
 ```
 
 ### Staggered Boot Sequence & Aerospace Diagnostics
+
 When the script starts, each screen plays a short cold-start boot: the startup logo with a colour gradient, a header message and diagnostic lines that appear one by one, then the live display. Screens power on one after another. The run argument `boot` plays it again; editing the layout does not. `boot_duration: 0` skips it for a screen. Screens without boot settings use the defaults below.
 
 After the boot, each screen runs a calibration sweep: its gauges run from 0 to 100 and settle on the live value (`boot_calibrate: <seconds>`, default `1.2`; `0` or `off` skips it). State gauges and text are not swept.
@@ -571,48 +662,49 @@ boot_log: "helm-core online -- FLEET COMMAND READY"
 ```
 
 ### Modular Layout Library (`layouts/default/`)
+
 HELM provides an extensive catalog of pre-tuned, production-grade `.txt` display layouts ready for immediate deployment in-game or visual preview in [`helmv.ps1`](helmv.ps1):
 
-| Layout File | Profile | Description |
-| :--- | :--- | :--- |
-| `planetary_base.txt` | 2x3 Grid | Outpost master control: solar, wind, battery bank, life support, excavation, ore processing, base defense. |
-| `command_carrier.txt` | 3x2 Grid | Flagship capital carrier: fleet power, hangar ops, weapons battery, point defense, propulsion, command net. |
-| `survival_essentials.txt` | 2x2 Grid | Clean 4-quadrant survival HUD: power status, life support, cargo & supply, system health. |
-| `deep_space_explorer.txt` | 2x2 Grid | Long-range survey HUD: jump drive range, fuel reserves, sensors & survey, docking. |
-| `mining_fleet_coordinator.txt` | 2x3 Grid | Multi-ship coordinator with dynamic IGC binds for drone miners and shared refinery throughput. |
-| `atmospheric_lander.txt` | 2x2 Grid | Planetary dropship HUD: pitch attitude balance gauge, atmo thrusters, landing gear, surface drills. |
-| `bridge_matrix.txt` | 2x2 Grid | Capital ship 4-quadrant bridge display: power grid, life support, navigation, cargo stores. |
-| `tactical_defense.txt` | 2x2 Grid | Combat fire control: railgun capacitor, turret ammunition, missile status, decoy arrays. |
-| `thruster_balance.txt` | 2x2 Grid | 6-axis directional propulsion and hydrogen distribution balance HUD. |
-| `split_flight_deck.txt` | 2x1 Grid | Asymmetric flight instrumentation for pilot and co-pilot cockpits. |
-| `assembler_monolith.txt` | 1x1 Grid | Full-screen manufacturing and queue throughput monitor. |
-| `refinery_monolith.txt` | 1x1 Grid | Smelting throughput, yield enhancement, and ingot stores monitor. |
-| `reactor_monolith.txt` | 1x1 Grid | Monolithic uranium burn rate, temperature, and reactor core matrix. |
-| `battery_monolith.txt` | 1x1 Grid | Full-surface monolithic battery bank with vertical liquid fill. |
-| `cargo_monolith.txt` | 1x1 Grid | High-capacity bulk ore hopper fill gauge with dynamic meniscus pulse. |
-| `jump_drive_spool.txt` | 1x2 Grid | Jump drive spool capacitor, recharge countdown, and jump readiness. |
-| `medical_life_support.txt` | 1x2 Grid | Pressurization vents, O2/H2 generation, and medical bay status. |
-| `airlock_security.txt` | 1x2 Grid | Dual-door security airlock with atmospheric pressurization monitor. |
-| `rover_cockpit.txt` | 2x2 Grid | Wheeled planetary rover: powertrain, suspension friction, cargo hold. |
-| `mining_rig.txt` | 1x2 Grid | Stationary drill tower vibration, ore capacity, and sorter drain status. |
-| `fighter_hud.txt` | 2x1 Grid | Compact fighter cockpit display: battery reserves, hydrogen burn, cargo fill. |
-| `hazard_alert.txt` | 1x1 Grid | Overload containment alert with synchronized emergency flashing. |
-| `dynamic_telemetry.txt` | 1x2 Grid | Inter-script IGC display server test layout demonstrating dynamic binding through IGC. |
-| `tank_fullscreen.txt` | 1x1 Grid | One liquid tube filling the whole screen, wave line and bubbles, bottom-to-top gradient. |
-| `tank_trio.txt` | 3x1 Grid | Medium tanks: hydrogen, oxygen and power side by side. |
-| `vertical_bars.txt` | 1x1 Grid | A vertical panel: value on top, bar in the middle, label below. |
-| `bar_sizes.txt` | 1x1 Grid | A large, a medium and a normal bar in one panel (`size(...)`), with `track` and `label_color`. |
-| `combo_dashboard.txt` | 3x2 Grid | Tank column, sized bars and condition-driven gradients in one layout. |
-| `background_lab.txt` | 6 screens | Gradient, two-tone, see-through, alert, value-driven, flashing and textured backgrounds. |
-| `startup_banner.txt` | 2 screens | The same ASCII art as a full-screen banner and as a boot logo. |
-| `top_contents.txt` | 1x1 Grid | The five largest items of a cargo group, ranked. |
-| `cargo_contents.txt` | 1x1 Grid | Amounts of named items and a reactor's fuel (`kind:Subtype`). |
-| `fighter_ammo.txt` | 1x1 Grid | Ammunition and missiles against a full load with `max(N)`. |
-| `projector_welder.txt` | 1x1 Grid | Build progress of a projected blueprint and welder activity. |
-| `rover_suspension.txt` | 1x1 Grid | Height, strength, power, friction and brake of a rover's wheels. |
-| `dynamic_strings.txt` | 1x1 Grid | Text values on dynamic binds, replaced over IGC or the run command. |
-| `template_nested.txt` | 1x1 Grid | A template that invokes another template. |
-| `missing_binds.txt` | 1x1 Grid | Binds that match no block: every value reads as an error. |
+| Layout File                    | Profile   | Description                                                                                                 |
+| :----------------------------- | :-------- | :---------------------------------------------------------------------------------------------------------- |
+| `planetary_base.txt`           | 2x3 Grid  | Outpost master control: solar, wind, battery bank, life support, excavation, ore processing, base defense.  |
+| `command_carrier.txt`          | 3x2 Grid  | Flagship capital carrier: fleet power, hangar ops, weapons battery, point defense, propulsion, command net. |
+| `survival_essentials.txt`      | 2x2 Grid  | Clean 4-quadrant survival HUD: power status, life support, cargo & supply, system health.                   |
+| `deep_space_explorer.txt`      | 2x2 Grid  | Long-range survey HUD: jump drive range, fuel reserves, sensors & survey, docking.                          |
+| `mining_fleet_coordinator.txt` | 2x3 Grid  | Multi-ship coordinator with dynamic IGC binds for drone miners and shared refinery throughput.              |
+| `atmospheric_lander.txt`       | 2x2 Grid  | Planetary dropship HUD: pitch attitude balance gauge, atmo thrusters, landing gear, surface drills.         |
+| `bridge_matrix.txt`            | 2x2 Grid  | Capital ship 4-quadrant bridge display: power grid, life support, navigation, cargo stores.                 |
+| `tactical_defense.txt`         | 2x2 Grid  | Combat fire control: railgun capacitor, turret ammunition, missile status, decoy arrays.                    |
+| `thruster_balance.txt`         | 2x2 Grid  | 6-axis directional propulsion and hydrogen distribution balance HUD.                                        |
+| `split_flight_deck.txt`        | 2x1 Grid  | Asymmetric flight instrumentation for pilot and co-pilot cockpits.                                          |
+| `assembler_monolith.txt`       | 1x1 Grid  | Full-screen manufacturing and queue throughput monitor.                                                     |
+| `refinery_monolith.txt`        | 1x1 Grid  | Smelting throughput, yield enhancement, and ingot stores monitor.                                           |
+| `reactor_monolith.txt`         | 1x1 Grid  | Monolithic uranium burn rate, temperature, and reactor core matrix.                                         |
+| `battery_monolith.txt`         | 1x1 Grid  | Full-surface monolithic battery bank with vertical liquid fill.                                             |
+| `cargo_monolith.txt`           | 1x1 Grid  | High-capacity bulk ore hopper fill gauge with dynamic meniscus pulse.                                       |
+| `jump_drive_spool.txt`         | 1x2 Grid  | Jump drive spool capacitor, recharge countdown, and jump readiness.                                         |
+| `medical_life_support.txt`     | 1x2 Grid  | Pressurization vents, O2/H2 generation, and medical bay status.                                             |
+| `airlock_security.txt`         | 1x2 Grid  | Dual-door security airlock with atmospheric pressurization monitor.                                         |
+| `rover_cockpit.txt`            | 2x2 Grid  | Wheeled planetary rover: powertrain, suspension friction, cargo hold.                                       |
+| `mining_rig.txt`               | 1x2 Grid  | Stationary drill tower vibration, ore capacity, and sorter drain status.                                    |
+| `fighter_hud.txt`              | 2x1 Grid  | Compact fighter cockpit display: battery reserves, hydrogen burn, cargo fill.                               |
+| `hazard_alert.txt`             | 1x1 Grid  | Overload containment alert with synchronized emergency flashing.                                            |
+| `dynamic_telemetry.txt`        | 1x2 Grid  | Inter-script IGC display server test layout demonstrating dynamic binding through IGC.                      |
+| `tank_fullscreen.txt`          | 1x1 Grid  | One liquid tube filling the whole screen, wave line and bubbles, bottom-to-top gradient.                    |
+| `tank_trio.txt`                | 3x1 Grid  | Medium tanks: hydrogen, oxygen and power side by side.                                                      |
+| `vertical_bars.txt`            | 1x1 Grid  | A vertical panel: value on top, bar in the middle, label below.                                             |
+| `bar_sizes.txt`                | 1x1 Grid  | A large, a medium and a normal bar in one panel (`size(...)`), with `track` and `label_color`.              |
+| `combo_dashboard.txt`          | 3x2 Grid  | Tank column, sized bars and condition-driven gradients in one layout.                                       |
+| `background_lab.txt`           | 6 screens | Gradient, two-tone, see-through, alert, value-driven, flashing and textured backgrounds.                    |
+| `startup_banner.txt`           | 2 screens | The same ASCII art as a full-screen banner and as a boot logo.                                              |
+| `top_contents.txt`             | 1x1 Grid  | The five largest items of a cargo group, ranked.                                                            |
+| `cargo_contents.txt`           | 1x1 Grid  | Amounts of named items and a reactor's fuel (`kind:Subtype`).                                               |
+| `fighter_ammo.txt`             | 1x1 Grid  | Ammunition and missiles against a full load with `max(N)`.                                                  |
+| `projector_welder.txt`         | 1x1 Grid  | Build progress of a projected blueprint and welder activity.                                                |
+| `rover_suspension.txt`         | 1x1 Grid  | Height, strength, power, friction and brake of a rover's wheels.                                            |
+| `dynamic_strings.txt`          | 1x1 Grid  | Text values on dynamic binds, replaced over IGC or the run command.                                         |
+| `template_nested.txt`          | 1x1 Grid  | A template that invokes another template.                                                                   |
+| `missing_binds.txt`            | 1x1 Grid  | Binds that match no block: every value reads as an error.                                                   |
 
 The folder holds more layouts than this table lists (65 in all); the [presets gallery](docs/content/presets-gallery.md) is generated from the files and lists every one.
 
@@ -621,6 +713,7 @@ The folder holds more layouts than this table lists (65 in all); the [presets ga
 ## Production Code Examples
 
 ### Example 1: Fighter Cockpit Display
+
 A compact single-screen layout designed for a cockpit keyboard or center console (Surface 0). Features fluid-damped bars and a real-time battery drain sparkline:
 
 ```bash
@@ -643,6 +736,7 @@ line: "JMP" bar(jump.percent) flat(magenta)
 ```
 
 ### Example 2: Industrial Mining Outpost & Cargo Bay
+
 Monitors heavy battery banks and multiple cargo containers with discrete LED chiclets:
 
 ```bash
@@ -661,6 +755,7 @@ line: "STAT" text(main_cargo.percent) color(main_cargo.percent >= 95 : red, main
 ```
 
 ### Example 3: Capital Ship Multi-Screen Bridge
+
 Renders across two separate LCD panels using multi-tick round-robin scheduling without instruction spikes:
 
 ```bash
@@ -694,22 +789,24 @@ line: "ALRT" text(hold_vol.percent) color(hold_vol.percent > 90 : red, default: 
 ---
 
 ### In-Game Programmable Block Arguments
+
 You can trigger the Programmable Block via cockpit toolbars, sensor blocks, or timer blocks by passing arguments into `Main`:
 
-| Argument  | Description                                         | Use Case                                                          |
-| --------- | --------------------------------------------------- | ----------------------------------------------------------------- |
-| `reload`  | Re-parses Custom Data immediately                   | Quickly test configuration changes without recompiling the script |
-| `refresh` | Re-scans all physical blocks and groups on the grid | Call after docking, undocking, or welding new blocks              |
-| `boot`    | Plays the boot sequence again on every screen       | Check the boot logo and calibration sweep                         |
-| `starter` | Writes a sample layout into an empty Custom Data and loads it (never overwrites) | First run on a new block                  |
-| `probe`   | Draws a test pattern for 20 s on the block's screen and every configured screen | Check what part of a real screen the script covers |
-| `console on` / `console off` | Shows or hides the console on the block's own screen | Give the block's screen back to the game      |
-| `names`   | Writes every block name and group name of the grid to the end of Custom Data as comment lines (once) | Copy exact names into `@bind` lines |
-| `scan` (also `diagnose`, `test`) | Prints a report of binds, surfaces, instruction use and the sprite names for `bg_texture` | Find why a gauge shows `ERR` |
-| `alert red` / `alert off` / `alert toggle` | Red alert: backgrounds flash to `alert_bg` and red gauges flash | Wire to a sensor or hotbar        |
-| `set <var> <val>` | Sets an in-memory dynamic variable                  | Feed a value or text to a `dynamic` bind                          |
+| Argument                                   | Description                                                                                          | Use Case                                                          |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `reload`                                   | Re-parses Custom Data immediately                                                                    | Quickly test configuration changes without recompiling the script |
+| `refresh`                                  | Re-scans all physical blocks and groups on the grid                                                  | Call after docking, undocking, or welding new blocks              |
+| `boot`                                     | Plays the boot sequence again on every screen                                                        | Check the boot logo and calibration sweep                         |
+| `starter`                                  | Writes a sample layout into an empty Custom Data and loads it (never overwrites)                     | First run on a new block                                          |
+| `probe`                                    | Draws a test pattern for 20 s on the block's screen and every configured screen                      | Check what part of a real screen the script covers                |
+| `console on` / `console off`               | Shows or hides the console on the block's own screen                                                 | Give the block's screen back to the game                          |
+| `names`                                    | Writes every block name and group name of the grid to the end of Custom Data as comment lines (once) | Copy exact names into `@bind` lines                               |
+| `scan` (also `diagnose`, `test`)           | Prints a report of binds, surfaces, instruction use and the sprite names for `bg_texture`            | Find why a gauge shows `ERR`                                      |
+| `alert red` / `alert off` / `alert toggle` | Red alert: backgrounds flash to `alert_bg` and red gauges flash                                      | Wire to a sensor or hotbar                                        |
+| `set <var> <val>`                          | Sets an in-memory dynamic variable                                                                   | Feed a value or text to a `dynamic` bind                          |
 
 ### Offline TUI Simulator & Visualizer (`helmv.ps1` / `Test-HelmLayout.ps1`)
+
 You can design, test, and export your HELM displays completely offline without launching Space Engineers using the terminal visualizer [`helmv.ps1`](helmv.ps1):
 
 ```powershell
@@ -764,6 +861,7 @@ pwsh ./Test-HelmLayout.ps1 -Preset atmospheric_lander -ShowSprites -ShowStats -C
 
 **VRage Hardware Sprite Buffer Inspector (`-ShowSprites`):**
 Passing `-ShowSprites` appends a real-time hardware telemetry card showing the exact `MySprite` budget that Space Engineers would allocate for that screen layout:
+
 - **Total Allocated `MySprite` structs**: Exact quad and texture footprint pre-allocated in `ScreenBuffer`.
 - **In-Place Mutated Quads / Tick**: Demonstrates the zero-allocation model where only existing sprite values (`Size.X`, `Color`, `Data`) are updated in memory.
 - **Per-Tick GC Allocation**: reported by the simulator as 0 KB. This is a model of the intended design, not a measurement from the game.
@@ -776,10 +874,11 @@ Passing `-ShowSprites` appends a real-time hardware telemetry card showing the e
 [`helmv.ps1`](helmv.ps1) is a text rendering. After each run it prints a `helmv:` note for anything in the layout it cannot draw (tanks, vertical panels, `size(...)`, `label_color` / `track` / `color_by`, gradient and texture backgrounds, mirrors, banners, panel positions) and for parser warnings. A layout with several screens shows the first one; `-ScreenName` picks another. See [helmv-cli](docs/content/helmv-cli.md).
 
 **Tear-Free Terminal Guarantee:**
-[`helmv.ps1`](helmv.ps1) adheres strictly to the **Padding Rule**—calculating exact character bounding boxes *before* encoding ANSI color sequences. Multi-column grid rendering compresses bridge dashboards from 28 lines down to 18 lines, comfortably fitting standard 24/25-row terminals. In interactive environments, it switches to the VT100 Alternate Screen Buffer (`$ESC[?1049h`), uses line erase sequences (`$ESC[K`), and display clears (`$ESC[J`), completely eliminating screen scrolling, line drifting, and duplicate text overlapping.
+[`helmv.ps1`](helmv.ps1) adheres strictly to the **Padding Rule**—calculating exact character bounding boxes _before_ encoding ANSI color sequences. Multi-column grid rendering compresses bridge dashboards from 28 lines down to 18 lines, comfortably fitting standard 24/25-row terminals. In interactive environments, it switches to the VT100 Alternate Screen Buffer (`$ESC[?1049h`), uses line erase sequences (`$ESC[K`), and display clears (`$ESC[J`), completely eliminating screen scrolling, line drifting, and duplicate text overlapping.
 
 **Space Engineers Monospace ASCII Character Fidelity:**
 When `-StrictSEAscii` is passed, the simulator restricts all visual primitives to the strict printable character set present in Keen's vanilla `Monospace` font atlas (`FontData.xml`):
+
 - Solid Bars: `#` (filled) and `-` (empty) (`##########--------`)
 - LED Chiclets: `[#]` and `[ ]`
 - Hazard Caution: `//` and `..`
@@ -793,15 +892,15 @@ When `-StrictSEAscii` is passed, the simulator restricts all visual primitives t
 
 ### Performance Benchmarks vs Competitors
 
-| Metric                               | AutoLCD2                | FSD2                              | HELM (ASCII Baseline)             | **HELM (Retained Virtual Buffer)**        |
-| ------------------------------------ | ----------------------- | --------------------------------- | --------------------------------- | ----------------------------------------- |
-| **Scheduling Model**                 | 1 screen / tick         | All screens / tick                | 1 screen / tick (Round-robin)     | **1 screen / tick (Round-robin)**         |
-| **Instruction Count (Unchanged)**    | ~2,500 – 6,000          | ~8,000 – 15,000                   | ~300 – 800                        | **~25 – 45 instructions** (< 0.1% cap)    |
-| **Instruction Count (Active Redraw)**| ~4,000 – 12,000         | ~25,000 – **50,000+** ⚠️ *(Crash)*| ~1,200 – 2,400                    | **~250 – 420 instructions** (< 0.9% cap)  |
-| **Execution Time (`LastRunTimeMs`)** | ~0.60ms – 1.80ms        | ~1.50ms – 4.20ms                  | ~0.08ms – 0.14ms                  | **0.025ms – 0.070ms** (0.00ms on skip)   |
-| **Per-Tick GC Heap Allocations**     | Moderate (~2 KB / tick) | High (~4 – 8 KB / tick)           | ~0.4 KB / tick                    | **0.000 KB (True Zero Allocation)**       |
-| **JIT / Compile Overhead**           | ~6.0ms initial JIT      | ~2.5ms                            | ~0.5ms                            | **< 0.4ms (Instant Load)**                |
-| **Multiplayer Packet Size (8 Lines)**| Moderate                | High                              | ~0.8 KB                           | **~1.3 KB (Ultra-safe MP sync)**          |
+| Metric                                | AutoLCD2                | FSD2                               | HELM (ASCII Baseline)         | **HELM (Retained Virtual Buffer)**       |
+| ------------------------------------- | ----------------------- | ---------------------------------- | ----------------------------- | ---------------------------------------- |
+| **Scheduling Model**                  | 1 screen / tick         | All screens / tick                 | 1 screen / tick (Round-robin) | **1 screen / tick (Round-robin)**        |
+| **Instruction Count (Unchanged)**     | ~2,500 – 6,000          | ~8,000 – 15,000                    | ~300 – 800                    | **~25 – 45 instructions** (< 0.1% cap)   |
+| **Instruction Count (Active Redraw)** | ~4,000 – 12,000         | ~25,000 – **50,000+** ⚠️ _(Crash)_ | ~1,200 – 2,400                | **~250 – 420 instructions** (< 0.9% cap) |
+| **Execution Time (`LastRunTimeMs`)**  | ~0.60ms – 1.80ms        | ~1.50ms – 4.20ms                   | ~0.08ms – 0.14ms              | **0.025ms – 0.070ms** (0.00ms on skip)   |
+| **Per-Tick GC Heap Allocations**      | Moderate (~2 KB / tick) | High (~4 – 8 KB / tick)            | ~0.4 KB / tick                | **0.000 KB (True Zero Allocation)**      |
+| **JIT / Compile Overhead**            | ~6.0ms initial JIT      | ~2.5ms                             | ~0.5ms                        | **< 0.4ms (Instant Load)**               |
+| **Multiplayer Packet Size (8 Lines)** | Moderate                | High                               | ~0.8 KB                       | **~1.3 KB (Ultra-safe MP sync)**         |
 
 ### Feature Audit Matrix (PDR Compliance)
 
@@ -857,7 +956,6 @@ mono Tests.exe
 ```
 
 `Build-Release.ps1` runs these tests first. Three more checks cover the game script itself: `tools/scope-test` (fake blocks and screens through the real script), `tools/rename-check/Test-RenameParity.ps1` (the minified script draws exactly what the source draws on every preset) and `tools/pb-check` (compiles the minified script against the game's own assemblies when `SE_BIN64` points at the game's `Bin64` folder).
-
 
 ---
 
