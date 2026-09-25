@@ -9,6 +9,7 @@ const out = path.resolve(root, "..", "public", "helm-toolbox");
 const copies = [
   ["index.html", "index.html"],
   ["js", "js"],
+  ["locales", "locales"],
   ["data", "data"],
   ["vendor", "vendor"],
   [path.join("wasm", "wwwroot"), path.join("wasm", "wwwroot")],

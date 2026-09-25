@@ -1,0 +1,8 @@
+{
+  "Custom Data": "The editable text field on a Space Engineers block.",
+  "DSL": "HELM's line-oriented configuration language.",
+  "HELM Toolbox": "The browser-based HELM layout editor and previewer.",
+  "LCD": "A text surface, including cockpit screens and standalone panels.",
+  "Programmable Block": "The block that runs HELM Core in Space Engineers.",
+  "surface": "A numbered drawable area exposed by a block."
+}

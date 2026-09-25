@@ -11,6 +11,9 @@ import {
 } from "./dsl-model.mjs";
 import { Lume } from "../vendor/lume.mjs";
 import logcad from "../vendor/logcad.mjs";
+import { initializeI18n, t } from "./i18n.mjs";
+
+await initializeI18n();
 
 // This module lives in helm-toolbox/js/; data/ is its sibling. Resolved from import.meta.url (not a
 // hardcoded "/helm-toolbox/"), so it works whether the page is served at the site root (local dev) or
@@ -120,11 +123,11 @@ async function doRender() {
   const myToken = ++renderToken;
   let result;
   try {
-    $("#preview-status").textContent = "Rendering…";
+    $("#preview-status").textContent = t("preview.rendering");
     result = await wasmRender(state.dsl, prof.w, prof.h, state.values, state.seconds, state.screenIndex, state.alert);
   } catch (e) {
     if (myToken !== renderToken) return;
-    $("#preview-status").textContent = "The renderer failed to load: " + e.message;
+    $("#preview-status").textContent = t("preview.loadFailed", { message: e.message });
     logcad.logd(logger, "render", "Renderer failed", { message: e.message });
     return;
   }
@@ -140,7 +143,7 @@ async function doRender() {
   // exist, or a host-level crash leaves the UI stuck showing "Rendering..." with an unhandled
   // exception instead of the error message rendered above.
   if (!result.surface || !result.texture) {
-    stage.innerHTML = '<p class="text-error font-mono text-sm p-2">The renderer could not draw a preview — see the error above.</p>';
+    stage.innerHTML = `<p class="text-error font-mono text-sm p-2">${escapeHtml(t("preview.drawFailed"))}</p>`;
     return;
   }
 
@@ -149,7 +152,7 @@ async function doRender() {
   const svg = stage.querySelector("svg");
   svg.removeAttribute("height");
   svg.setAttribute("role", "img");
-  svg.setAttribute("aria-label", `HELM preview for ${state.profile}, screen ${state.screenIndex + 1}`);
+  svg.setAttribute("aria-label", t("preview.aria", { profile: state.profile, screen: state.screenIndex + 1 }));
   const slot = svg.querySelector("#content-slot");
   const ox = (result.texture[0] - result.surface[0]) / 2;
   const oy = (result.texture[1] - result.surface[1]) / 2;
@@ -180,8 +183,8 @@ function renderIssues(errors, warnings) {
   if (errors.length === 0 && warnings.length === 0) { box.innerHTML = ""; box.classList.add("hidden"); return; }
   box.classList.remove("hidden");
   box.innerHTML =
-    errors.map((e) => `<div class="text-error font-mono text-xs">error: ${escapeHtml(e)}</div>`).join("") +
-    warnings.map((w) => `<div class="text-warning font-mono text-xs">warning: ${escapeHtml(w)}</div>`).join("");
+    errors.map((e) => `<div class="text-error font-mono text-xs">${escapeHtml(t("issues.error"))}: ${escapeHtml(e)}</div>`).join("") +
+    warnings.map((w) => `<div class="text-warning font-mono text-xs">${escapeHtml(t("issues.warning"))}: ${escapeHtml(w)}</div>`).join("");
 }
 
 function renderValueSliders(binds) {
@@ -189,7 +192,7 @@ function renderValueSliders(binds) {
   const names = binds.map((b) => b.name).join(",");
   if (box.dataset.names === names) return; // same binds as last render: keep the sliders (and their values) as they are
   box.dataset.names = names;
-  if (binds.length === 0) { box.innerHTML = '<p class="text-xs text-base-content/50 font-mono">No @bind lines yet.</p>'; return; }
+  if (binds.length === 0) { box.innerHTML = `<p class="text-xs text-base-content/50 font-mono">${escapeHtml(t("empty.binds"))}</p>`; return; }
   box.innerHTML = binds.map((b) => {
     const v = state.values[b.name] ?? 50;
     if (b.isText) return "";
@@ -290,12 +293,12 @@ function refreshInspector(followCursor = false) {
   const screenSelect = $("#config-screen");
   screenSelect.innerHTML = inspectorModel.screens.length
     ? inspectorModel.screens.map((item, index) => `<option value="${index}">${escapeHtml(item.name || `Screen ${index + 1}`)}</option>`).join("")
-    : '<option value="">No @screen yet</option>';
+    : `<option value="">${escapeHtml(t("empty.screens"))}</option>`;
   screenSelect.value = screen ? String(inspectorSelection.screen) : "";
   setInspectorDisabled("#base-config-fields", !screen);
   if (!screen) {
-    $("#config-panel").innerHTML = '<option value="">No panels</option>';
-    $("#config-line").innerHTML = '<option value="">No components</option>';
+    $("#config-panel").innerHTML = `<option value="">${escapeHtml(t("empty.panels"))}</option>`;
+    $("#config-line").innerHTML = `<option value="">${escapeHtml(t("empty.components"))}</option>`;
     setInspectorDisabled("#panel-config-fields", true);
     setInspectorDisabled("#line-config-fields", true);
     return;
@@ -320,7 +323,7 @@ function refreshInspector(followCursor = false) {
   const panel = screen.panels[inspectorSelection.panel];
   $("#config-panel").innerHTML = screen.panels.length
     ? screen.panels.map((item, index) => `<option value="${index}">${escapeHtml(item.name || `Panel ${index + 1}`)}${item.implicit ? " (implicit)" : ""}</option>`).join("")
-    : '<option value="">No panels</option>';
+    : `<option value="">${escapeHtml(t("empty.panels"))}</option>`;
   $("#config-panel").value = panel ? String(inspectorSelection.panel) : "";
   $("#implicit-panel-note").classList.toggle("hidden", !panel?.implicit);
   setInspectorDisabled("#panel-config-fields", !panel || panel.implicit);
@@ -342,7 +345,7 @@ function refreshInspector(followCursor = false) {
   const line = panel?.lines[inspectorSelection.line];
   $("#config-line").innerHTML = panel?.lines.length
     ? panel.lines.map((item, index) => `<option value="${index}">${escapeHtml(item.label || `Line ${index + 1}`)} · ${escapeHtml(item.kind || "custom")}</option>`).join("")
-    : '<option value="">No components in this panel</option>';
+    : `<option value="">${escapeHtml(t("empty.panelComponents"))}</option>`;
   $("#config-line").value = line ? String(inspectorSelection.line) : "";
   $("#unparsed-line-note").classList.toggle("hidden", !line || line.parsed);
   setInspectorDisabled("#line-config-fields", !line?.parsed);
@@ -481,7 +484,7 @@ function wirePaneResizer() {
     handle.setAttribute("aria-valuemax", String(Math.round(max)));
     handle.setAttribute("aria-valuenow", String(value));
     const expanded = value >= max - 2;
-    toggle.textContent = expanded ? "Restore split" : "Expand editor";
+    toggle.textContent = expanded ? t("preview.restore") : t("action.expand");
     toggle.setAttribute("aria-expanded", String(expanded));
     if (persist) {
       try { localStorage.setItem(EDITOR_HEIGHT_KEY, String(value)); } catch (e) {}
@@ -562,7 +565,7 @@ function writeProjects() {
 function refreshProjectPicker(selected = "") {
   const picker = $("#project-picker");
   const names = Object.keys(projects).sort((a, b) => a.localeCompare(b));
-  picker.innerHTML = '<option value="">Saved projects</option>' + names.map((name) =>
+  picker.innerHTML = `<option value="">${escapeHtml(t("editor.savedProjects"))}</option>` + names.map((name) =>
     `<option value="${escapeAttr(name)}">${escapeHtml(name)}</option>`).join("");
   picker.value = names.includes(selected) ? selected : "";
 }
@@ -577,12 +580,12 @@ function replaceDsl(dsl) {
 
 function saveProject() {
   const name = $("#project-name").value.trim();
-  if (!name) { flashButton($("#save-project"), "Name required"); $("#project-name").focus(); return; }
+  if (!name) { flashButton($("#save-project"), t("action.nameRequired")); $("#project-name").focus(); return; }
   // Only the project this editor was actually loaded from (or just saved as) skips confirmation;
   // typing a different, colliding name is most often a "save as" typo, not an intended overwrite.
   if (name !== currentProjectName && projects[name] && !confirm(`Overwrite the saved project "${name}"?`)) return;
   projects[name] = { dsl: state.dsl, profile: state.profile, updated: new Date().toISOString() };
-  if (!writeProjects()) { flashButton($("#save-project"), "Storage failed"); return; }
+  if (!writeProjects()) { flashButton($("#save-project"), t("action.storageFailed")); return; }
   currentProjectName = name;
   refreshProjectPicker(name);
   flashButton($("#save-project"), "Saved");
@@ -693,7 +696,7 @@ function renderBlockPalette() {
             </div>
           </div>
         </div>`).join("")}
-    </div>`).join("") || '<p class="text-xs text-base-content/50 font-mono p-2">No match.</p>';
+    </div>`).join("") || `<p class="text-xs text-base-content/50 font-mono p-2">${escapeHtml(t("empty.match"))}</p>`;
 
   $$("[data-insert-field]", box).forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -749,7 +752,7 @@ function renderComponents() {
 
 function renderTemplates(templates) {
   const box = $("#templates-palette");
-  if (templates.length === 0) { box.innerHTML = '<p class="text-xs text-base-content/50 font-mono p-2">No templates loaded.</p>'; return; }
+  if (templates.length === 0) { box.innerHTML = `<p class="text-xs text-base-content/50 font-mono p-2">${escapeHtml(t("empty.templates"))}</p>`; return; }
   box.innerHTML = templates.map((t, i) => `
     <div class="ref-card p-2 mb-2" data-template-card="${i}">
       <div class="font-mono text-xs font-bold truncate" title="${escapeAttr(t.name)}">${escapeHtml(t.name)}</div>
@@ -821,14 +824,14 @@ function wireControls() {
   starterSel.innerHTML = Array.from(starterGroups, ([label, layouts]) =>
     `<optgroup label="${escapeAttr(label)}">${layouts.map((s) => `<option value="${escapeAttr(s.name)}" title="${escapeAttr(s.description || s.title)}">${escapeHtml(s.title)}</option>`).join("")}</optgroup>`
   ).join("");
-  $("#layout-count").textContent = `${starters.length} layouts`;
+  $("#layout-count").textContent = t("preview.layoutCount", { count: starters.length });
   starterSel.addEventListener("change", () => {
-    if (dslDirty && !confirm("Discard unsaved changes in the editor?")) { starterSel.value = currentStarterName; return; }
+    if (dslDirty && !confirm(t("confirm.discard"))) { starterSel.value = currentStarterName; return; }
     loadStarter(starterSel.value);
   });
 
   const profileSel = $("#profile-picker");
-  profileSel.innerHTML = Object.keys(PROFILES).filter((p) => p !== "Auto" && p !== "Off").map((p) => `<option value="${p}">Preview: ${p} (${PROFILES[p].w}x${PROFILES[p].h})</option>`).join("");
+  profileSel.innerHTML = Object.keys(PROFILES).filter((p) => p !== "Auto" && p !== "Off").map((p) => `<option value="${p}">${escapeHtml(t("preview.profile", { profile: p, width: PROFILES[p].w, height: PROFILES[p].h }))}</option>`).join("");
   profileSel.value = state.profile;
   profileSel.addEventListener("change", () => { state.profile = profileSel.value; scheduleRender(); });
 
@@ -847,8 +850,8 @@ function wireControls() {
   $("#copy-dsl").addEventListener("click", async () => {
     try {
       await navigator.clipboard.writeText(state.dsl);
-      flashButton($("#copy-dsl"), "Copied");
-    } catch (e) { flashButton($("#copy-dsl"), "Could not copy"); }
+      flashButton($("#copy-dsl"), t("action.copied"));
+    } catch (e) { flashButton($("#copy-dsl"), t("action.copyFailed")); }
   });
 
   projects = readProjects();
@@ -883,7 +886,7 @@ function wireControls() {
     url.hash = `dsl=${encodeShare(state.dsl)}`;
     try {
       await navigator.clipboard.writeText(url.href);
-      flashButton($("#share-dsl"), "Link copied");
+      flashButton($("#share-dsl"), t("action.linkCopied"));
     } catch (e) { flashButton($("#share-dsl"), "Copy failed"); }
   });
 
@@ -908,7 +911,7 @@ function wireControls() {
       state.seconds = animBase + (performance.now() - animStart) / 1000;
     }
     state.playing = playing;
-    playToggle.textContent = state.playing ? "Pause animation" : "Play animation";
+    playToggle.textContent = state.playing ? t("preview.pause") : t("preview.play");
     clearTimeout(animTimer);
     animGeneration++;
     if (state.playing) {
@@ -968,7 +971,7 @@ async function main() {
   // memoizes it, so this doesn't duplicate that fetch), and the Templates tab is reference-only —
   // it can fill in once ready rather than delaying the rest of the page.
   listTemplates().then(renderTemplates).catch((e) => {
-    $("#templates-palette").innerHTML = '<p class="text-xs text-base-content/50 font-mono p-2">Could not load templates.</p>';
+    $("#templates-palette").innerHTML = `<p class="text-xs text-base-content/50 font-mono p-2">${escapeHtml(t("empty.templateFailure"))}</p>`;
     logcad.logd(logger, "data", "Could not load templates", { message: e.message });
   });
 
@@ -986,6 +989,6 @@ async function main() {
 }
 
 main().catch((e) => {
-  $("#preview-status").textContent = "Could not start: " + e.message;
+  $("#preview-status").textContent = t("preview.startFailed", { message: e.message });
   logcad.logd(logger, "start", "Application failed to start", { message: e.message });
 });

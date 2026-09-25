@@ -7,7 +7,7 @@
     "dev": "node scripts/ensure-frames.js && bun run icons && concurrently -k \"bun run css:watch\" \"eleventy --watch\" \"bun serve.js\"",
     "serve": "bun run toolbox:build && node scripts/ensure-frames.js && bun run icons && bun run css:build && concurrently -k \"eleventy --watch\" \"bun serve.js\"",
     "build": "bun run toolbox:build && bun run site:build",
-    "site:build": "bun run icons && bun run css:build && eleventy",
+    "site:build": "cd .. && bun run content:check && cd docs && bun run icons && bun run css:build && eleventy",
     "toolbox:build": "cd ../helm-toolbox && bun run build",
     "css:build": "tailwindcss -i ./css/input.css -o ../public/css/style.css --minify",
     "css:watch": "tailwindcss -i ./css/input.css -o ../public/css/style.css --watch",

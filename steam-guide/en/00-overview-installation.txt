@@ -1,0 +1,19 @@
+[h1]HELM Core[/h1]
+
+HELM (High-Efficiency Lightweight Monitor) turns Space Engineers LCDs and cockpit surfaces into configurable telemetry displays. A compact text DSL controls screens, panels, gauges, colors and block bindings. HELM Core runs in a vanilla Programmable Block; no client mod is required.
+
+[h2]Install from the Workshop[/h2]
+
+[olist]
+[*]Subscribe to HELM Core on the Steam Workshop.
+[*]Place a Programmable Block and the LCDs or cockpit surfaces you want to use.
+[*]Open the Programmable Block, choose Edit, Browse Scripts, select HELM Core, and run it.
+[*]Paste a layout into the Programmable Block's Custom Data.
+[*]Make the block or group names in each @bind line match your grid.
+[/olist]
+
+HELM writes only to surfaces declared by the active layout. Back up existing Custom Data before replacing it.
+
+[h2]What to read next[/h2]
+
+Use the next section for a minimal working display. HELM Toolbox provides a browser editor and real-renderer preview, while the full documentation contains the complete DSL, telemetry matrix, hardware profiles and preset gallery.

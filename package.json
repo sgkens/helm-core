@@ -9,6 +9,7 @@
     "setup:helm-toolbox": "cd helm-toolbox && bun install",
 
     "build": "bun run docs:build",
+    "content:check": "node scripts/check-content.mjs",
 
     "helm-toolbox:data": "cd helm-toolbox && bun run data",
     "helm-toolbox:vendor": "cd helm-toolbox && bun run vendor",

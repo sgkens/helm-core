@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="night">
+<html lang="{{ locale.id }}" data-theme="night">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -72,6 +72,7 @@
         </div>
 
         <div class="flex-none flex items-center gap-1">
+          <a href="/docs/localization/" class="btn btn-ghost btn-sm font-mono text-xs" lang="en" title="Translation status">{{ locale.label }}</a>
           <!-- Repository -->
           <a href="{{ site.repoUrl }}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm btn-square" aria-label="GitLab repository" title="GitLab repository">
             <svg role="img" viewBox="0 0 24 24" class="w-5 h-5 fill-current" xmlns="http://www.w3.org/2000/svg"><title>GitLab</title><path d="M23.6004 9.5927l-.0337-.0862L20.3.9814a.851.851 0 00-.3362-.405.8748.8748 0 00-.9997.0539.8748.8748 0 00-.29.4399l-2.2055 6.748H7.5375l-2.2057-6.748a.8573.8573 0 00-.29-.4412.8748.8748 0 00-.9997-.0537.8585.8585 0 00-.3362.4049L.4332 9.5015l-.0325.0862a6.0657 6.0657 0 002.0119 7.0105l.0113.0087.03.0213 4.976 3.7264 2.462 1.8633 1.4995 1.1321a1.0085 1.0085 0 001.2197 0l1.4995-1.1321 2.4619-1.8633 5.006-3.7466.0125-.01a6.0682 6.0682 0 002.0094-7.003z"/></svg>

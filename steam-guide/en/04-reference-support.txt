@@ -1,0 +1,28 @@
+[h1]Reference and support[/h1]
+
+The maintained documentation includes:
+
+[list]
+[*]Getting Started and installation
+[*]DSL syntax and configuration examples
+[*]Gauge primitives and visual customization
+[*]Block binding and telemetry field matrix
+[*]Hardware screen profiles
+[*]Preset and layout gallery
+[*]HELM Toolbox usage
+[*]CLI visualizer and contributor setup
+[/list]
+
+Documentation: https://sgkens.gitlab.io/helm-core/docs/
+
+HELM Toolbox: https://sgkens.gitlab.io/helm-core/helm-toolbox/
+
+Source and issues: https://gitlab.com/sgkens/helm-core
+
+[h2]Reporting a problem[/h2]
+
+Include the HELM version, the smallest Custom Data example that reproduces the issue, the block and surface type, the Programmable Block detail output, and whether the same layout fails in HELM Toolbox. Remove private server details before posting.
+
+[h2]Translations[/h2]
+
+English is the source guide. Community translations are welcome, but DSL keywords, field names, commands, filenames and code examples must stay unchanged. Each Steam guide has one declared language, so translations are published as separate guides and should link to the current English source.

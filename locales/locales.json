@@ -1,0 +1,11 @@
+{
+  "default": "en",
+  "locales": [
+    {
+      "id": "en",
+      "label": "English",
+      "nativeLabel": "English",
+      "status": "source"
+    }
+  ]
+}

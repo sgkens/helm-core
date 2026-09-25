@@ -1,0 +1,22 @@
+[h1]HELM Toolbox and layouts[/h1]
+
+HELM Toolbox is the visual companion to the documentation. It runs locally in the browser and uses the real HELM parser and renderer compiled to WebAssembly.
+
+[list]
+[*]Choose a shipped starter layout.
+[*]Insert blocks, inventory items, components and built-in templates from the palette.
+[*]Use the inspector for colors, titles, positions, panels and component options.
+[*]Drag the editor divider to give Custom Data more room.
+[*]Switch hardware profiles to check wide, square and cockpit surfaces.
+[*]Pause or resume simulated animation while inspecting a frame.
+[/list]
+
+Inserted items and components add missing @bind aliases automatically. Review generated block/group names before copying the result into the game.
+
+[h2]Responsive layouts[/h2]
+
+Prefer [code]profile: auto[/code] for a layout intended for several surface sizes. Use grids and panels to group related telemetry; keep critical labels short enough for narrow cockpit screens. SVG previews scale cleanly, but the in-game font atlas and surface viewport remain the final authority.
+
+[h2]Presets and templates[/h2]
+
+Presets are complete layout files. Built-in templates are reusable DSL fragments invoked with `@use`. Start from a preset when designing a whole console and use a template when repeating a subsystem with different block-group arguments.

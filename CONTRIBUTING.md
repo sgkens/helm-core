@@ -38,6 +38,9 @@ For focused work, use `bun run helm-toolbox:serve` (port 8891), `bun run helm-to
 | `Program.cs` | Programmable Block adapter, telemetry collection, scheduling and runtime commands. |
 | `Tests.cs` | Core offline unit suite compiled by `mcs` in CI. |
 | `layouts/` | Shipped presets and reusable template definitions. |
+| `architecture/` | Maintainer handbook, system boundaries and architecture decisions. |
+| `locales/` | Localization policy, locale registry and shared terminology. |
+| `steam-guide/` | Reviewable Steam Community Guide source and publication manifest. |
 | `docs/` | Eleventy, Tailwind and DaisyUI documentation source. |
 | `helm-toolbox/` | Browser editor, visual inspector, generated palettes and static staging. |
 | `tools/helm-toolbox-wasm/` | Real HELM parser/renderer compiled to browser WebAssembly. |
@@ -52,10 +55,13 @@ For focused work, use `bun run helm-toolbox:serve` (port 8891), `bun run helm-to
 - Edit the Prism grammar once in `docs/helm-prism.js`; both documentation and HELM Toolbox consume it.
 - Edit shared SVG rendering in `docs/assets/js/sprite-svg.mjs`; both browser previews consume it.
 - Never hand-edit `public/`, `helm-toolbox/data/`, `helm-toolbox/vendor/` or `helm-toolbox/wasm/`.
+- Read `architecture/README.md` before changing a boundary shared by the game, offline tools and browser renderer.
+- Keep technical DSL tokens untranslated; follow `locales/README.md` when adding a language.
 
 ## Validation before a merge request
 
 ```bash
+bun run content:check
 bun run helm-toolbox:test
 bun run build
 mcs -out:/tmp/test_helm.exe HelmCore.cs Tests.cs

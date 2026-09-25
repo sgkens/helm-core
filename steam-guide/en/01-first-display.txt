@@ -1,0 +1,30 @@
+[h1]Your first display[/h1]
+
+Name a battery group [b]Main Batteries[/b] and an LCD [b]Bridge LCD[/b]. Paste this into the Programmable Block's Custom Data:
+
+[code]
+@bind power = group("Main Batteries", agg: avg)
+
+@screen bridge
+surface: block("Bridge LCD", 0)
+profile: auto
+title: "BRIDGE POWER"
+line: "BATTERY" bar(power.percent) gradient(green, yellow, red)
+@end
+[/code]
+
+Run the Programmable Block with the argument [code]reload[/code]. The `@bind` alias connects a friendly name to blocks on the grid. The screen chooses surface zero, uses responsive sizing, and draws the battery percentage as a colored bar.
+
+[h2]Multiple surfaces[/h2]
+
+Add another `@screen ... @end` block for each target. Cockpits expose numbered surfaces; standalone LCDs normally use surface 0. HELM Toolbox's hardware picker helps preview aspect ratios, but confirm the surface number in game.
+
+[h2]Safe editing loop[/h2]
+
+[olist]
+[*]Edit or generate the layout.
+[*]Check that every alias used by a line has an @bind declaration.
+[*]Paste into Custom Data and run `reload`.
+[*]Read the Programmable Block detail output for line-specific errors.
+[*]Test at the actual LCD size before copying the layout to other grids.
+[/olist]

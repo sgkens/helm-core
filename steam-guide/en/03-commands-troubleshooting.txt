@@ -1,0 +1,27 @@
+[h1]Commands and troubleshooting[/h1]
+
+Run arguments are entered in the Programmable Block terminal or triggered by timer/action blocks.
+
+[list]
+[*][code]reload[/code] reparses Custom Data and rebuilds bindings and surfaces.
+[*][code]alert[/code] previews the configured alert background behavior.
+[*][code]test[/code] exercises the script's diagnostic path where supported by the current release.
+[/list]
+
+[h2]Blank or unchanged display[/h2]
+
+[olist]
+[*]Confirm the Programmable Block owns the current script and is enabled.
+[*]Run `reload`, then inspect its detail output.
+[*]Check the target block name and surface index.
+[*]Ensure another script is not writing to the same surface.
+[*]Use `profile: auto` while diagnosing unexpected scale or clipping.
+[/olist]
+
+[h2]Gauge shows zero or a bind error[/h2]
+
+The alias in `bar(alias.field)` must have a matching `@bind alias = ...` line. Check exact block/group spelling and consult the telemetry matrix: not every block exposes every field. A functional-block fallback can show enabled state, but cannot invent unsupported inventory or production values.
+
+[h2]Layout parses in Toolbox but differs in game[/h2]
+
+Select the matching hardware profile and screen. Browser previews reproduce HELM geometry, but game font metrics and modded blocks can differ. Reduce label length, verify the physical surface index, and report a minimal layout plus block type when the difference persists.

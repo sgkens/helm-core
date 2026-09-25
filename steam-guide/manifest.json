@@ -1,0 +1,12 @@
+{
+  "title": "HELM Core — Complete Guide",
+  "language": "en",
+  "game": "Space Engineers",
+  "sections": [
+    { "title": "Overview and installation", "file": "en/00-overview-installation.txt" },
+    { "title": "Your first display", "file": "en/01-first-display.txt" },
+    { "title": "HELM Toolbox and layouts", "file": "en/02-toolbox-layouts.txt" },
+    { "title": "Commands and troubleshooting", "file": "en/03-commands-troubleshooting.txt" },
+    { "title": "Reference and support", "file": "en/04-reference-support.txt" }
+  ]
+}
