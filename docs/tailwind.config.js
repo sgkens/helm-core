@@ -5,8 +5,8 @@ module.exports = {
     "./content/**/*.md",
     "./assets/js/**/*.js",
     "./*.njk",
-    "../webutil/index.html",
-    "../webutil/js/*.mjs"
+    "../helm-toolbox/index.html",
+    "../helm-toolbox/js/*.mjs"
   ],
   theme: {
     extend: {

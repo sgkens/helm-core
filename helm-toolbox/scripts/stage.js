@@ -1,10 +1,10 @@
-// Stages WebUtil into the repository's static public/ tree. The docs build supplies the sibling
+// Stages HELM Toolbox into the repository's static public/ tree. The docs build supplies the sibling
 // /assets and /css paths that index.html references, producing one deployable/self-hostable tree.
 const fs = require("node:fs");
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
-const out = path.resolve(root, "..", "public", "webutil");
+const out = path.resolve(root, "..", "public", "helm-toolbox");
 
 const copies = [
   ["index.html", "index.html"],
@@ -18,8 +18,8 @@ fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });
 for (const [source, destination] of copies) {
   const from = path.join(root, source);
-  if (!fs.existsSync(from)) throw new Error(`stage: missing ${from}; run the complete webutil build first`);
+  if (!fs.existsSync(from)) throw new Error(`stage: missing ${from}; run the complete helm-toolbox build first`);
   fs.cpSync(from, path.join(out, destination), { recursive: true });
 }
 
-console.log(`stage: wrote static WebUtil to ${path.relative(root, out)}/`);
+console.log(`stage: wrote static HELM Toolbox to ${path.relative(root, out)}/`);

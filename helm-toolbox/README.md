@@ -1,6 +1,6 @@
-# webutil
+# HELM Toolbox
 
-A browser tool that renders a HELM layout with the real script, compiled to WebAssembly (`tools/webutil-wasm`), so the preview cannot drift from what the game draws. Deployed alongside the docs site at `/webutil/` (see the `webutil` job in `.gitlab-ci.yml`).
+A browser tool that renders a HELM layout with the real script, compiled to WebAssembly (`tools/helm-toolbox-wasm`), so the preview cannot drift from what the game draws. Deployed alongside the docs site at `/helm-toolbox/` (see the `helm-toolbox` job in `.gitlab-ci.yml`).
 
 ## What it does today (an alpha, not the full concept tool of Epic 39)
 
@@ -9,7 +9,7 @@ A browser tool that renders a HELM layout with the real script, compiled to WebA
 - Pick any layout preset or a screen surface profile. The preset picker contains every file in `layouts/default/` (65 at the time of writing), grouped with the same categories and metadata as the docs gallery.
 - A slider per `@bind`, on the script's own 0–100 scale, drives the live values (and the tank wave/bubbles, easing and calibration keep animating on a slow timer). An Alert toggle previews the `alert red` run-argument command (flashes each screen's background to its `alert_bg`).
 - Pick any `@screen`, including a `mirror:`/`mirror_panel:` one — its source is rendered alongside it so the copy is never blank, the same as the game's own round-robin fills it in over several ticks.
-- A block and field reference on the left, generated from `docs/content/block-matrix.md`; click a field to insert a `line:` for it at the cursor. A Components tab, generated from `docs/content/gauges.md`, lists every supported gauge kind with its example DSL and which blocks support it; click to insert. A Templates tab lists every `@template` the real parser knows — the 8 built into `HelmCore.cs` plus `layouts/templates.txt`'s 4, embedded into the WASM build (`tools/webutil-wasm/Host.cs`) the same way `helmv.ps1` and `tools/spritedump` load it — as a form of that template's own parameters; fill it in and insert the `@use` line
+- A block and field reference on the left, generated from `docs/content/block-matrix.md`; click a field to insert a `line:` for it at the cursor. A Components tab, generated from `docs/content/gauges.md`, lists every supported gauge kind with its example DSL and which blocks support it; click to insert. A Templates tab lists every `@template` the real parser knows — the 8 built into `HelmCore.cs` plus `layouts/templates.txt`'s 4, embedded into the WASM build (`tools/helm-toolbox-wasm/Host.cs`) the same way `helmv.ps1` and `tools/spritedump` load it — as a form of that template's own parameters; fill it in and insert the `@use` line
 - Item and component insertions detect the aliases used by their example and add missing `@bind` declarations to the global bind section. Existing declarations are never replaced or duplicated; generated block/group names are starting points for the user's terminal names.
 - Use the Base, Panel and Component inspector tabs to create screens and panels or edit output targets, grids, positions, spans, titles, borders, colours and common gauge options without hand-writing the directive. Changes are focused source edits: comments, templates and unknown/custom syntax remain intact, and syntax that cannot be edited safely stays available as read-only text.
 - Copy, import or export the Custom Data as plain text. The current DSL is auto-saved to the browser's `localStorage` between visits.
@@ -23,22 +23,22 @@ Dragging blocks and gauges directly on the preview canvas, editing mirror relati
 ## Layout
 
 ```
-webutil/
+helm-toolbox/
   index.html       page shell (reuses the docs site's compiled Tailwind/daisyUI CSS)
   js/
     app.mjs         state, DOM wiring, visual inspectors, the block palette and value sliders
     dsl-model.mjs   loss-minimizing source model and focused inspector mutations
-    wasm-bridge.mjs  loads tools/webutil-wasm's published build and calls Host.Render
+    wasm-bridge.mjs  loads tools/helm-toolbox-wasm's published build and calls Host.Render
   scripts/
     gen-blocks.js      parses docs/content/block-matrix.md -> data/blocks.json (TASK-39.12)
     gen-starters.js    copies every layouts/default/*.txt preset and the docs gallery metadata
                        -> data/starters.json
     gen-components.js  parses docs/content/gauges.md -> data/components.json (TASK-39.24), cross-referenced
                         against data/blocks.json for each gauge kind's compatible blocks; run after gen-blocks.js
-    stage.js           assembles public/webutil/ for deployment or self-hosting
+    stage.js           assembles public/helm-toolbox/ for deployment or self-hosting
   data/              generated (gitignored)
   vendor/            pinned Lume/Logcad browser files staged by `bun run vendor` (gitignored)
-  wasm/              tools/webutil-wasm, published here by `bun run wasm` (gitignored, ~9 MB uncompressed)
+  wasm/              tools/helm-toolbox-wasm, published here by `bun run wasm` (gitignored, ~9 MB uncompressed)
   server.mjs         local dev server; serves this directory, falling back to ../public for
                       the shared docs assets (assets/js/*.mjs, css/style.css)
 ```
@@ -48,21 +48,21 @@ webutil/
 ## Running it locally
 
 ```bash
-# repository root, bash. Needs the .NET 10 SDK (see tools/webutil-wasm/README.md) and Bun.
-cd docs && bun run css:build && cd ..   # webutil reuses the docs site's compiled CSS
-cd webutil
+# repository root, bash. Needs the .NET 10 SDK (see tools/helm-toolbox-wasm/README.md) and Bun.
+cd docs && bun run css:build && cd ..   # helm-toolbox reuses the docs site's compiled CSS
+cd helm-toolbox
 bun install
 bun run build   # bun run data && bun run vendor && bun run wasm
 bun run serve   # http://127.0.0.1:8891/
 ```
 
-`bun run dev` does both in one step. A build also stages WebUtil under `../public/webutil/`; the repository-root build adds the shared docs assets and produces the complete static tree. Rerun `bun run data` after editing `docs/content/block-matrix.md` or `layouts/default/*.txt`, and `bun run wasm` after editing `Program.cs` or `HelmCore.cs`.
+`bun run dev` does both in one step. A build also stages HELM Toolbox under `../public/helm-toolbox/`; the repository-root build adds the shared docs assets and produces the complete static tree. Rerun `bun run data` after editing `docs/content/block-matrix.md` or `layouts/default/*.txt`, and `bun run wasm` after editing `Program.cs` or `HelmCore.cs`.
 
 Lume supplies mutation-aware contextual help for both static controls and generated field buttons. Logcad supplies the branded startup message and retained error diagnostics. Prism uses `docs/helm-prism.js` and `docs/css/theme-syntax-highlighting.css`, so HELM tokens and colours match the documentation. The vendor step stages all browser runtimes locally, so the deployed tool does not depend on a JavaScript CDN. Shared asset URLs are relative, and CI preserves the `wasm/wwwroot/` directory, so the artifact also works when GitLab Pages hosts it beneath a project path.
 
 ## Deployment recommendation
 
-Keep WebUtil in the HELM Core repository and publish it beside the docs. It directly consumes the parser, renderer, WASM host, layouts, docs-generated reference data and shared visual assets; moving it to another repository would require a versioning and synchronization layer for all of those inputs. The root `bun run build` output in `public/` is static and can also be hosted by users who want their own copy, so first-party hosting and self-hosting do not need separate source trees.
+Keep HELM Toolbox in the HELM Core repository and publish it beside the docs. It directly consumes the parser, renderer, WASM host, layouts, docs-generated reference data and shared visual assets; moving it to another repository would require a versioning and synchronization layer for all of those inputs. The root `bun run build` output in `public/` is static and can also be hosted by users who want their own copy, so first-party hosting and self-hosting do not need separate source trees.
 
 The block palette also uses the same cached Official Space Engineers Wiki icon manifest as the docs support matrix. Refresh those attributed, up-to-128 px PNGs with `cd ../docs && bun run icons:refresh`; normal docs builds validate and reuse the cache.
 

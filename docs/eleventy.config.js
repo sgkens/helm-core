@@ -74,7 +74,7 @@ module.exports = function (eleventyConfig) {
   });
 
   // Reusable inline block reference. The matrix is decorated after Markdown rendering so its
-  // plain-text table remains the source consumed by webutil/scripts/gen-blocks.js.
+  // plain-text table remains the source consumed by helm-toolbox/scripts/gen-blocks.js.
   eleventyConfig.addShortcode("blockIcon", function (name) {
     return blockIconMarkup(name);
   });

@@ -1,10 +1,10 @@
-# WebUtil completion review — 24 September 2026
+# HELM Toolbox completion review — 24 September 2026
 
 ## Recommendation
 
-Keep WebUtil in the HELM Core repository and deploy it with the documentation. Also document the root `public/` build as the supported self-hosting artifact.
+Keep HELM Toolbox in the HELM Core repository and deploy it with the documentation. Also document the root `public/` build as the supported self-hosting artifact.
 
-This is the lowest-risk ownership model because WebUtil directly depends on:
+This is the lowest-risk ownership model because HELM Toolbox directly depends on:
 
 - `HelmCore.cs` and `Program.cs` through the WebAssembly host;
 - every layout in `layouts/default/`;
@@ -32,7 +32,7 @@ The old layout generator intentionally exposed only 7 presets. This was the sour
 - Selecting a preset also selects its recommended LCD hardware profile.
 - The live Custom Data editor has Prism highlighting while retaining a native textarea for editing, selection, keyboard input and accessibility.
 - Item and gauge example snippets use the same HELM highlighting.
-- WebUtil consumes the same `docs/helm-prism.js` grammar and `docs/css/theme-syntax-highlighting.css` theme layer as the documentation.
+- HELM Toolbox consumes the same `docs/helm-prism.js` grammar and `docs/css/theme-syntax-highlighting.css` theme layer as the documentation.
 - Prism is pinned and staged locally with the other browser dependencies; no runtime JavaScript CDN is required.
 - The preview/editor split is pointer- and keyboard-resizable, has an expand/restore shortcut, persists locally, and keeps minimum usable space for both panes while the SVG preview scales.
 - The play/pause loop serializes WASM renders and preserves elapsed simulated time across pauses, preventing slow renders from continually invalidating the frame that should reach the preview.
@@ -46,7 +46,7 @@ The old layout generator intentionally exposed only 7 presets. This was the sour
 
 - `bun run test` validates localized mutations, comments and unknown-directive preservation, hex/named/RGBA colours, title and panel positions, component options, implicit panels, screen/panel creation and parsing all 65 layout presets.
 - A real headless Chromium workflow created a configuration, edited Base/Panel/Component fields, added a panel and screen, inserted a palette component with its binding, rendered the result and checked the 1440×1000 layout. It completed with no console or page errors.
-- The root build remains the deployable and self-hostable artifact; CI runs the DSL-model test before publishing WebUtil.
+- The root build remains the deployable and self-hostable artifact; CI runs the DSL-model test before publishing HELM Toolbox.
 
 ## Follow-up boundary
 

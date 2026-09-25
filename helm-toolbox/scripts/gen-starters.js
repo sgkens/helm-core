@@ -1,4 +1,4 @@
-// Copies every layouts/default/*.txt preset into webutil/data/starters.json. Metadata comes from
+// Copies every layouts/default/*.txt preset into helm-toolbox/data/starters.json. Metadata comes from
 // the docs gallery's own data module so the two catalogues cannot disagree. Run: bun run data.
 const fs = require("node:fs");
 const path = require("node:path");

@@ -1,4 +1,4 @@
-// app.mjs: wires the webutil page together. No layout logic lives here (TASK-39.1/39.5/39.7):
+// app.mjs: wires the helm-toolbox page together. No layout logic lives here (TASK-39.1/39.5/39.7):
 // the DSL text is the source of truth, the WebAssembly build of the real script (wasm-bridge.mjs)
 // renders it, and sprite-svg.mjs + se-lcd-bezel.mjs draw the result exactly as the docs preview does.
 import { buildBezel, PROFILES } from "../../assets/js/se-lcd-bezel.mjs";
@@ -12,13 +12,17 @@ import {
 import { Lume } from "../vendor/lume.mjs";
 import logcad from "../vendor/logcad.mjs";
 
-// This module lives in webutil/js/; data/ is its sibling. Resolved from import.meta.url (not a
-// hardcoded "/webutil/"), so it works whether the page is served at the site root (local dev) or
-// under /webutil/ (production, alongside the docs site).
+// This module lives in helm-toolbox/js/; data/ is its sibling. Resolved from import.meta.url (not a
+// hardcoded "/helm-toolbox/"), so it works whether the page is served at the site root (local dev) or
+// under /helm-toolbox/ (production, alongside the docs site).
 const DATA_BASE = new URL("../data/", import.meta.url).pathname;
 const ASSET_BASE = new URL("../../assets/", import.meta.url).pathname;
-const PROJECTS_KEY = "webutil_projects_v1";
-const EDITOR_HEIGHT_KEY = "webutil_editor_height_v1";
+const PROJECTS_KEY = "helm-toolbox_projects_v1";
+const EDITOR_HEIGHT_KEY = "helm-toolbox_editor_height_v1";
+const DSL_KEY = "helm-toolbox_dsl";
+// Carry browser-local work across the product rename. Constructing the previous prefix in two
+// pieces keeps the retired name out of current UI/docs searches while retaining one-way migration.
+const LEGACY_STORAGE_PREFIX = "web" + "util";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -43,7 +47,7 @@ let debounceTimer = null;
 let renderToken = 0;
 let inspectorModel = null;
 const inspectorSelection = { screen: 0, panel: 0, line: 0 };
-const logger = { name: "webutil", logname: " HELM ", bg: "#0891b2", logbg: "#0f172a" };
+const logger = { name: "helm-toolbox", logname: " HELM ", bg: "#0891b2", logbg: "#0f172a" };
 
 new Lume({ motion: "lift", showDelay: 120, hideDelay: 40, offset: 10 });
 
@@ -446,7 +450,7 @@ function wireInspector() {
 }
 
 function wirePaneResizer() {
-  const grid = $(".webutil-grid"), handle = $("#pane-resizer"), toggle = $("#expand-editor");
+  const grid = $(".helm-toolbox-grid"), handle = $("#pane-resizer"), toggle = $("#expand-editor");
   const MIN_EDITOR = 160, MIN_PREVIEW = 220, DEFAULT_EDITOR = 220;
   let pointerId = null, startY = 0, startHeight = DEFAULT_EDITOR, restoreHeight = DEFAULT_EDITOR;
 
@@ -486,7 +490,7 @@ function wirePaneResizer() {
   }
 
   try {
-    const saved = Number(localStorage.getItem(EDITOR_HEIGHT_KEY));
+    const saved = Number(readStoredValue(EDITOR_HEIGHT_KEY, "editor_height_v1"));
     setEditorHeight(Number.isFinite(saved) && saved > 0 ? saved : DEFAULT_EDITOR);
   } catch (e) { setEditorHeight(DEFAULT_EDITOR); }
 
@@ -527,9 +531,17 @@ function wirePaneResizer() {
   window.addEventListener("resize", () => setEditorHeight(currentHeight()));
 }
 
+function readStoredValue(key, legacySuffix) {
+  const current = localStorage.getItem(key);
+  if (current !== null) return current;
+  const legacy = localStorage.getItem(`${LEGACY_STORAGE_PREFIX}_${legacySuffix}`);
+  if (legacy !== null) localStorage.setItem(key, legacy);
+  return legacy;
+}
+
 function readProjects() {
   try {
-    const value = JSON.parse(localStorage.getItem(PROJECTS_KEY) || "{}");
+    const value = JSON.parse(readStoredValue(PROJECTS_KEY, "projects_v1") || "{}");
     return value && typeof value === "object" && !Array.isArray(value) ? value : {};
   } catch (e) { return {}; }
 }
@@ -627,7 +639,7 @@ function decodeShare() {
 function onDslChanged(followInspector = true) {
   state.dsl = $("#dsl-editor").value;
   updateDslHighlight();
-  try { localStorage.setItem("webutil_dsl", state.dsl); } catch (e) {}
+  try { localStorage.setItem(DSL_KEY, state.dsl); } catch (e) {}
   refreshInspector(followInspector);
   scheduleRender();
 }
@@ -869,7 +881,7 @@ function wireControls() {
   $("#block-search").addEventListener("input", renderBlockPalette);
 
   // A modest serial tick rate, not a 60 fps loop: each render replays 40 script passes
-  // (tools/webutil-wasm/Host.cs). Waiting for one render before scheduling the next prevents a slow
+  // (tools/helm-toolbox-wasm/Host.cs). Waiting for one render before scheduling the next prevents a slow
   // WASM startup/render from being continually superseded by newer timer ticks.
   let animTimer = null, animStart = null, animBase = state.seconds, animGeneration = 0;
   const TICK_MS = 150;
@@ -935,7 +947,7 @@ function flashButton(btn, text) {
 
 async function main() {
   logcad.logc([
-    { text: " HELM webutil ", c: "#08111f", bg: "#38bdf8", b: true },
+    { text: " HELM Toolbox ", c: "#08111f", bg: "#38bdf8", b: true },
     { text: " renderer starting", c: "#94a3b8" },
   ]);
   await loadData();
@@ -958,7 +970,7 @@ async function main() {
     history.replaceState(null, "", location.pathname + location.search);
   }
   let saved = null;
-  try { saved = localStorage.getItem("webutil_dsl"); } catch (e) {}
+  try { saved = readStoredValue(DSL_KEY, "dsl"); } catch (e) {}
   if (shared && shared.trim()) replaceDsl(shared);
   else if (saved && saved.trim()) replaceDsl(saved);
   else loadStarter(starters[0].name);

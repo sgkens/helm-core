@@ -1,11 +1,12 @@
 {
-  "name": "helm-webutil",
+  "name": "helm-toolbox",
   "private": true,
-  "description": "A browser tool that renders a HELM layout with the real script (compiled to WebAssembly), for concepting screens (TASK-39.x). Deployed alongside the docs site under /webutil/; see webutil/README.md.",
+  "license": "MIT",
+  "description": "A browser tool that renders a HELM layout with the real script (compiled to WebAssembly), for concepting screens (TASK-39.x). Deployed alongside the docs site under /helm-toolbox/; see helm-toolbox/README.md.",
   "scripts": {
     "data": "node scripts/gen-blocks.js && node scripts/gen-starters.js && node scripts/gen-components.js",
     "vendor": "node scripts/copy-vendor.js",
-    "wasm": "dotnet publish ../tools/webutil-wasm -c Release -o wasm",
+    "wasm": "dotnet publish ../tools/helm-toolbox-wasm -c Release -o wasm",
     "stage": "node scripts/stage.js",
     "test": "node scripts/test-dsl-model.mjs",
     "build": "bun run data && bun run vendor && bun run wasm && bun run stage",

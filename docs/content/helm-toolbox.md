@@ -1,12 +1,12 @@
 ---
-title: "Browser Layout Tool (webutil)"
+title: "HELM Toolbox"
 description: "Write, preview, save and exchange HELM Custom Data in a browser using the real script renderer."
 order: 9
 section: "Tooling"
 badge: "Alpha"
 ---
 
-Webutil renders HELM Custom Data with the same compiled C# parser and sprite renderer used by the Programmable Block script. It is useful for checking a layout before opening Space Engineers. [Open webutil](/webutil/).
+HELM Toolbox renders HELM Custom Data with the same compiled C# parser and sprite renderer used by the Programmable Block script. It is useful for checking a layout before opening Space Engineers. [Open HELM Toolbox](/helm-toolbox/).
 
 ## Basic Workflow
 
@@ -16,7 +16,7 @@ Webutil renders HELM Custom Data with the same compiled C# parser and sprite ren
 4. Adjust the generated telemetry sliders to inspect low, half-full and full states.
 5. Copy or export the result, paste it into the Programmable Block's Custom Data, and run `reload`.
 
-Drag the divider above Custom Data to resize the editor and preview together. The SVG display scales into the remaining preview space. The divider also accepts the Up and Down arrow keys, while **Expand editor** provides a quick full-height editing view and restores the preview when selected again. Webutil remembers the chosen height in the browser.
+Drag the divider above Custom Data to resize the editor and preview together. The SVG display scales into the remaining preview space. The divider also accepts the Up and Down arrow keys, while **Expand editor** provides a quick full-height editing view and restores the preview when selected again. HELM Toolbox remembers the chosen height in the browser.
 
 The screen selector appears when the text contains more than one `@screen`. Its options come from the parsed layout, not a separate browser model.
 
@@ -29,7 +29,7 @@ The right-hand inspector keeps Custom Data as the source of truth while making t
 - **Component** selects a `line:` in the current panel and edits its label, gauge, bind reference, flat or gradient colours, size, direction, unit, label colour and track colour.
 - **Telemetry** contains the simulated values used only by the preview.
 
-Choose a panel before inserting from Blocks, Items or Components. Webutil puts the new line in that panel, adds a missing `@bind` where needed, and opens the Component inspector for immediate adjustment.
+Choose a panel before inserting from Blocks, Items or Components. HELM Toolbox puts the new line in that panel, adds a missing `@bind` where needed, and opens the Component inspector for immediate adjustment.
 
 Each control names the HELM directive it changes, and every change remains visible in the highlighted Custom Data pane. The inspector rewrites only the selected directive or line: comments, templates, conditional colour rules and unknown future directives pass through unchanged. Complex custom `line:` syntax that cannot be read safely remains in the text and is marked read-only in the inspector, so the visual editor never flattens it.
 
@@ -61,12 +61,12 @@ Every palette action is a button and can be reached without dragging. Full visua
 From the repository root:
 
 ```shell
-cd docs && bun run css:build && cd ../webutil
+cd docs && bun run css:build && cd ../helm-toolbox
 bun install
 bun run build
 bun run serve
 ```
 
-Open `http://127.0.0.1:8891/`. See `webutil/README.md` for the generated data, WebAssembly and vendor-asset layout.
+Open `http://127.0.0.1:8891/`. See `helm-toolbox/README.md` for the generated data, WebAssembly and vendor-asset layout.
 
-For self-hosting, run `bun run build` at the repository root and serve the resulting `public/` directory. WebUtil intentionally remains beside the documentation because it shares the docs CSS, syntax theme, renderer assets and generated reference sources.
+For self-hosting, run `bun run build` at the repository root and serve the resulting `public/` directory. HELM Toolbox intentionally remains beside the documentation because it shares the docs CSS, syntax theme, renderer assets and generated reference sources.

@@ -1,4 +1,4 @@
-// Host.cs: browser entry point for the web utility. Renders a layout with the real script and returns the sprite list as JSON.
+// Host.cs: browser entry point for the HELM Toolbox. Renders a layout with the real script and returns the sprite list as JSON.
 //   Render(dsl, width, height, values, seconds, screenIndex) ->
 //     {"errors":[..],"warnings":[..],"screens":[..],"binds":[{"name":..,"kind":..}],"surface":[w,h],"texture":[m,m],"sprites":[..]}
 // values is "bind=50;other=12"; every value is on the script's 0-100 scale. seconds drives the script's clock (waves, easing).
@@ -119,7 +119,7 @@ public static partial class Host
     // Loads layouts/templates.txt into HelmParser's template table exactly as helmv.ps1 and
     // tools/spritedump/Dump.cs do (both call the same HELM_TOOLS-only HelmParser.LoadTemplateFile),
     // so @use resolves the same set of templates here as it does in those tools. A browser has no
-    // filesystem, so the file is embedded at build time (see WebUtilWasm.csproj) instead of read from
+    // filesystem, so the file is embedded at build time (see HelmToolboxWasm.csproj) instead of read from
     // disk. Calling LoadTemplateFile also triggers HelmParser's static constructor on first use, which
     // registers the 8 built-in templates before this adds templates.txt's on top.
     static void EnsureTemplatesLoaded()

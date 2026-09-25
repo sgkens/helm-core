@@ -18,7 +18,7 @@
     <WasmEnableES6ExportedRuntime>true</WasmEnableES6ExportedRuntime>
   </PropertyGroup>
   <ItemGroup>
-    <TrimmerRootAssembly Include="WebUtilWasm" />
+    <TrimmerRootAssembly Include="HelmToolboxWasm" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="../../HelmCore.cs" />

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HELM Webutil</title>
+  <title>HELM Toolbox</title>
   <meta name="description" content="Write a HELM layout and see it rendered by the real script, in the browser.">
   <link rel="icon" type="image/webp" href="../assets/helm-core-logo-256x256.webp">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,13 +27,13 @@
   </script>
   <style>
     /* Small, page-specific layout only; everything else is the docs site's compiled Tailwind/daisyUI. */
-    .webutil-grid {
+    .helm-toolbox-grid {
       --editor-height: 220px;
       display: grid; grid-template-columns: 320px 1fr 320px;
       grid-template-rows: minmax(12rem, 1fr) 0.75rem var(--editor-height); gap: 0.75rem;
       height: calc(100vh - 4.75rem); height: calc(100dvh - 4.75rem);
     }
-    #webutil-header { height: 3.25rem; min-height: 3.25rem; }
+    #helm-toolbox-header { height: 3.25rem; min-height: 3.25rem; }
     #pane-resizer {
       position: relative; grid-column: 2 / span 2; cursor: ns-resize; touch-action: none;
       border-radius: 999px;
@@ -48,7 +48,7 @@
     }
     body.pane-resizing { cursor: ns-resize; user-select: none; }
     @media (max-width: 1024px) {
-      .webutil-grid { grid-template-columns: 1fr; grid-template-rows: auto; height: auto; }
+      .helm-toolbox-grid { grid-template-columns: 1fr; grid-template-rows: auto; height: auto; }
       #block-panel { grid-row: auto !important; }
       #dsl-pane { grid-column: 1 !important; min-height: 24rem; }
       #pane-resizer, #expand-editor { display: none; }
@@ -114,14 +114,14 @@
   </style>
 </head>
 <body class="min-h-screen bg-base-100 text-base-content antialiased font-sans">
-  <header id="webutil-header" class="navbar bg-base-200/80 backdrop-blur border-b border-base-300 px-4 gap-2">
+  <header id="helm-toolbox-header" class="navbar bg-base-200/80 backdrop-blur border-b border-base-300 px-4 gap-2">
     <div class="flex-none">
       <a href="../docs/" class="flex items-center gap-2 px-1" aria-label="HELM Core documentation">
         <img src="../assets/helm-core-logo-256x256.webp" alt="" width="24" height="24" class="w-6 h-6 rounded">
         <span class="font-mono font-black tracking-wider hidden sm:inline"><span class="text-primary">HELM</span> Core</span>
       </a>
     </div>
-    <div class="flex-1 font-mono text-sm text-base-content/60">webutil <span class="badge badge-xs badge-outline ml-1" tabindex="0" data-lume-title="Alpha preview" data-lume="The renderer is real; canvas editing and complete simulation controls are still being built." data-lume-direction="bottom">alpha</span></div>
+    <div class="flex-1 font-mono text-sm text-base-content/60"><span class="text-primary">HELM</span> Toolbox <span class="badge badge-xs badge-outline ml-1" tabindex="0" data-lume-title="Alpha preview" data-lume="The renderer is real; canvas editing and complete simulation controls are still being built." data-lume-direction="bottom">alpha</span></div>
     <div class="flex-none flex items-center gap-2">
       <a href="../docs/dsl-syntax/" class="btn btn-ghost btn-xs font-mono" target="_blank" rel="noopener">DSL reference</a>
       <a href="../docs/getting-started/" class="btn btn-ghost btn-xs font-mono hidden sm:inline-flex" target="_blank" rel="noopener">Getting started</a>
@@ -129,7 +129,7 @@
   </header>
 
   <main class="p-3">
-    <div class="webutil-grid">
+    <div class="helm-toolbox-grid">
 
       <!-- Left: block / field reference -->
       <aside id="block-panel" class="bg-base-200/50 border border-base-300 rounded-lg p-3 overflow-y-auto" style="grid-row: 1 / span 3;" aria-label="Block and field palette">

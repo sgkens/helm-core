@@ -167,11 +167,11 @@ You can run these commands from a timer block, sensor, or cockpit hotbar:
 | `starter` | Writes a sample layout into an empty Custom Data (it never overwrites one that has content), then loads it. Change `output:` to the name of your LCD and run `reload`. |
 | `probe` | Draws a test pattern for 20 seconds on the block's own screen and on every configured screen, to check what part of a real screen the script covers. No layout is needed |
 | `console on` / `console off` | Shows or hides the console on the Programmable Block's own screen. |
-| `names` | Writes every block name and group name of your grid to the end of Custom Data as `#` comment lines (once). Copy the names you need into `@bind` lines, then delete the block. The web utility will read this list. |
+| `names` | Writes every block name and group name of your grid to the end of Custom Data as `#` comment lines (once). Copy the names you need into `@bind` lines, then delete the block. The HELM Toolbox will read this list. |
 | `scan` (also `diagnose`, `test`) | Prints a diagnostic report of binds, surfaces and instruction use, and the sprite names the game offers for `bg_texture`. |
 | `alert red` (also `on`) | Turns on the red alert: every screen's background flashes to its `alert_bg` colour, and red gauges flash. |
 | `alert off` | Clears the alert state. |
 | `alert toggle` | Flips the alert state. |
 | `set <var> <val>` | Sets an in-memory dynamic telemetry variable. |
 
-Next, explore the [DSL Syntax Specification](/docs/dsl-syntax/) to customize panels and gauges, or follow the [webutil guide](/docs/webutil/) to write, preview and exchange a layout in the browser (an alpha: no drag-and-drop canvas yet).
+Next, explore the [DSL Syntax Specification](/docs/dsl-syntax/) to customize panels and gauges, or follow the [HELM Toolbox guide](/docs/helm-toolbox/) to write, preview and exchange a layout in the browser (an alpha: no drag-and-drop canvas yet).

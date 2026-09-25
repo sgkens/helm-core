@@ -3,7 +3,7 @@
   <button type="button" class="btn btn-ghost btn-xs justify-start gap-2" data-print>
     <svg class="w-3.5 h-3.5 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/></svg> Print page
   </button>
-  <a class="btn btn-ghost btn-xs justify-start gap-2" href="/docs/src/{{ docSlug }}.md" download="helm-{{ docSlug }}.md">
+  <a class="btn btn-ghost btn-xs justify-start gap-2" href="/docs/src/{{ docSlug }}.md" download="{% if docSlug == 'helm-toolbox' %}helm-toolbox.md{% else %}helm-{{ docSlug }}.md{% endif %}">
     <svg class="w-3.5 h-3.5 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> Download page (.md)
   </a>
   {% set modified = page.inputPath | lastModified %}

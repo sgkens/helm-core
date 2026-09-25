@@ -1,7 +1,7 @@
-// Parses docs/content/gauges.md into webutil/data/components.json: one entry per documented gauge
+// Parses docs/content/gauges.md into helm-toolbox/data/components.json: one entry per documented gauge
 // kind (its DSL ids, description, example line and notes), plus the options table every gauge takes,
-// cross-referenced against webutil/data/blocks.json so each component lists which blocks support it.
-// Run: bun run data (in webutil/) — gen-blocks.js must run first (writes data/blocks.json).
+// cross-referenced against helm-toolbox/data/blocks.json so each component lists which blocks support it.
+// Run: bun run data (in helm-toolbox/) — gen-blocks.js must run first (writes data/blocks.json).
 const fs = require("node:fs");
 const path = require("node:path");
 

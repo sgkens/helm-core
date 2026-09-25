@@ -1,13 +1,13 @@
 // sprite-svg.mjs - turns a HELM sprite (the JSON the real script's renderer exports, whether from
-// tools/spritedump's frame files or a live tools/webutil-wasm render) into an SVG element.
+// tools/spritedump's frame files or a live tools/helm-toolbox-wasm render) into an SVG element.
 //
 // This is the one place that maps a sprite {t, d, x, y, w, h, c, f, a, s, r} to markup, used by both
-// the docs preview (help-visualizer.js) and the webutil live preview, so the two cannot drift apart
+// the docs preview (help-visualizer.js) and the helm-toolbox live preview, so the two cannot drift apart
 // (TASK-39.11). It contains no layout logic and no fetching: callers own the sprite list and the
 // bezel; this module only makes and paints nodes inside a #content-slot whose coordinate system is
 // exact panel pixels (see se-lcd-bezel.mjs).
 //
-// Sprite fields, matching tools/spritedump/Dump.cs and tools/webutil-wasm/Host.cs:
+// Sprite fields, matching tools/spritedump/Dump.cs and tools/helm-toolbox-wasm/Host.cs:
 //   t: "text" | "tex" | "clip"   d: text or texture name   x, y: centre (or text origin)
 //   w, h: size (texture only)    c: [r,g,b,a]               f: font id (text only)
 //   a: "left" | "center" | "right"  s: text scale, or a texture's rotation in radians when t != "text"

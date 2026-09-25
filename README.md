@@ -1,5 +1,14 @@
 # HELM — High-Efficiency Lightweight Monitor
 
+<p>
+  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-0891b2?style=flat-square&amp;labelColor=ffffff&amp;logo=opensourceinitiative&amp;logoColor=0891b2"></a>
+  <a href="https://gitlab.com/sgkens/helm-core/-/pipelines"><img alt="Pipeline status" src="https://img.shields.io/gitlab/pipeline-status/sgkens/helm-core?branch=main&amp;style=flat-square&amp;label=pipeline&amp;labelColor=ffffff&amp;color=0891b2&amp;logo=gitlab&amp;logoColor=0891b2"></a>
+  <a href="https://gitlab.com/sgkens/helm-core/-/tags"><img alt="Latest tag" src="https://img.shields.io/gitlab/v/tag/sgkens/helm-core?style=flat-square&amp;label=tag&amp;labelColor=ffffff&amp;color=0891b2&amp;logo=gitlab&amp;logoColor=0891b2"></a>
+  <a href="https://gitlab.com/sgkens/helm-core/-/releases"><img alt="Latest release" src="https://img.shields.io/gitlab/v/release/sgkens/helm-core?style=flat-square&amp;label=release&amp;labelColor=ffffff&amp;color=0891b2&amp;logo=gitlab&amp;logoColor=0891b2"></a>
+  <a href="https://app.codecov.io/gitlab/sgkens/helm-core"><img alt="Codecov coverage" src="https://img.shields.io/codecov/c/gitlab/sgkens/helm-core?style=flat-square&amp;label=coverage&amp;labelColor=ffffff&amp;color=0891b2&amp;logo=codecov&amp;logoColor=0891b2"></a>
+</p>
+
+
 > **Deterministic, low-overhead console telemetry for Space Engineers.**
 > Vanilla-compatible • Zero-dependency • Sub-millisecond execution • Guaranteed multi-tick scheduling.
 

@@ -1,7 +1,7 @@
-// Static dev server for webutil/, serving this directory at the site root so its own relative paths
+// Static dev server for helm-toolbox/, serving this directory at the site root so its own relative paths
 // (js/, data/, wasm/) resolve the same way they will in production. Falls back to ../public for the
 // docs site's shared assets (/assets/js/se-lcd-bezel.mjs, /assets/js/sprite-svg.mjs, /css/style.css),
-// matching how they sit side by side once deployed under public/webutil/ and public/assets/, public/css/.
+// matching how they sit side by side once deployed under public/helm-toolbox/ and public/assets/, public/css/.
 // Usage: bun run serve   (PORT and HOST environment variables override the defaults)
 import { existsSync, statSync } from "node:fs";
 import { join, resolve, extname } from "node:path";
@@ -42,7 +42,7 @@ Bun.serve({
   },
 });
 
-console.log(`webutil dev server: http://${HOST}:${PORT}/`);
+console.log(`helm-toolbox dev server: http://${HOST}:${PORT}/`);
 if (!existsSync(join(HERE, "wasm", "wwwroot", "_framework", "dotnet.js"))) {
-  console.warn("webutil: no build in webutil/wasm/ yet - run `bun run wasm` first, or the preview will fail to load.");
+  console.warn("helm-toolbox: no build in wasm/ yet - run `bun run wasm` first, or the preview will fail to load.");
 }

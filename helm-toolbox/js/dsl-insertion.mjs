@@ -16,7 +16,7 @@ export const BIND_SUGGESTIONS = {
   pwr: 'group("Batteries", agg: avg)',
   radar: 'block("Target Camera")',
   rudder: 'block("Rudder Hinge")',
-  shield: 'dynamic("webutil.shield", default: 1)',
+  shield: 'dynamic("helm-toolbox.shield", default: 1)',
   thrusters: 'group("Thrusters", agg: avg)',
   turret: 'group("Turrets", agg: sum)',
 };
@@ -45,7 +45,7 @@ export function applyPaletteInsertion(dsl, snippet, start, end, suggestions = {}
     const newline = dsl.includes("\r\n") ? "\r\n" : "\n";
     const declarations = missing.map((alias) => {
       const key = alias.toLowerCase();
-      const source = suggestions[alias] || suggestions[key] || BIND_SUGGESTIONS[key] || `dynamic("webutil.${alias}", default: 50)`;
+      const source = suggestions[alias] || suggestions[key] || BIND_SUGGESTIONS[key] || `dynamic("helm-toolbox.${alias}", default: 50)`;
       return `@bind ${alias} = ${source}`;
     }).join(newline) + (location.hasBinds ? newline : newline + newline);
     dsl = dsl.slice(0, location.offset) + declarations + dsl.slice(location.offset);

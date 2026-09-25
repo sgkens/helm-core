@@ -17,7 +17,7 @@ function registerHelmGrammar(Prism) {
   Prism.languages.hlm = Prism.languages.helm;
 }
 
-// CommonJS is used by Eleventy at build time; the browser global is used by WebUtil's
+// CommonJS is used by Eleventy at build time; the browser global is used by HELM Toolbox's
 // live editor. Keeping one grammar prevents the docs examples and editor drifting apart.
 if (typeof module !== "undefined" && module.exports) module.exports = registerHelmGrammar;
 if (typeof window !== "undefined") {

@@ -355,16 +355,16 @@ docs-frames:
     - if: '$CI_COMMIT_BRANCH == "main"'
 
 # ---------------------------------------------------------------------------
-# webutil — Build the browser layout tool (webutil/) into public/webutil/: regenerates its data
+# helm-toolbox — Build the browser layout tool (helm-toolbox/) into public/helm-toolbox/: regenerates its data
 # files from docs/content/block-matrix.md and layouts/default/*.txt (TASK-39.12), publishes the
-# real script compiled to WebAssembly (tools/webutil-wasm, TASK-39.0), and copies the static page.
+# real script compiled to WebAssembly (tools/helm-toolbox-wasm, TASK-39.0), and copies the static page.
 # Independent of the docs-* jobs; pages merges its artifact in alongside the docs build.
 # ---------------------------------------------------------------------------
-webutil:
+helm-toolbox:
   stage: build
   needs: []
   script:
-    - cd webutil
+    - cd helm-toolbox
     - bun install --frozen-lockfile
     - bun run data
     - bun run test
@@ -373,7 +373,7 @@ webutil:
     - bun run stage
   artifacts:
     paths:
-      - public/webutil
+      - public/helm-toolbox
     expire_in: 1 day
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
@@ -387,14 +387,15 @@ pages:
   needs:
     - job: docs-frames
       artifacts: true
-    - job: webutil
+    - job: helm-toolbox
       artifacts: true
   variables:
     PAGES_PATH_PREFIX: "/${CI_PROJECT_NAME}/"
   script:
     - cd docs
     - bun install
-    - bun run build
+    # HELM Toolbox arrives from the dedicated build job above; only rebuild the docs layer here.
+    - bun run site:build
   pages: true
   artifacts:
     paths:

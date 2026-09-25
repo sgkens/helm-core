@@ -1,21 +1,22 @@
 {
   "name": "helm-core",
   "private": true,
-  "description": "Root build orchestrator for the docs site (docs/) and the browser layout tool (webutil/). Each stays independently runnable; see docs/README.md and webutil/README.md.",
+  "license": "MIT",
+  "description": "Root build orchestrator for the docs site (docs/) and the browser layout tool (helm-toolbox/). Each stays independently runnable; see docs/README.md and helm-toolbox/README.md.",
   "scripts": {
-    "setup": "bun run setup:webutil && bun run setup:docs",
+    "setup": "bun run setup:helm-toolbox && bun run setup:docs",
     "setup:docs": "cd docs && bun install",
-    "setup:webutil": "cd webutil && bun install",
+    "setup:helm-toolbox": "cd helm-toolbox && bun install",
 
-    "build": "bun run webutil:build && bun run docs:build",
+    "build": "bun run docs:build",
 
-    "webutil:data": "cd webutil && bun run data",
-    "webutil:vendor": "cd webutil && bun run vendor",
-    "webutil:wasm": "cd webutil && bun run wasm",
-    "webutil:test": "cd webutil && bun run test",
-    "webutil:build": "cd webutil && bun run build",
-    "webutil:serve": "cd webutil && bun run serve",
-    "webutil:dev": "cd webutil && bun run dev",
+    "helm-toolbox:data": "cd helm-toolbox && bun run data",
+    "helm-toolbox:vendor": "cd helm-toolbox && bun run vendor",
+    "helm-toolbox:wasm": "cd helm-toolbox && bun run wasm",
+    "helm-toolbox:test": "cd helm-toolbox && bun run test",
+    "helm-toolbox:build": "cd helm-toolbox && bun run build",
+    "helm-toolbox:serve": "cd helm-toolbox && bun run serve",
+    "helm-toolbox:dev": "cd helm-toolbox && bun run dev",
 
     "docs:dev": "cd docs && bun run dev",
     "docs:serve": "cd docs && bun run serve",

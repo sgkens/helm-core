@@ -1,4 +1,4 @@
-// Loss-minimizing DSL model for WebUtil's visual inspector. It records source lines and only
+// Loss-minimizing DSL model for HELM Toolbox's visual inspector. It records source lines and only
 // rewrites the directive the user changed; comments and unknown/custom syntax pass through intact.
 
 const SCREEN_KEYS = new Set([
@@ -263,7 +263,7 @@ export function createBaseConfig(dsl = "") {
   const newline = dsl.includes("\r\n") ? "\r\n" : "\n";
   const prefix = dsl.trim() ? dsl.replace(/\s+$/, "") + newline + newline : "";
   return prefix + [
-    "@bind demo = dynamic(\"webutil.demo\", default: 50)",
+    "@bind demo = dynamic(\"helm-toolbox.demo\", default: 50)",
     "@screen Main",
     "output: \"Main LCD\", 0",
     "profile: standard",

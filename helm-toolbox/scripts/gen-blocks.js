@@ -1,5 +1,5 @@
-// Parses docs/content/block-matrix.md into webutil/data/blocks.json, so the palette and field
-// picker never drift from the documented block matrix (TASK-39.12). Run: bun run data (in webutil/).
+// Parses docs/content/block-matrix.md into helm-toolbox/data/blocks.json, so the palette and field
+// picker never drift from the documented block matrix (TASK-39.12). Run: bun run data (in helm-toolbox/).
 const fs = require("node:fs");
 const path = require("node:path");
 

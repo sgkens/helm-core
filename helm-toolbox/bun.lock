@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "helm-webutil",
+      "name": "helm-toolbox",
       "dependencies": {
         "@staticcanvas/logcad": "0.6.0",
         "@staticcanvas/lume": "0.37.1",

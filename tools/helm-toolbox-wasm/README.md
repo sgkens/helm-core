@@ -1,6 +1,6 @@
-# webutil-wasm
+# helm-toolbox-wasm
 
-A WebAssembly build of the real HELM script and parser, used to prove that the web utility can render a layout in the browser on every edit (TASK-39.0).
+A WebAssembly build of the real HELM script and parser, used to prove that the HELM Toolbox can render a layout in the browser on every edit (TASK-39.0).
 
 ## What it builds
 
@@ -15,14 +15,14 @@ ListTemplates() -> JSON
 
 If the requested screen is a `mirror:`, its source screen is rendered first on every pass so the source's `_screenBuffers` entry exists by the time `RenderScreen` reads it — otherwise (only the requested screen ever rendering, unlike the game's own round-robin across ticks) a mirror always came back with zero sprites, silently, since `RenderMirror` fails closed rather than erroring.
 
-`ListTemplates()` reflects into `HelmParser`'s template table (built-ins plus `layouts/templates.txt`, embedded as a resource in `WebUtilWasm.csproj` — a browser has no filesystem, so it can't be read at run time the way `helmv.ps1` and `tools/spritedump/Dump.cs` read it) and returns `[{"name":..,"params":[{"name":..,"default":..}]}]`; a `default` of `null` means the `@template` header gave that parameter no default, so `@use` requires it.
+`ListTemplates()` reflects into `HelmParser`'s template table (built-ins plus `layouts/templates.txt`, embedded as a resource in `HelmToolboxWasm.csproj` — a browser has no filesystem, so it can't be read at run time the way `helmv.ps1` and `tools/spritedump/Dump.cs` read it) and returns `[{"name":..,"params":[{"name":..,"default":..}]}]`; a `default` of `null` means the `@template` header gave that parameter no default, so `@use` requires it.
 
 ## Build and run
 
 ```bash
 # repository root, bash. Needs the .NET 10 SDK (the WebAssembly SDK is part of it; no workload is required).
-dotnet publish tools/webutil-wasm -c Release -o /tmp/webutil
-node tools/webutil-wasm/run-node.mjs /tmp/webutil layouts/default/tank_trio.txt
+dotnet publish tools/helm-toolbox-wasm -c Release -o /tmp/helm-toolbox
+node tools/helm-toolbox-wasm/run-node.mjs /tmp/helm-toolbox layouts/default/tank_trio.txt
 ```
 
 ## Spike results (22 SEP 2026)
@@ -38,6 +38,6 @@ node tools/webutil-wasm/run-node.mjs /tmp/webutil layouts/default/tank_trio.txt
 
 Further savings: the stand-in API uses `dynamic`, which pulls in `System.Linq.Expressions` and `Microsoft.CSharp` (about 660 KB raw). Typing the shim would remove them.
 
-CI image: `sgkens/phellams-automator:2.22.0` (.NET SDK 8.0.424 and 10.0.400, Bun, Node 24) publishes this project and runs `run-node.mjs` on it with the same result, so a web utility job needs no extra image.
+CI image: `sgkens/phellams-automator:2.22.0` (.NET SDK 8.0.424 and 10.0.400, Bun, Node 24) publishes this project and runs `run-node.mjs` on it with the same result, so a HELM Toolbox job needs no extra image.
 
 Not yet checked: a run in a real browser (only Node so far), output parity against `tools/spritedump` for every preset, and multi-screen `mirror:` (the host renders one screen at a time).
