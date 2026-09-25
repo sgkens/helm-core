@@ -8,6 +8,10 @@ badge: "Profiles"
 
 ## Supported Screen Profiles
 
+Use `profile: auto` for configurations intended to work across several LCD types. HELM resolves the profile from the actual visible `SurfaceSize`: a shortest side up to 160 pixels uses `corner`, up to 300 uses `compact`, a width of at least 1000 uses `wide`, and other surfaces use `standard`. This also covers rotated and modded narrow surfaces.
+
+The five named hardware types in the table are valid DSL aliases. They select a fixed layout profile: `TextPanel` maps to `standard`, `WideLCD` to `wide`, `CockpitSmall` to `compact`, and both corner hardware types to `corner`. `Auto` and `Off` are tool preview modes rather than hardware aliases; use lowercase `profile: auto` in DSL.
+
 | Profile Name | Resolution | Aspect Ratio | Mounting Clamp | Typical Game Usage |
 | :--- | :--- | :--- | :--- | :--- |
 | **`TextPanel`** | 512 x 512 | 1:1 Square | `[#]` Heavy Bolts | Standard 1x1 Wall LCDs, Base Control Rooms |
@@ -15,8 +19,10 @@ badge: "Profiles"
 | **`CockpitSmall`** | 512 x 256 | 2:1 Compact | `[+]` Avionics Screws | Cockpit Primary HUDs, Fighter Flight Seats |
 | **`CornerLCD`** | 512 x 128 | 4:1 Strip | `//` Angled Brackets | Slanted Ceiling/Floor LCD Strips, Strip Telemetry |
 | **`CockpitCorner`** | 256 x 128 | 2:1 Mini | `|>` Console Mounts | Cockpit Mini Gauge Clusters, Secondary HUD Pods |
-| **`Auto`** | Inferred | Dynamic | Adapts | Automatically infers dimensions from panel count |
+| **`Auto`** | Inferred | Dynamic | Adapts | Uses dimensions supplied by the preview tool |
 | **`Off`** | Unbounded | Virtual | None | Headless stream output without bezels |
+
+The Toolbox's **Preview** selector controls only the simulated hardware dimensions. The screen's `profile:` directive remains visible and editable in the Base inspector, so testing another LCD never silently rewrites the configuration.
 
 ---
 

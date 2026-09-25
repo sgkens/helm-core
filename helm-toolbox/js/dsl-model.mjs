@@ -249,7 +249,7 @@ export function addScreen(dsl) {
   return prefix + [
     `@screen screen_${number}`,
     `output: "LCD ${number}", 0`,
-    "profile: standard",
+    "profile: auto",
     "layout: grid(1, 1)",
     "screen_bg: #0a0c10",
     "border: frame",
@@ -266,7 +266,7 @@ export function createBaseConfig(dsl = "") {
     "@bind demo = dynamic(\"helm-toolbox.demo\", default: 50)",
     "@screen Main",
     "output: \"Main LCD\", 0",
-    "profile: standard",
+    "profile: auto",
     "layout: grid(1, 1)",
     "font: Monospace",
     "font_size: 1",

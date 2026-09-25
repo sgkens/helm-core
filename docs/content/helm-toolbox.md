@@ -33,6 +33,8 @@ Choose a panel before inserting from Blocks, Items or Components. HELM Toolbox p
 
 Each control names the HELM directive it changes, and every change remains visible in the highlighted Custom Data pane. The inspector rewrites only the selected directive or line: comments, templates, conditional colour rules and unknown future directives pass through unchanged. Complex custom `line:` syntax that cannot be read safely remains in the text and is marked read-only in the inspector, so the visual editor never flattens it.
 
+The LCD selector above the preview chooses the simulated hardware dimensions; it does not change the selected screen's `profile:` directive. New configurations use `profile: auto`, while an explicit profile remains fixed so the preview matches what the same DSL will do in game.
+
 ## Projects, Files and Share Links
 
 The current editor text is autosaved locally. A named project stores the text and selected screen profile in the browser. Saved projects do not leave the device.

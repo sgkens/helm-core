@@ -598,6 +598,39 @@ line: ""SPEED"" text(ship.speed) unit(""auto"")
         float fontWide = Layout.GetProfileFontSize("wide", 1024f, 512f, 1.0f);
         Check(fontWide == 1.15f, "GetProfileFontSize wide scales to 1.15");
 
+        // Hardware-facing aliases normalize to the same canonical profiles used by the renderer.
+        Check(Layout.NormalizeProfile("TextPanel") == "standard", "TextPanel profile alias normalizes to standard");
+        Check(Layout.NormalizeProfile("Wide LCD") == "wide", "Wide LCD profile alias normalizes to wide");
+        Check(Layout.NormalizeProfile("CockpitSmall") == "compact", "CockpitSmall profile alias normalizes to compact");
+        Check(Layout.NormalizeProfile("Corner-LCD") == "corner", "Corner-LCD profile alias normalizes to corner");
+        Check(Layout.NormalizeProfile("cockpit_corner") == "corner", "cockpit_corner profile alias normalizes to corner");
+        Check(Layout.NormalizeProfile("unknown") == null, "unknown profile is rejected by the normalizer");
+
+        // Auto uses the constraining side, covering every built-in resolution plus rotated/modded narrow surfaces.
+        Check(Layout.ResolveProfile("auto", 512f, 512f) == "standard", "auto 512x512 resolves standard");
+        Check(Layout.ResolveProfile("auto", 1024f, 512f) == "wide", "auto 1024x512 resolves wide");
+        Check(Layout.ResolveProfile("auto", 512f, 256f) == "compact", "auto 512x256 resolves compact");
+        Check(Layout.ResolveProfile("auto", 512f, 128f) == "corner", "auto 512x128 resolves corner");
+        Check(Layout.ResolveProfile("auto", 256f, 128f) == "corner", "auto 256x128 resolves corner");
+        Check(Layout.ResolveProfile("auto", 256f, 512f) == "compact", "auto rotated 256x512 resolves compact");
+        Check(Layout.ResolveProfile("auto", 128f, 512f) == "corner", "auto rotated 128x512 resolves corner");
+        Check(Layout.ResolveProfile("standard", 128f, 128f) == "standard", "explicit standard overrides a small surface");
+        Check(Layout.ResolveProfile("auto", 0f, 128f) == "standard", "invalid auto dimensions fall back safely");
+        Check(Layout.GetProfileFontSize("CockpitSmall", 512f, 256f, 1f) == 0.75f, "hardware alias applies compact font scale");
+        Check(Layout.GetProfileFontSize("CornerLCD", 512f, 128f, 1f) == 0.55f, "hardware alias applies corner font scale");
+
+        // Titles retain their old size on roomy panels and yield space on dense short-panel grids.
+        Check(Math.Abs(Layout.GetPanelTitleHeaderHeight(128f, 1f) - 20f) < 0.001f, "roomy panel keeps the normal title header");
+        Check(Math.Abs(Layout.GetPanelTitleFontSize(128f, 1f) - 0.9f) < 0.001f, "roomy panel keeps the normal title font");
+        Check(Math.Abs(Layout.GetPanelTitleHeaderHeight(40f, 1f) - 7.2f) < 0.001f, "short panel caps title header at 18 percent");
+        Check(Math.Abs(Layout.GetPanelTitleFontSize(40f, 1f) - 0.324f) < 0.001f, "short panel scales title with capped header");
+        Check(Layout.GetPanelTitleHeaderHeight(-1f, 1f) == 0f, "invalid panel height cannot create a negative header");
+
+        var cfgProfileAlias = HelmParser.Parse("@screen alias\noutput: \"LCD\"\nprofile: CockpitCorner\nline: \"X\" text(x.value)\n");
+        Check(cfgProfileAlias.Errors.Count == 0 && cfgProfileAlias.Screens[0].Profile == "corner", "parser stores hardware profile aliases canonically");
+        var cfgBadProfile = HelmParser.Parse("@screen bad\noutput: \"LCD\"\nprofile: enormous\nline: \"X\" text(x.value)\n");
+        Check(cfgBadProfile.Errors.Count == 1 && cfgBadProfile.Errors[0].Contains("unknown profile"), "parser reports an unsupported profile");
+
         // Epic 21: Dynamic Telemetry & Micro-API Binds
         string dslDyn = @"
 @bind target_dist = dynamic(""target.dist"", default: 1500.5)
@@ -646,5 +679,3 @@ line: ""TEST"" bar(x.percent) flat(cyan)
         Environment.Exit(fail == 0 ? 0 : 1);
     }
 }
-
-

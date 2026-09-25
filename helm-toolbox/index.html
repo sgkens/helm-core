@@ -154,7 +154,7 @@
         <div class="flex flex-wrap items-center gap-2 mb-2">
           <select id="starter-picker" aria-label="Starter layout" class="select select-xs select-bordered font-mono" data-lume="Replace the editor with an included layout template." data-lume-direction="bottom"></select>
           <span id="layout-count" class="badge badge-xs badge-outline font-mono" aria-live="polite"></span>
-          <select id="profile-picker" aria-label="LCD profile" class="select select-xs select-bordered font-mono" data-lume="Preview the exact surface and texture dimensions of this LCD profile." data-lume-direction="bottom"></select>
+          <select id="profile-picker" aria-label="Preview LCD hardware" class="select select-xs select-bordered font-mono" data-lume-title="Preview hardware" data-lume="Choose the simulated LCD dimensions. This does not rewrite the selected screen's profile: directive; use profile: auto for responsive in-game scaling." data-lume-direction="bottom"></select>
           <span id="screen-picker-wrap" class="hidden">
             <select id="screen-picker" aria-label="Screen to preview" class="select select-xs select-bordered font-mono"></select>
           </span>
@@ -187,7 +187,7 @@
             <label class="inspector-field wide"><span>Screen name · <code>@screen</code></span><input class="input input-xs input-bordered" data-base-field="name"></label>
             <label class="inspector-field wide"><span>LCD block · <code>output:</code></span><input class="input input-xs input-bordered" data-base-field="outputName"></label>
             <label class="inspector-field"><span>Surface</span><input type="number" min="0" class="input input-xs input-bordered" data-base-field="outputSurface"></label>
-            <label class="inspector-field"><span>Profile · <code>profile:</code></span><select class="select select-xs select-bordered" data-base-field="profile"><option value="">auto</option><option>standard</option><option>wide</option><option>compact</option><option>corner</option></select></label>
+            <label class="inspector-field"><span>Profile · <code>profile:</code></span><select class="select select-xs select-bordered" data-base-field="profile"><option value="auto">auto</option><option>standard</option><option>wide</option><option>compact</option><option>corner</option></select></label>
             <label class="inspector-field"><span>Grid columns</span><input type="number" min="1" max="16" class="input input-xs input-bordered" data-base-field="gridCols"></label>
             <label class="inspector-field"><span>Grid rows</span><input type="number" min="1" max="16" class="input input-xs input-bordered" data-base-field="gridRows"></label>
             <label class="inspector-field"><span>Font · <code>font:</code></span><select class="select select-xs select-bordered" data-base-field="font"><option>Monospace</option><option>Debug</option><option>White</option><option>Red</option><option>Green</option><option>Blue</option><option>DarkBlue</option></select></label>

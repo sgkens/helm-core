@@ -5,6 +5,7 @@ const syntaxHighlight = require("@11ty/eleventy-plugin-syntaxhighlight");
 const { EleventyHtmlBasePlugin } = require("@11ty/eleventy");
 const registerHelmGrammar = require("./helm-prism.js");
 const { exampleId, isCompleteExample } = require("./scripts/extract-examples.js");
+const { hardwareProfile } = require("./profile-hardware.js");
 const blockIcons = require("./_data/blockIcons.json");
 
 const REPO_ROOT = path.resolve(__dirname, "..");
@@ -45,9 +46,7 @@ module.exports = function (eleventyConfig) {
       const html = fence(tokens, idx, options, env, self);
       // Complete ```helm examples get a live preview from the frames exported by tools/spritedump.
       if (token.info.trim().split(/\s+/)[0] === "helm" && isCompleteExample(token.content)) {
-        const profile = /^profile:\s*corner\b/m.test(token.content) ? "CornerLCD"
-          : /^profile:\s*wide\b/m.test(token.content) ? "WideLCD"
-          : /^profile:\s*compact\b/m.test(token.content) ? "CockpitSmall" : "TextPanel";
+        const profile = hardwareProfile((token.content.match(/^profile:\s*([^\s#]+)/im) || [])[1]);
         return html + `<div class="hv hv-medium not-prose" data-helm-viz data-layout="${exampleId(token.content)}" data-profile="${profile}"></div>\n`;
       }
       return html;

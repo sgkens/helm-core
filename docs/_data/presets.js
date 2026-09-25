@@ -1,6 +1,7 @@
 // Preset list generated from layouts/default/*.txt so counts and gallery entries cannot drift from the files.
 const fs = require("node:fs");
 const path = require("node:path");
+const { hardwareProfile } = require("../profile-hardware.js");
 
 const DIR = path.resolve(__dirname, "..", "..", "layouts", "default");
 
@@ -41,8 +42,8 @@ function describe(name, text) {
   let description = rest.join(" ").replace(/\s+/g, " ").trim();
   const panels = [...text.matchAll(/^@panel\s+\S+.*?title:\s*"([^"]+)"/gm)].map((x) => x[1]);
   if (!description && panels.length) description = "Panels: " + panels.join(", ") + ".";
-  const profileLine = (text.match(/^profile:\s*(\w+)/m) || [])[1] || "standard";
-  const profile = PROFILE_OVERRIDE[name] || (profileLine === "corner" ? "CornerLCD" : "TextPanel");
+  const profileLine = (text.match(/^profile:\s*([^\s#]+)/im) || [])[1] || "standard";
+  const profile = PROFILE_OVERRIDE[name] || hardwareProfile(profileLine);
   return { name, title, description, profile, panels, category: categoryFor(name) };
 }
 

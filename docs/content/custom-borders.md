@@ -52,6 +52,8 @@ Titles can be positioned anywhere along the panel's top frame:
 - **`center`**: Automatically calculates exact middle alignment (`┌──────── [ POWER ] ────────┐`).
 - **`right`**: Aligns title flush against the top-right frame (`┌──────────── [ POWER ] ─┐`).
 
+Title text normally uses 90% of the panel font scale. On a short grid cell, HELM reduces the title and its reserved header together so the header never consumes more than 18% of that panel. This is automatic for dense compact and corner-screen layouts; an explicit `font_size:` remains the starting scale.
+
 ---
 
 ## Independent Title Typography Colors (`title_color:`)

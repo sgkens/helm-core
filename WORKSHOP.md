@@ -83,7 +83,7 @@ External scripts (autopilots, combat computers, sorters) can broadcast directly 
 [code]IGC.SendBroadcastMessage("HELM", "target.lock=1;dist=1420;speed=104");[/code]
 
 [h2]✦ Performance Notes[/h2]
-• [b]Script size[/b]: about 94.2k characters minified, under the 100k Programmable Block limit.
+• [b]Script size[/b]: about 95.9k characters minified, under the 100k Programmable Block limit.
 • [b]Rendering[/b]: one screen is redrawn per run, so multi-screen setups are spread across ticks.
 • [b]Measured in game[/b] (one display, idle): 10 of 50,000 instructions, 0.025 to 0.030 ms per run. Not yet measured: larger grids, the item-contents scan, and allocations.
 ```

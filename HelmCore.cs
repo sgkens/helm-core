@@ -485,7 +485,11 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                     else if (line.StartsWith("profile:"))
                     {
                         RequireScreen(current, "profile:");
-                        current.Profile = line.Substring("profile:".Length).Trim().ToLowerInvariant();
+                        string rawProfile = line.Substring("profile:".Length).Trim();
+                        string normalizedProfile = Layout.NormalizeProfile(rawProfile);
+                        if (normalizedProfile == null)
+                            throw new FormatException("unknown profile '" + rawProfile + "' (expected auto/standard/compact/wide/corner or a hardware profile name)");
+                        current.Profile = normalizedProfile;
                     }
                     else if (line.StartsWith("border:"))
                     {
@@ -1512,23 +1516,65 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
             return value.ToString(fmt) + unit;
         }
 
-        // Computes responsive font scaling according to viewport profile and screen size
+        // Maps user-facing hardware names and DSL aliases onto the five layout profiles used by the renderer.
+        // Null means the value is not a supported profile; callers parsing user input should report that as an error.
+        public static string NormalizeProfile(string profile)
+        {
+            string p = (profile ?? "").Trim().ToLowerInvariant().Replace("_", "").Replace("-", "").Replace(" ", "");
+            switch (p)
+            {
+                case "auto": return "auto";
+                case "standard":
+                case "textpanel": return "standard";
+                case "compact":
+                case "cockpitsmall": return "compact";
+                case "wide":
+                case "widelcd": return "wide";
+                case "corner":
+                case "cornerlcd":
+                case "cockpitcorner": return "corner";
+                default: return null;
+            }
+        }
+
+        // Resolves auto from the actual visible drawing surface. The shortest side is what constrains
+        // readable sprite text, and also handles a modded or rotated surface without a special alias.
+        public static string ResolveProfile(string profile, float surfaceWidth, float surfaceHeight)
+        {
+            string p = NormalizeProfile(profile) ?? "standard";
+            if (p != "auto") return p;
+            if (surfaceWidth <= 0f || surfaceHeight <= 0f) return "standard";
+
+            float shortSide = Math.Min(surfaceWidth, surfaceHeight);
+            if (shortSide <= 160f) return "corner";
+            if (shortSide <= 300f) return "compact";
+            if (surfaceWidth >= 1000f) return "wide";
+            return "standard";
+        }
+
+        // Computes responsive font scaling according to viewport profile and screen size.
         public static float GetProfileFontSize(string profile, float surfaceWidth, float surfaceHeight, float defaultFontSize = 1.0f)
         {
-            string p = (profile ?? "standard").ToLowerInvariant();
-            if (p == "compact" || (p == "auto" && surfaceWidth <= 300 && surfaceHeight <= 300 && surfaceHeight > 160))
-            {
-                return defaultFontSize * 0.75f;
-            }
-            if (p == "corner" || (p == "auto" && surfaceHeight <= 160))
-            {
-                return defaultFontSize * 0.55f;
-            }
-            if (p == "wide" || (p == "auto" && surfaceWidth >= 1000))
-            {
-                return defaultFontSize * 1.15f;
-            }
+            string p = ResolveProfile(profile, surfaceWidth, surfaceHeight);
+            if (p == "compact") return defaultFontSize * 0.75f;
+            if (p == "corner") return defaultFontSize * 0.55f;
+            if (p == "wide") return defaultFontSize * 1.15f;
             return defaultFontSize;
+        }
+
+        // A title used to reserve 20 * fontSize pixels regardless of the panel height. On a short panel
+        // (especially a multi-row 128 px surface) that could consume most of the content area. Keep the
+        // normal header on roomy panels, but never let it claim more than 18% of its panel.
+        public static float GetPanelTitleHeaderHeight(float panelHeight, float fontSize)
+        {
+            if (panelHeight <= 0f || fontSize <= 0f) return 0f;
+            return Math.Min(20f * fontSize, panelHeight * 0.18f);
+        }
+
+        public static float GetPanelTitleFontSize(float panelHeight, float fontSize)
+        {
+            float headerHeight = GetPanelTitleHeaderHeight(panelHeight, fontSize);
+            return Math.Min(fontSize * 0.9f, headerHeight * 0.045f);
         }
 
         // Renders a zero-centered balance/horizon chart as fixed-width ASCII: "LABEL [---<|>] NN%"

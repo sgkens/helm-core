@@ -48,7 +48,10 @@ assert.equal(parsed.screens[0].panels[0].lines[0].options.colorMode, "gradient")
 assert.equal(dsl.slice(panelInsertionOffset(dsl, 0, 0)).trimStart().startsWith("@panel cargo"), true);
 assert.equal(parseDslModel(addPanel(dsl, 0)).screens[0].panels.length, 3);
 assert.equal(parseDslModel(addScreen(dsl)).screens.length, 2);
-assert.equal(parseDslModel(createBaseConfig()).screens[0].panels[0].lines.length, 1);
+assert.equal(parseDslModel(addScreen(dsl)).screens[1].directives.profile.value, "auto");
+const baseConfig = parseDslModel(createBaseConfig());
+assert.equal(baseConfig.screens[0].panels[0].lines.length, 1);
+assert.equal(baseConfig.screens[0].directives.profile.value, "auto");
 
 const implicit = parseDslModel("@screen compact\ntitle: STATUS\nline: \"OK\" text(x.value)\n");
 assert.equal(implicit.screens[0].panels[0].implicit, true);

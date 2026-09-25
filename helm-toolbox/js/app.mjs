@@ -27,6 +27,15 @@ const LEGACY_STORAGE_PREFIX = "web" + "util";
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
+function canonicalDslProfile(value) {
+  const p = String(value || "standard").trim().toLowerCase().replace(/[_\s-]/g, "");
+  if (p === "textpanel") return "standard";
+  if (p === "widelcd") return "wide";
+  if (p === "cockpitsmall") return "compact";
+  if (p === "cornerlcd" || p === "cockpitcorner") return "corner";
+  return p;
+}
+
 const state = {
   dsl: "",
   profile: "TextPanel",
@@ -296,7 +305,7 @@ function refreshInspector(followCursor = false) {
   const grid = parseGrid(directiveValue(screen, "layout"));
   const screenValues = {
     name: screen.name, outputName: output.name, outputSurface: output.surface,
-    profile: directiveValue(screen, "profile"), gridCols: grid.cols, gridRows: grid.rows,
+    profile: canonicalDslProfile(directiveValue(screen, "profile", "standard")), gridCols: grid.cols, gridRows: grid.rows,
     font: directiveValue(screen, "font", "Monospace"), font_size: directiveValue(screen, "font_size", "1"),
     border: directiveValue(screen, "border", "graphic"), padding: directiveValue(screen, "padding", "8"),
     gap: directiveValue(screen, "gap", "8"),
@@ -819,7 +828,7 @@ function wireControls() {
   });
 
   const profileSel = $("#profile-picker");
-  profileSel.innerHTML = Object.keys(PROFILES).filter((p) => p !== "Auto" && p !== "Off").map((p) => `<option value="${p}">${p} (${PROFILES[p].w}x${PROFILES[p].h})</option>`).join("");
+  profileSel.innerHTML = Object.keys(PROFILES).filter((p) => p !== "Auto" && p !== "Off").map((p) => `<option value="${p}">Preview: ${p} (${PROFILES[p].w}x${PROFILES[p].h})</option>`).join("");
   profileSel.value = state.profile;
   profileSel.addEventListener("change", () => { state.profile = profileSel.value; scheduleRender(); });
 

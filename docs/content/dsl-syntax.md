@@ -60,7 +60,7 @@ A screen maps to a physical LCD surface on your grid.
 ```helm
 @screen <ScreenIdentifier>
 output: "<TerminalBlockName>", <SurfaceIndex>
-profile: <auto|standard|compact|wide|corner|CockpitSmall|WideLCD|TextPanel>
+profile: <auto|standard|compact|wide|corner|TextPanel|WideLCD|CockpitSmall|CornerLCD|CockpitCorner>
 layout: grid(<columns>, <rows>)
 bg: #<hexcolor>
 border_color: #<hexcolor>
@@ -72,7 +72,7 @@ title_color: #<hexcolor>
 ### Screen Directives
 
 - `output: "Name", index`: Terminal block name and 0-based surface index.
-- `profile`: Hardware screen profile controlling aspect ratio and viewport adaptation.
+- `profile`: Responsive layout profile. `auto` uses the visible surface's shortest side and is recommended when a configuration may move between LCD types. The canonical values are `standard`, `wide`, `compact` and `corner`; the hardware aliases `TextPanel`, `WideLCD`, `CockpitSmall`, `CornerLCD` and `CockpitCorner` map to those values. Unknown names are reported as configuration errors rather than silently rendering at the standard size.
 - `layout: grid(cols, rows)`: Defines the layout grid dimensions (e.g. `grid(2, 2)`).
 - `refresh: <ticks>`: Draws this screen at most every N game ticks (`600` is every 10 seconds). Use it on screens that change slowly to save instructions. Default: every run.
 - `alert_period: <seconds>`: Length of one red-alert flash cycle (default `1.6`). The flash follows the clock, not the run rate.

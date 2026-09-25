@@ -1837,12 +1837,13 @@ namespace IngameScript
 
             float paddingX = Math.Max(4f, surfaceSize.X * 0.02f);
             float paddingY = Math.Max(4f, surfaceSize.Y * 0.02f);
-            if (screen.Profile == "compact" || (screen.Profile == "auto" && surfaceSize.Y <= 260f && surfaceSize.Y > 150f))
+            string resolvedProfile = Layout.ResolveProfile(screen.Profile, surfaceSize.X, surfaceSize.Y);
+            if (resolvedProfile == "compact")
             {
                 paddingX = 4f;
                 paddingY = 4f;
             }
-            else if (screen.Profile == "corner" || (screen.Profile == "auto" && surfaceSize.Y <= 150f))
+            else if (resolvedProfile == "corner")
             {
                 paddingX = 2f;
                 paddingY = 2f;
@@ -1939,7 +1940,8 @@ namespace IngameScript
                 float headerH = 0f;
                 if (!string.IsNullOrEmpty(panel.Title))
                 {
-                    headerH = 20f * fontSize;
+                    headerH = Layout.GetPanelTitleHeaderHeight(pHeight, fontSize);
+                    float titleFontSize = Layout.GetPanelTitleFontSize(pHeight, fontSize);
                     var align = TextAlignment.LEFT;
                     float titleX = pLeft + 4f;
                     string aMode = panel.TitleAlign ?? screen.TitleAlign ?? "left";
@@ -1963,7 +1965,7 @@ namespace IngameScript
                         panel.Title,
                         font,
                         titleCol,
-                        fontSize * 0.9f,
+                        titleFontSize,
                         align
                     );
                     titleSprite.Position = new Vector2(titleX, pTop + 2f);
@@ -1974,7 +1976,7 @@ namespace IngameScript
                         ? ResolveColor(bGrad[0])
                         : ResolveColor(panel.BorderColor ?? screen.BorderColor ?? "40, 60, 85");
 
-                    AddQuad(buf, new Vector2(pLeft + pWidth / 2f, pTop + headerH - 2f), new Vector2(pWidth - 8f, 1f), divCol);
+                    AddQuad(buf, new Vector2(pLeft + pWidth / 2f, pTop + Math.Max(1f, headerH - 2f)), new Vector2(Math.Max(0f, pWidth - 8f), 1f), divCol);
                 }
 
                 if (panel.Orientation == "vertical" || panel.Lines.Any(pl => pl.Kind == LineKind.Tank))
@@ -1984,7 +1986,7 @@ namespace IngameScript
                 }
 
                 int lineCount = Math.Max(1, panel.Lines.Count);
-                float panelUsableH = pHeight - headerH - 8f;
+                float panelUsableH = Math.Max(1f, pHeight - headerH - 8f);
                 float wsum = 0f, acc = 0f;
                 foreach (var pl in panel.Lines) wsum += 1 << pl.Size;
                 float unitH = panelUsableH / Math.Max(1f, wsum);
