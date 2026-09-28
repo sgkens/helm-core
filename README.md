@@ -19,7 +19,7 @@
 • Sub-millisecond execution \
 • Guaranteed multi-tick scheduling.
 
-<div>
+</div>
 
 ---
 
