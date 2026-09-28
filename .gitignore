@@ -45,3 +45,7 @@ HelmCombined.map.txt
 tools/minify-rename/obj/
 tools/rename-check/bin/
 tools/rename-check/obj/
+
+
+# gx tool
+gx/
