@@ -49,3 +49,8 @@ tools/rename-check/obj/
 
 # gx tool
 gx/
+
+
+# HelmCombined and helm minified
+HelmCombined.min.cs
+HelmCombined.cs
