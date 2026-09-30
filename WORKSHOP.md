@@ -7,85 +7,110 @@
 
 ## Steam Workshop Description (BBCode Ready)
 
+The fenced BBCode below is the published page source, exported to `workshop/build/description.bbcode.txt`. The Markdown sections after it are repository reference appendices, not part of the Steam description. For existing items, paste the full export into Steam's Edit Description page; publishing preserves that description.
+
 ```text
 [h1]HELM: High-Efficiency Lightweight Monitor[/h1]
-[b]Declarative LCD dashboard script with 15 visual control types and automatic block discovery.[/b]
+[b]A configurable LCD and cockpit dashboard script for vanilla Space Engineers Programmable Blocks.[/b]
 
-Are you tired of complex LCD scripts that lag your dedicated server, generate garbage collection spikes, or break the moment you rename a block? 
-[b]HELM[/b] is a declarative HUD and LCD script for vanilla Space Engineers. It needs no mods.
+HELM turns LCDs and cockpit surfaces into telemetry dashboards. Define screens, panels, gauges, colours and block bindings in the Programmable Block's Custom Data. No client mod is required.
 
-[h2]✦ Key Features[/h2]
+[h2]Online Tools and Documentation[/h2]
 [list]
-[*] [b]Retained sprite buffers[/b]: Sprites are created once and updated in place, and percentage strings are cached, to keep per-tick allocation low. In a first in-game run with one display it used 10 of the 50,000 instructions when idle and 0.025 to 0.030 ms per run.
-[*] [b]Declarative DSL in Custom Data[/b]: Configure multi-screen, multi-panel layouts directly in the Programmable Block's Custom Data with clean, human-readable syntax.
-[*] [b]Zero-Friction Block Discovery[/b]: Wildcard pattern matching (e.g. [code]Battery*[/code], [code]*Hydro*[/code]) and automatic typed grid fallbacks. No need to spend 20 minutes renaming every battery or tank on your ship!
-[*] [b]15 Specialized Visual Controls[/b]:
-    • [b]bar()[/b]: Proportional fill bar with smoothed movement
-    • [b]led()[/b]: Discrete 10-step segmented LED meter
-    • [b]spark()[/b]: Historical 8-tick rolling sparkline trend graph
-    • [b]hazard()[/b]: Hazard caution bar
-    • [b]chevron()[/b]: Directional tactical flow segments
-    • [b]dots()[/b]: High-density circular dot matrix meter
-    • [b]balance()[/b]: Zero-centered bilateral horizon chart
-    • [b]toggle()[/b]: ON/OFF latch switch
-    • [b]checkbox()[/b]: Square verification checkbox indicator
-    • [b]status()[/b]: Tri-state badge (ONLINE / STBY / OFFLINE)
-    • [b]ammo()[/b]: Magazine bullet counter
-    • [b]flow()[/b]: Directional fluid/gas transfer indicator (also written [code]spinner()[/code])
-    • [b]text()[/b]: Formatted telemetry readout with threshold coloring
-    • [b]dial()[/b]: Half-circle gauge with a lit arc, needle and hub (also [code]gauge()[/code] and [code]arc()[/code])
-    • [b]tank()[/b]: Liquid tube that fills from the bottom, with a moving wave line and rising bubbles (also [code]tube()[/code] and [code]bucket()[/code])
-[*] [b]Sizes, Columns and Tanks[/b]: [code]size(medium)[/code] and [code]size(large)[/code] give a row 2 or 4 shares of its panel, [code]orientation: vertical[/code] lays lines out as columns, and a panel that spans the screen is a full-screen tank or bar. Grid layouts combine all of these.
-[*] [b]Colours, Gradients and Conditions[/b]: [code]flat()[/code], [code]gradient()[/code] and [code]color()[/code] rules work on every gauge. A rule can answer with a gradient ([code]red/orange[/code]), [code]color_by()[/code] colours a gauge by another value, and [code]track()[/code] and [code]label_color()[/code] colour the empty part and the label.
-[*] [b]Bar Dressing and Line Details[/b]: [code]ticks()[/code], [code]marker()[/code], [code]outline()[/code], [code]dir: left[/code], [code]segments()[/code], [code]points()[/code], [code]value(off)[/code], [code]icon()[/code] and [code]blink()[/code].
-[*] [b]Rate, ETA and Trend[/b]: [code]text(batt.rate)[/code], [code]eta[/code] and [code]trend[/code] show how fast a battery or tank is filling or draining and when it will be empty or full.
-[*] [b]Frames[/b]: [code]border:[/code] styles ([code]frame[/code], [code]corners[/code], [code]double[/code], [code]rounded[/code], [code]heavy[/code]) are drawn in game, for screens and for single panels.
-[*] [b]Backgrounds[/b]: Solid or gradient (vertical or horizontal), see-through, textured, colours that follow a value, backgrounds that flash on a threshold, and a red-alert flash.
-[*] [b]Contents and Amounts[/b]: Bars and text for items in cargo and reactors ([code]cargo.ingot:Iron[/code]), the five largest items ([code]top1[/code] to [code]top5[/code]), and [code]max(N)[/code] as the full amount.
-[*] [b]Mirrors and LCD Text[/b]: [code]mirror:[/code] shows another HELM screen (or one panel of it) on another display. [code]text(notes.line1)[/code] shows a line of the text on any other LCD. Only text can be read; the game gives scripts no access to another screen's picture.
-[*] [b]ASCII Banners[/b]: Full-screen ASCII art, or your own boot logo.
-[*] [b]Engineering Units & Auto-Scaling[/b]: Units such as MW, GW, kW, kL, km, m/s and t, plus automatic scaling with [code]unit("auto")[/code].
-[*] [b]Viewport Profiles[/b]: Fonts and padding adapt to the surface: Text Panel 512x512, Wide LCD 1024x512, Cockpit 512x256, Corner LCD 512x128 and Cockpit Corner 256x128.
-[*] [b]Built-in Diagnostics[/b]: Run the script with the argument [code]scan[/code] (or [code]diagnose[/code]) for a report of all binds, surfaces and instruction use.
-[*] [b]Boot Sequence[/b]: Optional staggered multi-screen boot with a logo, a custom message, terminal log lines, a gradient progress wipe and a gauge calibration sweep.
-[*] [b]Console[/b]: The Programmable Block's own screen shows a status console (screens, binds, errors, run time, instruction use).
+[*][url=https://sgkens.gitlab.io/helm-core/helm-toolbox/]HELM Toolbox[/url] - build layouts visually using the real parser and renderer in your browser.
+[*][url=https://sgkens.gitlab.io/helm-core/docs/]Complete Documentation[/url] - installation, DSL reference, gauges, telemetry fields, hardware profiles and preset gallery.
+[*][url=https://gitlab.com/sgkens/helm-core]Source and Issue Tracker[/url] - source code, releases and problem reports.
 [/list]
 
-[h2]✦ Quick Start[/h2]
-1. Build a [b]Programmable Block[/b] on your grid.
-2. Paste the code from [b]HelmCombined.min.cs[/b] (or Steam Workshop blueprint).
-3. Open the Programmable Block's [b]Custom Data[/b] and define your screens, or start from one of the 8 built-in templates with [code]@use[/code]:
-   • [code]@use battery_monolith[/code]
-   • [code]@use rover[/code]
-   • [code]@use airlock[/code]
-   • [code]@use cargo_overview[/code]
-   Ready-made full layouts are also in the [b]layouts[/b] folder (see the list below); copy one into Custom Data.
-4. Click [b]Check Code[/b] and [b]OK[/b]. Your screens initialize and draw.
-5. With an empty Custom Data the LCDs stay blank: run the block with the argument [code]starter[/code] to write a sample layout, set [code]output:[/code] to your LCD's name and run [code]reload[/code]. Run [code]probe[/code] to check what part of a screen the script covers.
+[h2]Key Features[/h2]
+[list]
+[*][b]Declarative layouts[/b] - configure screens in Custom Data instead of editing C#.
+[*][b]Automatic block discovery[/b] - bind exact names, groups and wildcards such as [code]Battery*[/code]
+[*][b]15 visual controls[/b] - bars, LEDs, sparklines, hazards, chevrons, dots, balance charts, toggles, checkboxes, status badges, ammo, flow indicators, text, dials and tanks.
+[*][b]Responsive multi-screen layouts[/b] - grids, panels, row sizing, columns, mirrors and profiles for square, wide and cockpit surfaces.
+[*][b]Telemetry and engineering units[/b] - batteries, power, gas, cargo, production, doors, weapons, flight systems and other terminal blocks with automatic unit scaling.
+[*][b]Styling and alerts[/b] - gradients, conditions, markers, ticks, frames, backgrounds, textures, icons, blinking and ship-wide red alert state.
+[*][b]Rates, ETA and history[/b] - charge or drain rate, estimated time remaining and rolling trends.
+[*][b]Low-allocation rendering[/b] - retained sprite buffers and round-robin screen updates limit work per run.
+[*][b]Diagnostics[/b] - scan bindings and surfaces, list grid names, probe display geometry and inspect runtime use from the Programmable Block console.
+[/list]
 
-[h2]✦ In-Game Commands & Micro-API[/h2]
+[h2]Quick Start[/h2]
+[olist]
+[*]Enable [b]Experimental Mode[/b] and [b]In-game Scripts[/b] for the world.
+[*]Subscribe, place a Programmable Block, open [b]Edit → Browse Scripts[/b], select HELM Core, then run it.
+[*]Run the Programmable Block with argument [code]starter[/code] to write a sample into empty Custom Data.
+[*]Change the sample [code]output:[/code] name to match your LCD or cockpit block, then run [code]reload[/code]
+[*]Use [url=https://sgkens.gitlab.io/helm-core/helm-toolbox/]HELM Toolbox[/url] to choose a preset, edit it visually and copy the finished Custom Data into the block.
+[/olist]
+
+[h2]Minimal Display Example[/h2]
+[code]
+@bind power = group("Main Batteries", agg: avg)
+
+@screen bridge
+output: "Bridge LCD", 0
+profile: auto
+title: "BRIDGE POWER"
+line: "BATTERY" bar(power.percent) gradient(green, yellow, red)
+[/code]
+
+Name a battery group [b]Main Batteries[/b] and an LCD [b]Bridge LCD[/b], paste the example into Custom Data, and run [code]reload[/code]. See the [url=https://sgkens.gitlab.io/helm-core/docs/getting-started/]Getting Started guide[/url] for multi-screen setup and cockpit surface numbers.
+
+[h2]In-Game Commands & Micro-API[/h2]
 Run the Programmable Block with the following arguments:
 [list]
-[*] [code]reload[/code]: Re-reads Custom Data.
-[*] [code]refresh[/code]: Re-resolves block names and screen surfaces.
-[*] [code]scan[/code] (also [code]diagnose[/code], [code]test[/code]): Prints a report of bound blocks, LCD surfaces and instruction use.
-[*] [code]set <var> <val>[/code] (or [code]set <var>=<val>[/code]): Sets an in-memory dynamic variable, e.g. [code]set target.dist 1420[/code].
-[*] [code]alert <on|off|toggle|red>[/code]: Turns the ship-wide red alert on or off; backgrounds flash to their [code]alert_bg[/code] colour and red gauges flash.
-[*] [code]boot[/code]: Plays the boot sequence again on every screen.
-[*] [code]starter[/code]: Writes a sample layout into an empty Custom Data (never overwrites) and loads it.
-[*] [code]names[/code]: Writes every block and group name of your grid to the end of Custom Data as comment lines, so you can copy exact names into your binds.
-[*] [code]probe[/code]: Draws a test pattern for 20 seconds on the block's screen and on every configured screen.
-[*] [code]console on|off[/code]: Shows or hides the console on the Programmable Block's own screen.
+[*][code]reload[/code] - re-read Custom Data and rebuild the layout.
+[*][code]refresh[/code] - resolve block names and surfaces again.
+[*][code]scan[/code] / [code]diagnose[/code] - report bindings, displays, errors and runtime use.
+[*][code]starter[/code] - write a sample layout into empty Custom Data without overwriting existing data.
+[*][code]names[/code] - append grid block and group names as comments for copying into binds.
+[*][code]probe[/code] - draw a temporary geometry test pattern.
+[*][code]alert on|off|toggle|red[/code] - control the global alert state.
+[*][code]boot[/code] - replay configured boot sequences.
+[*][code]console on|off[/code] - show or hide the Programmable Block status console.
+[*][code]set <var> <value>[/code] - set an in-memory value for external automation and testing.
 [/list]
 
-[h2]✦ Headless Display Server (IGC Micro-Framework)[/h2]
+[h2]Headless Display Server (IGC Micro-Framework)[/h2]
 External scripts (autopilots, combat computers, sorters) can broadcast directly to HELM over IGC channel [b]"HELM"[/b] without writing any UI code:
 [code]IGC.SendBroadcastMessage("HELM", "target.lock=1;dist=1420;speed=104");[/code]
 
-[h2]✦ Performance Notes[/h2]
-• [b]Script size[/b]: about 95.9k characters minified, under the 100k Programmable Block limit.
-• [b]Rendering[/b]: one screen is redrawn per run, so multi-screen setups are spread across ticks.
-• [b]Measured in game[/b] (one display, idle): 10 of 50,000 instructions, 0.025 to 0.030 ms per run. Not yet measured: larger grids, the item-contents scan, and allocations.
+[h2]Configuration Essentials[/h2]
+[list]
+[*]Use [code]@bind[/code] for each alias; groups require [code]agg: avg|sum|min|max[/code]. Add [code]scope: all[/code] only when you intentionally want docked ships included.
+[*]Use [code]layout: grid(2, 2)[/code] and [code]@panel power at(0, 0, 1, 1)[/code] to split a screen. Reusable [code]@template[/code] and [code]@use[/code] directives avoid repeating layouts.
+[*]Raw item counts need a full-scale amount: [code]bar(cargo.ingot:Iron) max(5000)[/code]. Use [code]text(batt.rate)[/code], [code]text(batt.eta)[/code] or [code]text(batt.trend)[/code] for history-derived readouts.
+[*]For IGC variables, declare [code]@bind range = dynamic("dist", default: 0)[/code], then display [code]text(range.val)[/code].
+[/list]
+
+[h2]Troubleshooting[/h2]
+[list]
+[*][b]Blank display:[/b] run [code]reload[/code], check the Programmable Block detail output, verify the exact LCD name and confirm the surface index.
+[*][b]Bind error or zero value:[/b] every alias used by a gauge needs a matching [code]@bind[/code]. Run [code]names[/code] to copy exact block/group names and consult the [url=https://sgkens.gitlab.io/helm-core/docs/block-matrix/]telemetry matrix[/url].
+[*][b]Layout clips or scales incorrectly:[/b] use [code]profile: auto[/code], run [code]probe[/code], and preview the same hardware profile in Toolbox.
+[*][b]Script is missing in game:[/b] confirm you subscribed to an item with [b]Type: IngameScript[/b], then use the Programmable Block's Browse Scripts screen rather than the world Mods list.
+[*][b]Updated Workshop script:[/b] subscribed scripts update in Browse Scripts, but an existing Programmable Block keeps its pasted copy. Select the updated script again to replace the code; Custom Data layouts remain separate.
+[/list]
+
+[h2]Reference Links[/h2]
+For deeper help, use the links below or open Toolbox to browse presets and preview your actual screen profile. The repository Workshop reference also includes the layout catalogue and a compact DSL reference.
+[list]
+[*][url=https://gitlab.com/sgkens/helm-core/-/blob/main/WORKSHOP.md]Workshop reference and layout catalogue[/url]
+[*][url=https://sgkens.gitlab.io/helm-core/docs/dsl-syntax/]DSL syntax and examples[/url]
+[*][url=https://sgkens.gitlab.io/helm-core/docs/gauges/]Gauge reference[/url]
+[*][url=https://sgkens.gitlab.io/helm-core/docs/block-matrix/]Supported blocks and telemetry fields[/url]
+[*][url=https://sgkens.gitlab.io/helm-core/docs/hardware-profiles/]LCD and cockpit hardware profiles[/url]
+[*][url=https://sgkens.gitlab.io/helm-core/docs/presets-gallery/]Preset gallery[/url]
+[*][url=https://sgkens.gitlab.io/helm-core/docs/inter-script-api/]IGC and command API[/url]
+[*][url=https://gitlab.com/sgkens/helm-core/-/issues]Report a problem[/url]
+[/list]
+
+[h2]Support Information[/h2]
+When reporting a problem, include the HELM version, the smallest Custom Data example that reproduces it, block and surface type, Programmable Block detail output, and whether the same layout fails in Toolbox. Remove private server details first.
+
+[b]Platform note:[/b] Programmable Block scripts run on PC and dedicated servers. Consoles cannot execute user scripts unless the script runs server-side on a compatible cross-play server.
+
 ```
 
 ---
@@ -93,6 +118,7 @@ External scripts (autopilots, combat computers, sorters) can broadcast directly 
 ## DSL Quick Reference
 
 ### Screen Directives
+
 ```bash
 @screen "Cockpit LCD"
 output: "Cockpit", 0             # Block name, Surface Index
@@ -109,6 +135,7 @@ layout: grid(2, 2)               # Multi-panel grid (cols, rows)
 ```
 
 ### Bind Directives
+
 ```bash
 # Single block or wildcard matching
 @bind batt = block("Main Battery")
@@ -120,6 +147,7 @@ layout: grid(2, 2)               # Multi-panel grid (cols, rows)
 ```
 
 ### Panel Directives
+
 ```bash
 @panel power at(0, 0, 1, 1)
 title: "POWER GRID"
@@ -139,6 +167,7 @@ line: "ETA    " text(batt.eta) flat(#94a3b8)
 ---
 
 ## Included Layouts
+
 The `layouts` folder contains 65 ready-made layouts. Copy one into the Programmable Block's Custom Data.
 
 - `airlock_security`: Pressure cycle and bulkhead gate security monitor
@@ -150,7 +179,7 @@ The `layouts` folder contains 65 ready-made layouts. Copy one into the Programma
 - `bar_sizes`: One panel with a large, a medium and a normal bar. size(...) sets how much of the panel a row takes (4, 2 and 1 shares); the bar grows with it.
 - `battery_monolith`: High-impact full-screen liquid power bank display (1x1 or Wide LCD)
 - `boot_custom`: Custom boot message, log lines, color and gradient, with a longer duration.
-- `border_styles_gallery`: One panel per border style. In game only the screen-level style matters (ascii and none differ); panel-level border: renders in helmv.ps1 only.
+- `border_styles_gallery`: One panel per border style; compare in-game screen and panel frames with the offline preview.
 - `bridge_matrix`: Capital ship 4-quadrant command matrix
 - `cargo_contents`: Amounts of named items in a cargo group, and a reactor's fuel. Field format: kind:Subtype.
 - `cargo_minimal`: Two-line strip for a slanted CornerLCD (4:1).
@@ -199,7 +228,7 @@ The `layouts` folder contains 65 ready-made layouts. Copy one into the Programma
 - `tank_trio`: Medium tanks: three panels side by side, each one a tank that fills its panel.
 - `template_nested`: A template that invokes another template: a ship pod that stamps one nacelle screen per engine.
 - `template_stamp`: A user-defined template stamped out for two ships with single-line @use calls.
-- `thruster_balance`: Dual-panel flight dynamics HUD with zero-centered horizon balance charts
+- `thruster_balance`: Dual-panel flight dynamics HUD with balance charts centered at 50%.
 - `title_alignment`: Left, center and right titles with independent title colors and a border gradient.
 - `top_contents`: The five largest items held by a cargo group, ranked by amount and refreshed every 15 seconds. text(bind.top1) is the largest item, top2 the next, and so on. Ore and ingots are named with their kind.
 - `trading_station`: Cargo values and connector traffic for a trade dock.
@@ -210,4 +239,5 @@ The `layouts` folder contains 65 ready-made layouts. Copy one into the Programma
 ---
 
 ## Block Support Matrix
-HELM has dedicated readouts for about 30 Space Engineers terminal block types (batteries, reactors, tanks, doors, thrusters, drills, sensors and more). Other functional blocks report their on/off state. The full table is in the docs page "Terminal Block Binding Matrix".
+
+HELM has dedicated readouts for batteries, reactors, tanks, doors, thrusters, drills, sensors and many other terminal block types. Other functional blocks report their on/off state. See the [Terminal Block Binding Matrix](https://sgkens.gitlab.io/helm-core/docs/block-matrix/) for the current supported fields and units.
