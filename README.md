@@ -16,8 +16,8 @@
 
 • Vanilla-compatible
 • Zero-dependency \
-• Sub-millisecond execution \
-• Guaranteed multi-tick scheduling.
+• Retained sprite rendering \
+• Round-robin screen scheduling.
 
 </div>
 
@@ -27,10 +27,12 @@
 
 **HELM** is engineered with a strict performance budget from day one:
 
-1. **Multi-Tick Round-Robin Scheduling:** Exactly one screen redraws per execution tick. Instruction caps are never breached regardless of grid size.
-2. **Dirty-Flag Skipping:** If sensor data hasn't visually changed since the last frame, sprite rendering is skipped entirely (0.00ms execution).
+1. **Multi-Tick Round-Robin Scheduling:** Normal telemetry updates evaluate one screen per run. Boot sequences and diagnostics can draw additional frames; large grids and inventory scans still consume the game's instruction budget.
+2. **Dirty-Flag Skipping:** Unchanged output can skip `DrawFrame()`. The script still runs to sample data and decide whether a redraw is needed.
 3. **Decoupled Declarative DSL:** Block binding (`@bind`) is strictly separated from presentation (`@screen`), preventing silent rendering failures and debugging headaches.
-4. **Zero Per-Tick Allocations:** No LINQ and no per-tick string concats in hot rendering loops.
+4. **Retained Rendering Buffers:** Reused sprite buffers and cached percentage strings reduce rendering work and allocations; this is not a zero-allocation guarantee.
+
+[Documentation](https://sgkens.gitlab.io/helm-core/docs/) · [HELM Toolbox](https://sgkens.gitlab.io/helm-core/helm-toolbox/) · [Workshop page source](WORKSHOP.md) · [Releases](https://gitlab.com/sgkens/helm-core/-/releases)
 
 ---
 
@@ -39,24 +41,26 @@
 > [info]
 > Using HELM in Game
 
-You do not need Visual Studio or MDK to run HELM. A ready-to-paste script is provided in this repository.
+You do not need Visual Studio or MDK to run HELM. Enable Experimental Mode and In-Game Scripts for your world. Install the subscribed Workshop item through the Programmable Block's **Edit → Browse Scripts**, or download the minified script from a [release](https://gitlab.com/sgkens/helm-core/-/releases).
 
 ### Option A: Direct Paste (No Tools Needed)
 
 1. Open your ship or station's **Programmable Block** in the Terminal and click **Edit**.
-2. Select everything in the code editor, then copy the entire contents of [`HelmCombined.min.cs`](HelmCombined.min.cs) and paste it over it. (`HelmCombined.cs` is the same script with comments; it is over the game's 100,000 character limit and cannot be pasted.)
+2. Select everything in the code editor, then paste the entire downloaded `HelmCombined.min.cs`. For a local build, run `pwsh ./Build-Release.ps1` to generate this file; generated scripts are not tracked in Git. Use the minified output to meet the game's 100,000-character limit.
 3. Click **Check Code**, then click **OK**.
 4. Open the Programmable Block's **Custom Data** and paste a configuration (see [Code Examples](#production-code-examples) below).
 5. Ensure your target LCDs or Cockpit blocks have matching names. The script will initialize and begin telemetry immediately.
 6. With an empty Custom Data the LCDs stay blank. Run the block with the argument `starter` to write a sample layout, set `output:` to your LCD's name, then run `reload`. Run `probe` to check what part of a screen the script covers.
 
-### Option B: MDK / Visual Studio Development
+### Option B: Local Development
 
-If developing with Malware's Development Kit (MDK):
+To build from source:
 
 - Core logic lives in [`HelmCore.cs`](HelmCore.cs) (zero SE dependencies, unit-testable offline).
 - Game adapter lives in [`Program.cs`](Program.cs).
-- Build the project in Visual Studio; MDK will compile and deploy directly to your local Space Engineers script folder.
+- Run `pwsh ./Build-Release.ps1`, then paste the generated minified script into your Programmable Block. See [build, test and release](architecture/build-test-release.md) for the tooling and checks.
+
+Updating a Workshop subscription does not replace code already pasted into a Programmable Block. Select the updated script again in Browse Scripts, check the code, then run `reload`; your layout remains in the block's separate Custom Data.
 
 ---
 
@@ -340,17 +344,17 @@ line: "HYDRG" text(h2.percent) color(h2.percent < 20 : red, default: cyan)
 
 _(Note: A `default:` fallback color is strictly required on all `color()` directives)._
 
-#### Zero-Centered Horizon & Balance Charts (`balance` / `horizon` / `centered`)
+#### Centered Balance Charts (`balance` / `horizon` / `centered`)
 
-Draws a bi-directional zero-centered horizon balance gauge (`<----[ 0 ]---->`). Perfect for flight gyros, thruster trim balance, lateral vector velocity, and battery charge vs discharge:
+Draws a bidirectional gauge centered at 50%. Supply a normalized 0–100 value: below 50 extends left, above 50 extends right. This is not a signed attitude indicator; gyro pitch/roll fields are control commands, not measured ship orientation.
 
 ```bash
-line: "PITCH" balance(gyro.pitch) gradient(cyan, white, cyan)
-line: "ROLL " balance(gyro.roll) flat(#38bdf8)
+@bind trim = dynamic("trim", default: 50)
+line: "TRIM " balance(trim.val) gradient(cyan, white, cyan)
 line: "LAT  " pattern(balance) bar(th_lat.percent) gradient(red, yellow, green, yellow, red)
 ```
 
-- **Sprite Mode:** Recessed dark track with a prominent center divider and hardware-accelerated dynamic quads extending left (`< 50%`) or right (`> 50%`) from center zero.
+- **Sprite Mode:** Recessed track with a center divider and quads extending left (`< 50%`) or right (`> 50%`) from the midpoint.
 - **ASCII Monospace Mode:** Strict SE fixed-width character representation: `PITCH [---<<<|----] 35%`.
 
 #### Toggle Switches (`toggle` / `switch`)
@@ -857,13 +861,13 @@ pwsh ./helmv.ps1 -Preset command_carrier -Interactive    # Press [M]easurements 
 pwsh ./Test-HelmLayout.ps1 -Preset atmospheric_lander -ShowSprites -ShowStats -CopyToClipboard
 ```
 
-**In-game update rate.** The script chooses its own rate. It runs at `Update10` (6 runs a second, one screen per run) while a boot, a changing value, an easing gauge or an alert is active, and drops to `Update100` after every screen has been idle for a few runs. This is a first version: refresh rates will be revisited after more in-game and stress testing. The `refresh:` setting is parsed but not used by the script yet.
+**In-game update rate.** The script chooses its own rate. It runs at `Update10` (6 runs a second, one normal telemetry screen per run) while a boot, a changing value, an easing gauge or an alert is active, and drops to `Update100` after every screen has been idle for a few runs. The per-screen `refresh:` setting limits normal redraws within that round-robin schedule; boot frames are separate.
 
 **VRage Hardware Sprite Buffer Inspector (`-ShowSprites`):**
 Passing `-ShowSprites` appends a real-time hardware telemetry card showing the exact `MySprite` budget that Space Engineers would allocate for that screen layout:
 
 - **Total Allocated `MySprite` structs**: Exact quad and texture footprint pre-allocated in `ScreenBuffer`.
-- **In-Place Mutated Quads / Tick**: Demonstrates the zero-allocation model where only existing sprite values (`Size.X`, `Color`, `Data`) are updated in memory.
+- **In-Place Mutated Quads / Tick**: Models updates to existing sprite values (`Size.X`, `Color`, `Data`); it does not measure total game allocations.
 - **Per-Tick GC Allocation**: reported by the simulator as 0 KB. This is a model of the intended design, not a measurement from the game.
 - **Laser Alignment**: Bounded to the exact card width (41 columns in single-column mode, 84 columns in multi-column mode) with zero border drift.
 
@@ -890,17 +894,11 @@ When `-StrictSEAscii` is passed, the simulator restricts all visual primitives t
 
 ## Architecture & Performance Audit
 
-### Performance Benchmarks vs Competitors
+### Performance Expectations
 
-| Metric                                | AutoLCD2                | FSD2                               | HELM (ASCII Baseline)         | **HELM (Retained Virtual Buffer)**       |
-| ------------------------------------- | ----------------------- | ---------------------------------- | ----------------------------- | ---------------------------------------- |
-| **Scheduling Model**                  | 1 screen / tick         | All screens / tick                 | 1 screen / tick (Round-robin) | **1 screen / tick (Round-robin)**        |
-| **Instruction Count (Unchanged)**     | ~2,500 – 6,000          | ~8,000 – 15,000                    | ~300 – 800                    | **~25 – 45 instructions** (< 0.1% cap)   |
-| **Instruction Count (Active Redraw)** | ~4,000 – 12,000         | ~25,000 – **50,000+** ⚠️ _(Crash)_ | ~1,200 – 2,400                | **~250 – 420 instructions** (< 0.9% cap) |
-| **Execution Time (`LastRunTimeMs`)**  | ~0.60ms – 1.80ms        | ~1.50ms – 4.20ms                   | ~0.08ms – 0.14ms              | **0.025ms – 0.070ms** (0.00ms on skip)   |
-| **Per-Tick GC Heap Allocations**      | Moderate (~2 KB / tick) | High (~4 – 8 KB / tick)            | ~0.4 KB / tick                | **0.000 KB (True Zero Allocation)**      |
-| **JIT / Compile Overhead**            | ~6.0ms initial JIT      | ~2.5ms                             | ~0.5ms                        | **< 0.4ms (Instant Load)**               |
-| **Multiplayer Packet Size (8 Lines)** | Moderate                | High                               | ~0.8 KB                       | **~1.3 KB (Ultra-safe MP sync)**         |
+Normal telemetry evaluation rotates through one screen per run and reuses retained sprite buffers. Unchanged output can avoid drawing a new frame, but data sampling, history and scheduling still run. Boot frames, diagnostics, large block groups and inventory queries add work.
+
+Use `scan` or `diagnose` and the Programmable Block's runtime statistics to measure your actual layout and grid. This repository does not establish comparative timings, multiplayer packet sizes, zero allocations or a guarantee against instruction-limit failures for arbitrary configurations.
 
 ### Feature Audit Matrix (PDR Compliance)
 
@@ -908,7 +906,7 @@ An audit against the project's Preliminary Design Review:
 
 - [x] **Tier 1 — Core Monospace ASCII Rendering:** Implemented & verified (`border: ascii`).
 - [x] **Tier 1 — Round-Robin Multi-Tick Scheduler:** Implemented & verified. One screen evaluated per tick; state cycles deterministically.
-- [x] **Tier 1 — Dirty-Flag Skip:** Implemented & verified. Screen output signatures are cached; unchanged data skips `DrawFrame()` entirely (0.00ms).
+- [x] **Tier 1 — Dirty-Flag Skip:** Screen output signatures are cached; unchanged output can skip `DrawFrame()`, not script execution.
 - [x] **Tier 1 — Explicit Group Aggregations:** Implemented & verified. Group binds enforce `agg: avg|sum|min|max` at parse time.
 - [x] **Tier 1 — Flexible Screen Width (`width:`):** Implemented & verified. Resolves screen clipping on small cockpit panels and corner LCDs.
 - [x] **Tier 1 — Hardware Integration:** Batteries, Gas Tanks (O2/H2), Air Vents, Cargo, and Jump Drives verified.
@@ -916,7 +914,7 @@ An audit against the project's Preliminary Design Review:
 - [x] **Tier 1 — Dynamic Text Height:** Dynamically queries `MeasureStringInPixels` with safe constant fallback.
 - [x] **Tier 1 — Terminal Control:** `reload` and `refresh` arguments supported.
 - [x] **Tier 2 — Retained Virtual Sprite Buffer:** Hardware-accelerated geometric bars on dark recessed tracks with sub-pixel precision.
-- [x] **Tier 2 — True 0-Byte Allocation Cache:** Pre-allocated static percentage array (`0%`–`100%`) eliminates GC pressure.
+- [x] **Tier 2 — Percentage String Cache:** Cached percentage strings (`0%`–`100%`) reduce repeated formatting allocations.
 - [x] **Tier 2 — Fluid Damped Bars (Springs):** Aerospace avionics linear interpolation for silky smooth bar movement.
 - [x] **Tier 2 — Segmented LED Chiclets (`led`):** 10-segment illuminated bar blocks for heavy industrial and military consoles.
 - [x] **Tier 2 — Trend Sparklines (`spark` / `sparkline`):** 8-point historical telemetry mini-graph showing power/cargo drain trends.
@@ -925,7 +923,7 @@ An audit against the project's Preliminary Design Review:
 - [x] **Tier 2 — Parameterized Template Engine (`@template`, `@use`):** Reusable HUD macros with `$VAR` substitution and rapid group renaming.
 - [x] **Tier 2 — Full 24-Bit Color Science & Hex Parsing:** Supports `#RRGGBB`, `#RGB`, `R,G,B`, and transparent backgrounds.
 - [x] **Tier 2 — Continuous RGB Multi-Stop Gradient Interpolation (`GradientLerp`):** Smooth RGB fades across stops.
-- [x] **Tier 2 — Zero-Centered Horizon / Balance Charts (`balance` / `horizon`):** Bi-directional center-out horizon gauges.
+- [x] **Tier 2 — Centered Balance Charts (`balance` / `horizon`):** Bidirectional gauges centered at 50%.
 - [x] **Tier 2 — Native Font Atlas Selection (`font:`):** Custom font assignment per screen or sub-panel (`Monospace`, `Debug`, etc.).
 - [x] **Tier 2 — Offline PowerShell Cmdlet (`Test-HelmLayout.ps1`):** Tab-completion, clipboard export, and ANSI preview.
 - [x] **Tier 2 — Backgrounds:** solid, vertical and horizontal gradients, value-driven and flashing backgrounds, textures, `screen_bg:`, `panel_bg:`, red-alert background.

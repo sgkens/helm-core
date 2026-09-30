@@ -1,0 +1,27 @@
+---
+permalink: /llms.txt
+eleventyExcludeFromCollections: true
+eleventyImport:
+  collections: ["docs"]
+---
+# HELM Core
+
+> {{ site.description | safe }}
+
+HELM Core is an MIT-licensed C# script for Space Engineers Programmable Blocks.
+Configure screens with the HELM text DSL in Custom Data; no game mod is required.
+This site documents version {{ site.versionLabel }} in English.
+HELM Core is an independent project and is not affiliated with Keen Software House.
+
+## Documentation
+{% for docPage in collections.docs %}
+- [{{ docPage.data.title | safe }}]({{ docPage.url | absoluteUrl(site.url) | safe }}): {{ docPage.data.description | safe }} [Markdown]({{ docPage.filePathStem | markdownUrl | absoluteUrl(site.url) | safe }})
+{% endfor %}
+
+## Project
+
+- [HELM Core home]({{ site.url }}): Project introduction and example displays.
+- [HELM Toolbox]({{ '/helm-toolbox/' | absoluteUrl(site.url) }}): Browser editor and preview tool using the script renderer.
+- [Source repository]({{ site.repoUrl }}): Code, layouts and MIT license.
+- [Releases]({{ site.repoUrl }}/-/releases): Published versions.
+- [Sitemap]({{ '/sitemap.xml' | absoluteUrl(site.url) }}): Canonical documentation URLs.

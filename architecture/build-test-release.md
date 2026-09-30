@@ -14,6 +14,8 @@ mono /tmp/test_helm.exe
 
 `pwsh ./Build-Release.ps1` is the release-oriented path. CI additionally checks the Programmable Block character budget, combined compilation, runtime scope, rename/minification parity, packages and Pages output.
 
+Pushing a tag named `vMAJOR.MINOR.PATCH-release` creates a GitLab Release after the Generic Package archive is uploaded. Plain SemVer tags such as `v0.0.0` do not create a release; the corresponding explicit release tag is `v0.0.0-release`.
+
 ## Generated artifacts
 
 - `HelmCombined.cs` and `HelmCombined.min.cs` are assembled release outputs.

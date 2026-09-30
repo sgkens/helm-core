@@ -9,7 +9,8 @@
 #   3. gate       — Enforce PB 100,000-character hard ceiling; compile, token-check and render the script
 #   4. package    — Create versioned .zip archive + upload to GitLab Generic Packages
 #   4b. gate      — combined-compile-check compiles the minified script against the stand-in API
-#   5. deploy     — Export display frames (docs-frames, build stage), then build the 11ty
+#   5. release    — Create a GitLab Release for vMAJOR.MINOR.PATCH-release tags
+#   6. deploy     — Export display frames (docs-frames, build stage), then build the 11ty
 #                   docs site and publish to GitLab Pages (main only)
 #
 # Steam Workshop deploy is intentionally NOT automated in CI.
@@ -34,6 +35,7 @@ stages:
   - build
   - gate
   - package
+  - release
   - deploy
 
 # Default runner image for every job. It carries PowerShell, mono (mcs), the .NET 8 and 10 SDKs,
@@ -320,6 +322,21 @@ package-release:
     - if: '$CI_COMMIT_TAG'
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH =~ /^release\//'
+
+# ---------------------------------------------------------------------------
+# STAGE: release — Publish a GitLab Release backed by Generic Package assets
+#
+# A stable SemVer tag (for example v1.2.3) does not create a release. The
+# explicit release tag (v1.2.3-release) does, after package-release uploads its
+# archive. Publish-GitLabRelease.ps1 discovers every uploaded package file and
+# adds it to the GitLab Release as a permanent asset link.
+# ---------------------------------------------------------------------------
+create-release:
+  stage: release
+  script:
+    - pwsh ./tools/Publish-GitLabRelease.ps1 -ProjectId "$CI_PROJECT_ID" -Tag "$CI_COMMIT_TAG" -PackageName "$HELM_PACKAGE_NAME"
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)-release$/'
 
 # ---------------------------------------------------------------------------
 # docs-examples extracts the complete ```helm examples from the docs pages (Bun).

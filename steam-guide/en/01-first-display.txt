@@ -6,18 +6,17 @@ Name a battery group [b]Main Batteries[/b] and an LCD [b]Bridge LCD[/b]. Paste t
 @bind power = group("Main Batteries", agg: avg)
 
 @screen bridge
-surface: block("Bridge LCD", 0)
+output: "Bridge LCD", 0
 profile: auto
 title: "BRIDGE POWER"
 line: "BATTERY" bar(power.percent) gradient(green, yellow, red)
-@end
 [/code]
 
 Run the Programmable Block with the argument [code]reload[/code]. The `@bind` alias connects a friendly name to blocks on the grid. The screen chooses surface zero, uses responsive sizing, and draws the battery percentage as a colored bar.
 
 [h2]Multiple surfaces[/h2]
 
-Add another `@screen ... @end` block for each target. Cockpits expose numbered surfaces; standalone LCDs normally use surface 0. HELM Toolbox's hardware picker helps preview aspect ratios, but confirm the surface number in game.
+Add another `@screen` section for each target; screens do not use `@end` (that closes templates and banners). Cockpits expose numbered surfaces; standalone LCDs normally use surface 0. HELM Toolbox's hardware picker helps preview aspect ratios, but confirm the surface number in game.
 
 [h2]Safe editing loop[/h2]
 

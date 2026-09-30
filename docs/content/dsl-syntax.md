@@ -74,7 +74,8 @@ title_color: #<hexcolor>
 - `output: "Name", index`: Terminal block name and 0-based surface index.
 - `profile`: Responsive layout profile. `auto` uses the visible surface's shortest side and is recommended when a configuration may move between LCD types. The canonical values are `standard`, `wide`, `compact` and `corner`; the hardware aliases `TextPanel`, `WideLCD`, `CockpitSmall`, `CornerLCD` and `CockpitCorner` map to those values. Unknown names are reported as configuration errors rather than silently rendering at the standard size.
 - `layout: grid(cols, rows)`: Defines the layout grid dimensions (e.g. `grid(2, 2)`).
-- `refresh: <ticks>`: Draws this screen at most every N game ticks (`600` is every 10 seconds). Use it on screens that change slowly to save instructions. Default: every run.
+- `refresh: <ticks>`: Limits normal redraws to at most every N game ticks (`600` is every 10 seconds), within round-robin scheduling. Boot frames are separate. Default: eligible every run.
+- `rotate: <seconds>`: Cycle pages on one LCD, for example `rotate: 8s` (bare `8` also means seconds; minimum `1`). Give every page the same `output:` name/index and interval. Pages appear in declaration order and wrap to the first; different outputs cycle independently. Switching forces a redraw even when values are unchanged or `refresh:` is longer than the rotation interval. Cached gauge state survives switching; hidden pages sample when displayed again. Rotation starts after the boot sequence, and `reload` or `boot` restarts at the first page. Switching occurs on the page's next round-robin visit. Toolbox's screen picker previews each page separately.
 - `alert_period: <seconds>`: Length of one red-alert flash cycle (default `1.6`). The flash follows the clock, not the run rate.
 - `bg: #hex`: Screen background color (e.g. `#090b0f`). See [Backgrounds](#backgrounds) for gradients, panel colours and the alert background.
 - `border_color: #hex`: Screen border frame color. `border_gradient(#a, #b, ...)` blends through the stops from left to right along the top and bottom lines (`gradient_mode: steps` uses the first stop on top and the last on the bottom).
@@ -83,6 +84,29 @@ title_color: #<hexcolor>
 - `border: style`: The frame. In the game: `graphic` and `minimal` draw the top and bottom lines; `frame`, `single`, `heavy` (thicker) and `double` (a second inner frame) also draw the sides; `rounded` adds a circle at each corner; `corners` draws corner brackets; `ascii` uses text characters; `none` draws nothing. `border_color` and `border_gradient(...)` colour it. Put `border:` after an `@panel` line to frame that panel.
 - `mirror: "Screen"` and `mirror_panel: "Panel"`: Copy another screen, or one panel of it. See [Mirroring a Screen](#mirroring-a-screen).
 - `banner: name`, `boot_logo: name`, `boot_batch`, `boot_calibrate`: See [ASCII Banners](#ascii-banners) and [Boot Sequence Directives](#boot-sequence-directives).
+
+### Rotating Pages on One LCD
+
+These pages share one output and display for eight seconds each. Use the same output name and surface index on every page, with `rotate:` before any panel declarations.
+
+```helm
+@bind power = battery("Main Battery")
+@bind cargo = cargo("Cargo Container")
+
+@screen power-page
+output: "Status LCD", 0
+rotate: 8s
+profile: auto
+title: "POWER"
+line: "BATTERY" bar(power.percent) flat(cyan)
+
+@screen cargo-page
+output: "Status LCD", 0
+rotate: 8s
+profile: auto
+title: "CARGO"
+line: "STORAGE" bar(cargo.percent) flat(green)
+```
 
 ### Tanks and Vertical Bars
 

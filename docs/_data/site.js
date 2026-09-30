@@ -26,6 +26,11 @@ const syntaxThemes = [
 ].map(([id, label]) => ({ id, label }));
 
 module.exports = {
+  name: "HELM Core",
+  description: "HELM Core draws Space Engineers grid telemetry on LCDs and cockpit screens using a Programmable Block script and Custom Data layouts.",
+  // Full public base URL, including the project path. Independent of the local pathPrefix.
+  url: (process.env.HELM_SITE_URL || "https://sgkens.gitlab.io/helm-core/").replace(/\/+$/, "") + "/",
+  robots: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
   syntaxThemes,
   version,
   versionLabel: /^\d/.test(version) ? "v" + version : version,

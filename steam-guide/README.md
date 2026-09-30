@@ -1,6 +1,6 @@
 # Steam Community Guide source
 
-This directory is the reviewable source for the English **HELM Core — Complete Guide**. It complements `WORKSHOP.md`: the Workshop page is the concise install/release description, while the Guide teaches setup, layout design and troubleshooting.
+This directory is the reviewable source for the English **HELM Core — Complete Guide**. It complements `WORKSHOP.md`: the Workshop page provides installation, quick-start, commands, troubleshooting and maintained external links, while the Guide provides a longer ordered tutorial when a separate Steam Community Guide is useful.
 
 Steam publication is intentionally manual. In the Space Engineers Community Hub, open **Guides**, choose **Create a Guide**, select English and the appropriate modding/scripting categories, then paste the files listed in `manifest.json` as ordered sections. Preview every section and code block before publishing. Record the published URL in this file and in the docs once available.
 

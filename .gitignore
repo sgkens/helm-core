@@ -54,3 +54,10 @@ gx/
 # HelmCombined and helm minified
 HelmCombined.min.cs
 HelmCombined.cs
+
+
+# local issues
+/issues
+
+# Local publishing helper may contain account credentials.
+/ixpr.ps1

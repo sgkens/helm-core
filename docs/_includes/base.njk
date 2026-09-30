@@ -3,8 +3,28 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ title }} | HELM Core Docs</title>
-  <meta name="description" content="{{ description or 'Documentation for HELM Core, a Space Engineers telemetry display script.' }}">
+  {% set metaTitle = title | pageTitle(splash) %}
+  {% set metaDescription = description or site.description %}
+  {% set canonicalUrl = page.url | absoluteUrl(site.url) %}
+  <title>{{ metaTitle | escape }}</title>
+  <meta name="description" content="{{ metaDescription | escape }}">
+  <meta name="robots" content="{{ site.robots | escape }}">
+  <link rel="canonical" href="{{ canonicalUrl | escape }}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="HELM Core Docs">
+  <meta property="og:title" content="{{ metaTitle | escape }}">
+  <meta property="og:description" content="{{ metaDescription | escape }}">
+  <meta property="og:url" content="{{ canonicalUrl | escape }}">
+  <meta property="og:locale" content="en_US">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="{{ metaTitle | escape }}">
+  <meta name="twitter:description" content="{{ metaDescription | escape }}">
+  {% if not splash %}
+  <link rel="alternate" type="text/markdown" href="{{ page.filePathStem | markdownUrl | absoluteUrl(site.url) | escape }}" title="{{ title | escape }} (Markdown)">
+  {% endif %}
+  <link rel="sitemap" type="application/xml" href="{{ '/sitemap.xml' | absoluteUrl(site.url) | escape }}">
+  <link rel="alternate" type="text/plain" href="{{ '/llms.txt' | absoluteUrl(site.url) | escape }}" title="HELM Core machine-readable documentation index">
+  <script type="application/ld+json">{{ page | structuredData(site, title, description, splash, locale.id) | safe }}</script>
   <meta name="helm-base" content="{{ '/' | url }}">
   <link rel="icon" type="image/webp" href="/assets/helm-core-logo-256x256.webp">
   <link rel="preconnect" href="https://fonts.googleapis.com">

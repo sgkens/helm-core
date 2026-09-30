@@ -10,6 +10,48 @@ const requireFile = (relative) => {
   if (!fs.existsSync(path.join(root, relative))) failures.push(`missing ${relative}`);
 };
 
+// Keep the published entry points aligned with the implemented visual controls.
+const readText = (relative) => fs.readFileSync(path.join(root, relative), "utf8");
+const core = readText("HelmCore.cs");
+const gaugeKinds = core.match(/enum LineKind\s*\{([^}]+)\}/)?.[1].split(",").map((kind) => kind.trim()) || [];
+const gauges = readText("docs/content/gauges.md");
+const gaugeHeadings = [...gauges.matchAll(/^## .+\(`([^`]+)`/gm)].map((match) => match[1]);
+const canonicalControls = [...core.matchAll(/if \(func == "([^"]+)"[^\n]+def\.Kind = LineKind\.(\w+);/g)];
+for (const [, control, kind] of canonicalControls) {
+  if (gaugeKinds.includes(kind) && !gaugeHeadings.includes(control)) failures.push(`Gauge reference: missing distinct ${control} section (${kind})`);
+}
+if (!gaugeKinds.length || canonicalControls.length !== gaugeKinds.length || gaugeHeadings.length !== gaugeKinds.length) {
+  failures.push(`Gauge reference: ${gaugeHeadings.length} sections / ${canonicalControls.length} documented parser mappings / ${gaugeKinds.length} implemented controls`);
+}
+if (!gauges.includes(`badge: "${gaugeKinds.length} Types"`)) failures.push("Gauge reference: stale count badge");
+
+const workshop = readText("WORKSHOP.md");
+const workshopBody = workshop.match(/^## Steam Workshop Description[^]*?^```text\s*\n([^]*?)\n```/m)?.[1]?.trim();
+if (!workshopBody) failures.push("WORKSHOP.md: missing publishable BBCode block");
+else {
+  if (workshopBody.length > 8000) failures.push(`WORKSHOP.md: description exceeds 8,000 characters (${workshopBody.length})`);
+  if (!workshopBody.includes(`${gaugeKinds.length} visual controls`)) failures.push("WORKSHOP.md: stale visual-control count");
+  for (const example of workshopBody.matchAll(/\[code\]\s*\n([^]*?)\[\/code\]/g)) {
+    if (example[1].includes("@screen") && /^@end\s*$/m.test(example[1]) && !/@(?:template|banner)\b/.test(example[1])) {
+      failures.push("WORKSHOP.md: screen example incorrectly closed with @end");
+    }
+  }
+  const stack = [];
+  for (const match of workshopBody.matchAll(/\[(\/)?(h1|h2|b|list|olist|url|code)(?:=[^\]]*)?\]/g)) {
+    if (!match[1]) stack.push(match[2]);
+    else if (stack.pop() !== match[2]) failures.push(`WORKSHOP.md: unbalanced BBCode near ${match[0]}`);
+  }
+  if (stack.length) failures.push("WORKSHOP.md: unclosed BBCode tags");
+}
+for (const relative of ["README.md", "WORKSHOP.md", "docs/content/getting-started.md", "steam-guide/en/01-first-display.txt"]) {
+  if (/^surface:\s*block\(/m.test(readText(relative))) failures.push(`${relative}: unsupported surface: example; use output:`);
+}
+for (const relative of ["README.md", "WORKSHOP.md"]) {
+  for (const required of ["https://sgkens.gitlab.io/helm-core/docs/", "https://sgkens.gitlab.io/helm-core/helm-toolbox/"]) {
+    if (!readText(relative).includes(required)) failures.push(`${relative}: missing ${required}`);
+  }
+}
+
 const localeManifest = readJson("locales/locales.json");
 if (localeManifest.default !== "en") failures.push("locales/locales.json: English must remain the fallback locale");
 for (const locale of localeManifest.locales) {
@@ -63,4 +105,4 @@ if (failures.length) {
   console.error(`content check failed:\n- ${failures.join("\n- ")}`);
   process.exit(1);
 }
-console.log(`content check passed: ${toolboxManifest.locales.length} Toolbox locale(s), ${guide.sections.length} Steam Guide sections`);
+console.log(`content check passed: ${gaugeKinds.length} visual controls, Workshop BBCode, ${toolboxManifest.locales.length} Toolbox locale(s), ${guide.sections.length} Steam Guide sections`);

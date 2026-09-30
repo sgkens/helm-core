@@ -228,6 +228,8 @@ public static class Dump
 
         foreach (var screen in config.Screens)
         {
+            // Export each page independently; in-game rotation belongs to the live scheduler.
+            screen.RotationPages = null;
             var surface = new MockSurface(prof.W, prof.H);
             outputs[screen] = surface;
             var frames = new List<List<MySprite>>();

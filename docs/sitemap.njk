@@ -1,0 +1,13 @@
+---
+permalink: /sitemap.xml
+eleventyExcludeFromCollections: true
+eleventyImport:
+  collections: ["docs"]
+---
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>{{ '/' | absoluteUrl(site.url) | escape }}</loc></url>
+{% for docPage in collections.docs %}
+  <url><loc>{{ docPage.url | absoluteUrl(site.url) | escape }}</loc></url>
+{% endfor %}
+</urlset>

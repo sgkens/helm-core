@@ -1,5 +1,5 @@
 # Border Styles Gallery
-# One panel per border style. In game only the screen-level style matters (ascii and none differ); panel-level border: renders in helmv.ps1 only.
+# One panel per border style; compare in-game screen and panel frames with the offline preview.
 @bind v = dynamic("demo.v", default: 64)
 
 @screen Borders

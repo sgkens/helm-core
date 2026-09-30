@@ -4,6 +4,18 @@
 // ship's blocks first to reproduce that. Run: dotnet run --project tools/scope-test (exit code 1 on any failure)
 using System; using System.Collections.Generic; using System.Linq; using System.Reflection;
 using HelmCore; using IngameScript; using Sandbox.ModAPI.Ingame;
+class FListener : IMyBroadcastListener, IMyUnicastListener {
+  public Queue<MyIGCMessage> Messages = new Queue<MyIGCMessage>(); public string Callback;
+  public bool HasPendingMessage { get { return Messages.Count > 0; } }
+  public void SetMessageCallback(string arg = "") { Callback = arg; }
+  public MyIGCMessage AcceptMessage() { return Messages.Dequeue(); }
+  public void Send(object data, string tag = "HELM") { Messages.Enqueue(new MyIGCMessage { Data = data, Tag = tag }); }
+}
+class FIgc : IMyIntergridCommunicationSystem {
+  public FListener Broadcast = new FListener(), Unicast = new FListener(); public string Tag;
+  public IMyUnicastListener UnicastListener { get { return Unicast; } }
+  public IMyBroadcastListener RegisterBroadcastListener(string tag) { Tag = tag; return Broadcast; }
+}
 class Ship { public string Name; public Ship(string n) { Name = n; } }
 class FInv { public double Iron, Ice, MaxVolume = 20; public List<VRage.Game.ModAPI.Ingame.MyInventoryItem> Items = new List<VRage.Game.ModAPI.Ingame.MyInventoryItem>(); public dynamic GetItems(params object[] a) { ((List<VRage.Game.ModAPI.Ingame.MyInventoryItem>)a[0]).AddRange(Items); return null; } public dynamic GetItemAmount(params object[] a) { var t = (VRage.Game.ModAPI.Ingame.MyItemType)a[0]; return t.TypeId == "MyObjectBuilder_Ingot" && t.SubtypeId == "Iron" ? Iron : t.TypeId == "MyObjectBuilder_Ore" && t.SubtypeId == "Ice" ? Ice : 0.0; } }
 class FBlock : IMyTerminalBlock {
@@ -450,6 +462,105 @@ static class ScopeTest {
     me.CustomData = dataBefore;
 
     timeField.SetValue(prog, 0.0);
+
+    // Two unchanged pages must still redraw when returning to the same LCD. A long refresh must not block a switch.
+    me.CustomData = "@bind bat = battery(\"Main Battery\")\n@screen power\noutput: \"Cockpit\"\nrotate: 8s\nrefresh: 6000\nboot_duration: 0\nboot_calibrate: 0\ntitle: \"POWER PAGE\"\nline: \"PWR\" spark(bat.percent) flat(cyan)\n@screen cargo\noutput: \"Cockpit\"\nrotate: 8s\nrefresh: 6000\nboot_duration: 0\ntitle: \"CARGO PAGE\"\n";
+    prog.Main("reload", UpdateType.Terminal);
+    var rotationCfg = (ParsedConfig)Dump.Get(prog, "_config");
+    Check(rotationCfg.Errors.Count == 0, "rotation runtime: config has no errors");
+    Func<double, string> rotationAt = seconds => {
+      timeField.SetValue(prog, seconds);
+      for (int k = 0; k < ((ParsedConfig)Dump.Get(prog, "_config")).Screens.Count; k++) prog.Main("", UpdateType.Update10);
+      return string.Join("|", mLcd.Last.Select(s => s.Data));
+    };
+    Check(rotationAt(0).Contains("POWER PAGE"), "rotation runtime: first page is visible");
+    var pageBuffers = (System.Collections.IDictionary)Dump.Get(prog, "_screenBuffers");
+    var retainedPage = pageBuffers[rotationCfg.Screens[0]];
+    Check(rotationAt(7.9).Contains("POWER PAGE"), "rotation runtime: hidden page does not overwrite the LCD");
+    Check(rotationAt(8).Contains("CARGO PAGE"), "rotation runtime: next page appears despite long refresh");
+    Check(rotationAt(16).Contains("POWER PAGE"), "rotation runtime: unchanged first page redraws on return");
+    Check(object.ReferenceEquals(retainedPage, pageBuffers[rotationCfg.Screens[0]]), "rotation runtime: retained buffer and spark history survive switching");
+    Check(rotationAt(24).Contains("CARGO PAGE"), "rotation runtime: unchanged empty page redraws on return");
+    prog.Main("boot", UpdateType.Terminal);
+    Check(rotationAt(24).Contains("POWER PAGE"), "rotation runtime: boot restarts at the first page");
+
+    // Boot the shared LCD once; hidden siblings must not overwrite its boot frame.
+    me.CustomData = me.CustomData.Replace("boot_duration: 0", "boot_duration: 2");
+    MyGridProgram.BootstrapMe = me; MyGridProgram.BootstrapGts = gts;
+    var bootRotation = new Program();
+    var bootRotationCfg = (ParsedConfig)Dump.Get(bootRotation, "_config");
+    var rotationBoots = (Dictionary<ScreenDef, double>)Dump.Get(bootRotation, "_bootT0");
+    Check(rotationBoots.Count == 1 && rotationBoots.ContainsKey(bootRotationCfg.Screens[0]), "rotation boot: only the first page boots on a shared output");
+    Check(!(bool)render.Invoke(bootRotation, new object[] { bootRotationCfg.Screens[1] }), "rotation boot: hidden sibling cannot overwrite the boot frame");
+    timeField.SetValue(bootRotation, 2.1);
+    for (int k = 0; k < 2; k++) bootRotation.Main("", UpdateType.Update10);
+    Check(rotationBoots.Count == 0 && mLcd.Last.Any(s => s.Data == "POWER PAGE"), "rotation boot: normal first page appears after boot finishes");
+    timeField.SetValue(bootRotation, 10.1);
+    for (int k = 0; k < 2; k++) bootRotation.Main("", UpdateType.Update10);
+    Check(mLcd.Last.Any(s => s.Data == "CARGO PAGE"), "rotation boot: interval starts when boot completes");
+
+    // ASCII pages cache a signature too: returning unchanged text must still redraw.
+    me.CustomData = me.CustomData.Replace("boot_duration: 2", "boot_duration: 0").Replace("title: \"POWER PAGE\"", "border: ascii\ntitle: \"POWER PAGE\"");
+    timeField.SetValue(prog, 0.0);
+    prog.Main("reload", UpdateType.Terminal);
+    Check(rotationAt(0).Contains("PWR"), "rotation ASCII: first page is rendered");
+    Check(rotationAt(8).Contains("CARGO PAGE"), "rotation ASCII: graphical page replaces the ASCII page");
+    Check(rotationAt(16).Contains("PWR"), "rotation ASCII: unchanged text redraws on return");
+
+    me.CustomData = "@banner page-art\nBANNER PAGE\n@end\n" + me.CustomData.Replace("border: ascii", "banner: page-art");
+    timeField.SetValue(prog, 0.0); prog.Main("reload", UpdateType.Terminal);
+    Check(rotationAt(0).Contains("BANNER PAGE"), "rotation banner: full-screen art is rendered");
+    Check(rotationAt(8).Contains("CARGO PAGE") && rotationAt(16).Contains("BANNER PAGE"), "rotation banner: unchanged art redraws on return");
+
+    me.CustomData = me.CustomData.Replace("banner: page-art", "mirror: \"source-page\"") + "@screen source-page\noutput: \"FrameLcd\"\nboot_duration: 0\ntitle: \"MIRROR SOURCE\"\n";
+    timeField.SetValue(prog, 0.0); prog.Main("reload", UpdateType.Terminal);
+    var mirrorRotationCfg = (ParsedConfig)Dump.Get(prog, "_config");
+    render.Invoke(prog, new object[] { mirrorRotationCfg.Screens[2] });
+    Check(rotationAt(0).Contains("MIRROR SOURCE"), "rotation mirror: cached source is drawn on its page");
+    Check(rotationAt(8).Contains("CARGO PAGE") && rotationAt(16).Contains("MIRROR SOURCE"), "rotation mirror: unchanged source redraws on return");
+
+    // Exercise the same constructor callbacks, message queues and rendering used by cooperating PBs.
+    var igc = new FIgc();
+    me.CustomData = "@bind feed = dynamic(\"remote.fuel\", default: 64, ttl: 5)\n@bind state = dynamic(\"remote.state\", default: \"STANDBY\", ttl: 5)\n@screen remote\noutput: \"Cockpit\"\nboot_duration: 0\nboot_calibrate: 0\nline: \"STATE\" text(state.val)\nline: \"AGE\" text(state.age)\nline: \"FRESH\" text(state.fresh)\n";
+    MyGridProgram.BootstrapIgc = igc;
+    var api = new Program();
+    MyGridProgram.BootstrapIgc = null;
+    Func<string, string, double> apiValue = (bind, field) => (double)resolveField.Invoke(api, new object[] { bind, field });
+    var apiText = (Dictionary<string, string>)Dump.Get(api, "_dynText");
+    Check(igc.Tag == "HELM" && igc.Broadcast.Callback == "HELM_IGC" && igc.Unicast.Callback == "HELM_IGC", "micro API: both listeners register callbacks");
+    Check(apiValue("feed", "val") == 64 && apiValue("feed", "age") == -1 && apiValue("feed", "fresh") == 0, "micro API: defaults are not received telemetry");
+    timeField.SetValue(api, 10.0);
+    api.Main("set REMOTE.FUEL=70;remote.state=ESCORT", UpdateType.Terminal);
+    Check(apiValue("feed", "val") == 70 && apiValue("feed", "age") == 0 && apiValue("feed", "fresh") == 100 && apiText["remote.state"] == "ESCORT", "micro API: batched TryRun payload and case-insensitive keys");
+    api.Main("set remote.state READY", UpdateType.Terminal);
+    Check(apiText["remote.state"] == "READY", "micro API: legacy whitespace set remains supported");
+    timeField.SetValue(api, 14.9);
+    Check(apiValue("feed", "fresh") == 100, "micro API: telemetry fresh before ttl");
+    timeField.SetValue(api, 15.0);
+    Check(apiValue("feed", "fresh") == 0 && apiValue("feed", "age") == 5 && apiValue("feed", "val") == 70, "micro API: timeout preserves last value");
+    igc.Unicast.Send("remote.fuel=70;remote.state=ESCORT");
+    api.Main("", UpdateType.IGC);
+    Check(apiValue("feed", "age") == 0 && apiValue("feed", "fresh") == 100, "micro API: unchanged unicast update refreshes heartbeat");
+    timeField.SetValue(api, 17.0);
+    api.Main("", UpdateType.Update10);
+    Check(mLcd.Last.Any(s => s.Data == "ESCORT") && mLcd.Last.Any(s => s.Data == "2.0") && mLcd.Last.Any(s => s.Data == "100"), "micro API: text feed renders age and freshness numerically: " + string.Join("|", mLcd.Last.Select(s => s.Data)));
+    api.Main("reload", UpdateType.Terminal);
+    Check(apiValue("feed", "age") == 2 && apiText["remote.state"] == "ESCORT", "micro API: reload retains values and receive times");
+    igc.Broadcast.Send("remote.fuel=12", "OTHER"); igc.Unicast.Send(12);
+    api.Main("", UpdateType.IGC);
+    Check(apiValue("feed", "val") == 70 && apiValue("feed", "age") == 2, "micro API: unrelated tags and non-string data ignored");
+    for (int k = 1; k <= 10; k++) { igc.Broadcast.Send("remote.fuel=" + k); igc.Unicast.Send("remote.state=" + k); }
+    api.Main("", UpdateType.IGC);
+    Check(apiValue("feed", "val") == 8 && apiValue("state", "val") == 8 && igc.Broadcast.Messages.Count == 2 && igc.Unicast.Messages.Count == 2 && !apiText.ContainsKey("remote.state"), "micro API: each queue drains at most eight, numeric updates replace text");
+    api.Main("", UpdateType.Update10);
+    Check(apiValue("feed", "val") == 10 && apiValue("state", "val") == 10 && !igc.Broadcast.HasPendingMessage && !igc.Unicast.HasPendingMessage, "micro API: scheduled run drains remaining messages");
+    timeField.SetValue(api, 19.0);
+    igc.Unicast.Send("remote.fuel=NaN;remote.fuel=Infinity;remote.state=NEW=STATE;broken");
+    api.Main("", UpdateType.IGC);
+    Check(apiValue("feed", "val") == 10 && apiValue("feed", "age") == 2 && apiValue("state", "val") == 0 && apiText["remote.state"] == "NEW=STATE", "micro API: invalid numbers retain heartbeat, text replaces number and preserves equals");
+    igc.Broadcast.Send("remote.fuel:on;remote.state=false;alert=red");
+    api.Main("", UpdateType.IGC);
+    Check(apiValue("feed", "val") == 100 && apiValue("state", "val") == 0 && !apiText.ContainsKey("remote.state") && (bool)Dump.Get(api, "_globalRedAlert"), "micro API: colon pairs, booleans and reserved alert key");
 
     Console.WriteLine(fails == 0 ? "ALL PASS" : fails + " FAILED");
     return fails;

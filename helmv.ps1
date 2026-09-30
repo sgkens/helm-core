@@ -996,6 +996,7 @@ if ($screen.Border -in @('frame', 'corners')) { $notes.Add("border: $($screen.Bo
 if (@($noteLines | Where-Object { $_.LabelColor -or $_.Track -or $_.ColorBind }).Count -gt 0) { $notes.Add("label_color, track and color_by are ignored in this preview") }
 if (@($noteLines | Where-Object { $null -ne $_.ColorRules -and @($_.ColorRules | Where-Object { $_.Color -like '*/*' }).Count -gt 0 }).Count -gt 0) { $notes.Add("colour rules that answer with a gradient (a/b) are not blended in this preview") }
 if ($screen.Mirror) { $notes.Add("mirror: '$($screen.Mirror)' is not drawn here; use -ScreenName to preview the source screen") }
+if ($screen.RotationPages) { $notes.Add("rotate: pages are previewed separately here; use -ScreenName to choose a page") }
 if ($screen.Banner) { $notes.Add("banner: '$($screen.Banner)' is drawn only in the game") }
 if ($screen.BgGradient -or $screen.BgTexture -or $screen.BgRules -or @($notePanels | Where-Object { $_.BgGradient -or $_.BgRules }).Count -gt 0) { $notes.Add("gradient, texture and value-driven backgrounds are shown as one card colour here") }
 if ($parsedConfig.Screens.Count -ge 1 -and $screen.GridCols * $screen.GridRows -gt 1) { $notes.Add("panels are stacked or set two to a row; at(col, row, spanX, spanY) positions are not drawn to scale") }
@@ -1881,4 +1882,3 @@ finally {
     Write-Host "`n$($script:ESC)[38;2;34;197;94mHELM TUI Simulation Finished.$($script:ANSI.Reset)"
     foreach ($n in $notes) { Write-Host "$($script:ESC)[38;2;234;179;8mhelmv: $n$($script:ANSI.Reset)" }
 }
-
