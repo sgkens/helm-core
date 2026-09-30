@@ -61,3 +61,6 @@ HelmCombined.cs
 
 # Local publishing helper may contain account credentials.
 /ixpr.ps1
+
+# rivet
+rivet/

@@ -16,6 +16,10 @@ mono /tmp/test_helm.exe
 
 Pushing a tag named `vMAJOR.MINOR.PATCH-release` creates a GitLab Release after the Generic Package archive is uploaded. Plain SemVer tags such as `v0.0.0` do not create a release; the corresponding explicit release tag is `v0.0.0-release`.
 
+Before tagging, update `CHANGELOG.md` and add `release-notes/MAJOR.MINOR.PATCH.md`. The publisher loads the notes matching the tag and adds the ZIP download and Steam Workshop links to the release body. It fails if the notes are missing or empty, or if the expected `<package-name>-<tag>.zip` is absent from the registry. Every package file is attached as a release asset with a permanent `/packages/<filename>` download path; the ZIP also contains the changelog and release notes. Packaging downloads the build artifacts and waits for all release checks before uploading.
+
+The Workshop link defaults to item `3810372634`, read from the local publishing manifest when this release workflow was configured. Override it with the CI/CD variable `STEAM_WORKSHOP_ITEM_ID` or the publisher's `-WorkshopItemId` parameter. For local publishing, `-ReleaseNotesPath` can select another Markdown file. Run `pwsh -NoProfile -File tools/tests/Test-GitLabRelease.ps1` to verify the publisher against mocked API responses without creating a live release.
+
 ## Generated artifacts
 
 - `HelmCombined.cs` and `HelmCombined.min.cs` are assembled release outputs.
