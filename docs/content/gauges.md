@@ -3,8 +3,10 @@ title: "Gauge Primitives"
 description: "Reference for each gauge type and its options."
 order: 4
 section: "Visual Primitives"
-badge: "14 Types"
+badge: "15 Types"
 ---
+
+HELM has 15 distinct visual controls. Examples below are individual lines to place inside a configured screen or panel, with matching `@bind` aliases. In-game sprite rendering, `border: ascii`, and the offline terminal preview differ visually; glyph examples are illustrative, not exact screenshots.
 
 ## Linear Progress Bar (`bar`)
 
@@ -22,7 +24,7 @@ line: "BATTERY " bar(batt.percent) gradient(#22c55e, #eab308, #ef4444)
 
 ## Dynamic Flow Indicator (`flow`)
 
-Designed for fluids, gases, and directional transfers. Uses font-safe, single-cell directional arrows (`^^`, `vv`, `==`) and a 4-phase cyclic turbine spinner (`| / - \`).
+An animated flow-style indicator driven by the bound value. It does not measure physical transfer rate automatically; use the supported `.rate` field for a rate readout. The terminal preview uses directional glyphs and a cyclic spinner.
 
 ```helm
 line: "O2 FLOW " flow(o2_tank.percent) gradient(#06b6d4, #3b82f6) dir: up
@@ -36,37 +38,37 @@ line: "HYDROGEN" flow(h2_tank.percent) flat(#eab308) dir: down
 
 ## Sparkline Trend Graph (`spark`)
 
-Renders a rolling 8-to-12 sample historical trend sparkline showing value velocity over the last several game ticks.
+Renders a rolling value history with 8 samples by default; `points(N)` selects 2–40 samples. Samples advance when the screen is evaluated, not on every game tick.
 
 ```helm
-line: "GRID PWR" spark(power.output) flat(#38bdf8) unit("MW")
+line: "BATTERY " spark(batt.percent) points(12) flat(#38bdf8)
 ```
 
-- **Visual Output**: `[  _.-~=*^# ] 12.4MW`
-- **Behavior**: Shifts one column left on each update tick, automatically mapping values to 8 distinct vertical level glyphs.
+- **Visual Output**: A history graph beside the current battery percentage.
+- **Behavior**: Shows sampled values, not their derivative; use `.rate` for a rate of change.
 
 ---
 
 ## Centered Balance & Trim (`balance`)
 
-A bidirectional gauge centered at 0.0 with deviation to the left (`<`) or right (`>`). Perfect for gyroscopic pitch/roll, wheel suspension height, and hinge/rotor articulation angles.
+A bidirectional gauge centered at 50%: values below 50 extend left, values above 50 extend right. It is not a signed attitude instrument; gyro pitch is a rotation command, not the ship's measured pitch angle.
 
 ```helm
-line: "PITCH   " balance(gyro.pitch) flat(#f59e0b) unit("deg")
-line: "TRIM    " balance(rudder.angle) flat(#38bdf8)
+line: "BALANCE " balance(trim.val) flat(#f59e0b)
 ```
 
-- **Visual Output**: `[  <<<<|     ] -14.2°`
+- **Binding**: For an external normalized value, use `@bind trim = dynamic("trim", default: 50)` and supply a value from 0 to 100.
+- **Visual Output**: A centered indicator with percentage text.
 - **Alignment**: Uses 1-cell `<` and `>` glyphs so the row width does not change as the value moves.
 
 ---
 
 ## Segmented Dots (`dots`)
 
-Discrete block-level meter showing 10 distinct level buckets. Ideal for lighting intensity, jump drive charges, and reactor coolant stages.
+Discrete segmented meter. Use `segments(N)` to choose the segment count; useful for jump-drive charge or battery fill.
 
 ```helm
-line: "LIGHTS  " dots(lights.percent) flat(#e0e7ff)
+line: "CHARGE  " dots(jump.percent) segments(10) flat(#e0e7ff)
 ```
 
 - **Visual Output**: `[●●●●●●○○○○] 60.0%`
@@ -90,31 +92,31 @@ line: "FORWARD " chevron(thrusters.percent) gradient(#38bdf8, #ef4444)
 Striped diagonal warning gauge with automatic flashing threshold alerts. Recommended for warheads, reactor overload, and hull breach indicators.
 
 ```helm
-line: "WARHEAD " hazard(bomb.countdown) flat(#ef4444) unit("s")
+line: "WARHEAD " hazard(bomb.countdown) max(60) flat(#ef4444) unit("s")
 ```
 
-- **Visual Output**: `[ ////////// ] ARMED`
+- **Visual Output**: A striped gauge with the countdown value in seconds. Set `max(...)` to your chosen full-scale countdown.
 
 ---
 
-## Status Lamp (`led`)
+## Segmented LED Bar (`led`)
 
-Multi-state illuminated indicator lamp.
+Proportional illuminated segments, not an on/off status lamp.
 
 ```helm
-line: "SHIELD  " led(shield.active) flat(#22c55e)
+line: "BATTERY " led(batt.percent) segments(10) flat(#22c55e)
 ```
 
-- **Visual Output**: `(●) ONLINE` or `(○) OFFLINE`
+- **Visual Output**: Lit and unlit segments beside the current percentage.
 
 ---
 
 ## Binary Toggle & Switch (`toggle`)
 
-Clean binary state readout for toggleable systems (sorters, spotlights, inertial dampeners).
+Clean binary state readout for toggleable systems such as hydrogen-tank stockpile mode.
 
 ```helm
-line: "DAMPENER" toggle(controller.dampeners) flat(#38bdf8)
+line: "STOCKPILE" toggle(h2.stockpile) flat(#38bdf8)
 ```
 
 - **Visual Output**: `[ ON ]` or `[OFF ]`
@@ -129,31 +131,43 @@ Square verification checkbox for locks, clamps, and landing gears.
 line: "GEAR LOK" checkbox(gear.locked) flat(#22c55e)
 ```
 
-- **Visual Output**: `[X] LOCKED` or `[ ] READY`
+- **Visual Output**: A checked or empty box with a state label; terminal rendering uses ACTIVE or READY.
 
 ---
 
 ## Ordnance & Ammo Counter (`ammo`)
 
-Discrete bullet/missile bar representing current magazine capacity and reserve ordnance.
+Discrete pips representing a bound value. For ammunition counts, bind an inventory and select an ammo subtype; turret `.percent` is shooting state, not remaining ammunition.
 
 ```helm
-line: "GATLING " ammo(turret.percent) flat(#f59e0b) unit("rds")
+line: "AMMO    " ammo(cargo.ammo:NATO_25x184mm) max(1000) flat(#f59e0b)
 ```
 
-- **Visual Output**: `[||||||||░░] 820rds`
+- **Visual Output**: Pips with the number of inventory items (magazines), not the number of individual rounds inside them.
 
 ---
 
-## Dynamic Text Readout (`status` / `text`)
+## Status Badge (`status`, `badge`, `state`)
 
-Displays formatted string status directly from block states or dynamic IGC broadcast channels.
+A threshold-based status indicator: ONLINE, STBY or OFF.
 
 ```helm
-line: "TARGET  " text(radar.target) flat(#f43f5e)
+line: "POWER   " status(batt.percent) flat(#22c55e)
 ```
 
-- **Visual Output**: `FRIGATE-04`
+- **Behavior**: A status label rather than a proportional bar or arbitrary string.
+
+---
+
+## Dynamic Text Readout (`text`)
+
+Displays a value without a gauge, including numeric telemetry or text exposed by a binding. See the block matrix and inter-script API for supported fields.
+
+```helm
+line: "BATTERY " text(batt.percent) flat(#f43f5e)
+```
+
+- **Visual Output**: The formatted battery percentage.
 
 ---
 

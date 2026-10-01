@@ -58,6 +58,8 @@ namespace IngameScript
         private readonly Dictionary<string, string> _dynText
             = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private IMyBroadcastListener _helmBroadcastListener;
+        private IMyUnicastListener _helmUnicastListener;
+        private readonly Dictionary<string, double> _dynamicAt = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
         private bool _globalRedAlert = false;
 
         // Resolved screen -> output surface. Re-resolved alongside binds.
@@ -150,6 +152,9 @@ namespace IngameScript
         private int _idleRuns = 0;       // consecutive runs in which nothing was redrawn
         private Dictionary<ScreenDef, double> _bootT0 = new Dictionary<ScreenDef, double>();
         private Dictionary<ScreenDef, double> _drawAt = new Dictionary<ScreenDef, double>(); // refresh: earliest next draw
+        private Dictionary<IMyTextSurface, ScreenDef> _shownPages = new Dictionary<IMyTextSurface, ScreenDef>();
+        private double _rotationEpoch;
+        private bool _pageChanged;
         private Dictionary<string, int> _topN = new Dictionary<string, int>();      // bind -> highest topN rank used by a line
         private List<string> _topKeys = new List<string>();
         private Dictionary<string, int> _txtN = new Dictionary<string, int>();      // bind -> highest lineN used by a line
@@ -187,6 +192,8 @@ namespace IngameScript
             {
                 _helmBroadcastListener = IGC.RegisterBroadcastListener("HELM");
                 _helmBroadcastListener.SetMessageCallback("HELM_IGC");
+                _helmUnicastListener = IGC.UnicastListener;
+                _helmUnicastListener.SetMessageCallback("HELM_IGC");
             }
             catch {}
             ReloadConfig();
@@ -198,10 +205,7 @@ namespace IngameScript
         {
             double dt = Runtime.TimeSinceLastRun.TotalSeconds;
             _time += dt;
-            if ((updateType & UpdateType.IGC) != 0 || argument == "HELM_IGC")
-            {
-                ProcessIgcMessages();
-            }
+            ProcessIgcMessages(); // scheduled runs also drain any backlog left after an IGC callback
 
             string rawArg = (argument ?? "").Trim();
             string arg = rawArg.ToLowerInvariant();
@@ -319,10 +323,10 @@ namespace IngameScript
             bool active = _bootT0.Count > 0;
             if (active) RenderBoots();
             double due;
-            if (!_bootT0.ContainsKey(screen) && !(_drawAt.TryGetValue(screen, out due) && _time < due))
+            if (!_bootT0.ContainsKey(screen) && (screen.RotationPages != null || !(_drawAt.TryGetValue(screen, out due) && _time < due)))
             {
                 if (RenderScreen(screen)) active = true;
-                if (screen.RefreshTicks > 0) _drawAt[screen] = _time + screen.RefreshTicks / 60.0;
+                if (screen.RotationPages == null && screen.RefreshTicks > 0) _drawAt[screen] = _time + screen.RefreshTicks / 60.0;
             }
 
             // Fast (Update10) while anything is booting, changing, easing or alerting; slow (Update100) once
@@ -436,6 +440,8 @@ namespace IngameScript
             _bootT0.Clear();
             _drawAt.Clear();
             _calibT0.Clear();
+            _shownPages.Clear();
+            _rotationEpoch = _time;
             FindTopLines();
             ResolveBindsAndOutputs();
         }
@@ -444,16 +450,19 @@ namespace IngameScript
         {
             try
             {
-                while (_helmBroadcastListener != null && _helmBroadcastListener.HasPendingMessage)
-                {
-                    var msg = _helmBroadcastListener.AcceptMessage();
-                    if (msg.Data is string)
-                    {
-                        ApplyDynamicPayload((string)msg.Data);
-                    }
-                }
+                ReadIgc(_helmBroadcastListener);
+                ReadIgc(_helmUnicastListener);
             }
             catch {}
+        }
+
+        private void ReadIgc(IMyMessageProvider listener)
+        {
+            for (int n = 0; listener != null && n < 8 && listener.HasPendingMessage; n++)
+            {
+                var msg = listener.AcceptMessage();
+                if (msg.Tag == "HELM" && msg.Data is string) ApplyDynamicPayload((string)msg.Data);
+            }
         }
 
         private void ApplyDynamicPayload(string payload)
@@ -477,23 +486,28 @@ namespace IngameScript
                     else
                     {
                         double num;
-                        _dynText.Remove(key);
                         if (double.TryParse(valStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out num))
                         {
+                            if (double.IsNaN(num) || double.IsInfinity(num)) continue;
+                            _dynText.Remove(key);
                             _dynamicValues[key] = num;
                         }
                         else if (valStr.Equals("true", StringComparison.OrdinalIgnoreCase) || valStr.Equals("on", StringComparison.OrdinalIgnoreCase))
                         {
+                            _dynText.Remove(key);
                             _dynamicValues[key] = 100.0;
                         }
                         else if (valStr.Equals("false", StringComparison.OrdinalIgnoreCase) || valStr.Equals("off", StringComparison.OrdinalIgnoreCase))
                         {
+                            _dynText.Remove(key);
                             _dynamicValues[key] = 0.0;
                         }
                         else
                         {
+                            _dynamicValues[key] = 0.0;
                             _dynText[key] = valStr;
                         }
+                        _dynamicAt[key] = _time;
                     }
                 }
             }
@@ -803,11 +817,13 @@ namespace IngameScript
         private void StartBoot()
         {
             _bootT0.Clear();
+            _shownPages.Clear();
+            _rotationEpoch = _time;
             if (_config == null) return;
             for (int i = 0; i < _config.Screens.Count; i++)
             {
                 var s = _config.Screens[i];
-                if (s.BootDuration > 0f) _bootT0[s] = _time + (i / Math.Max(1, s.BootBatch)) * s.BootStaggerTicks / 60.0;
+                if (s.BootDuration > 0f && s.RotationPage(0) == s) _bootT0[s] = _time + (i / Math.Max(1, s.BootBatch)) * s.BootStaggerTicks / 60.0;
             }
         }
 
@@ -837,6 +853,7 @@ namespace IngameScript
                 _screenBuffers.Remove(s);
                 _lastSignature.Remove(s);
             }
+            if (_bootT0.Count == 0) _rotationEpoch = _time;
         }
 
         private static void AddBootText(List<MySprite> sp, string text, Color col, float x, float y, float scale)
@@ -1687,6 +1704,12 @@ namespace IngameScript
             if (bindDef != null && bindDef.Kind == BindKind.Dynamic)
             {
                 string k = !string.IsNullOrEmpty(bindDef.DynamicKey) ? bindDef.DynamicKey : bindName;
+                if (field == "age" || field == "fresh")
+                {
+                    double at;
+                    bool received = _dynamicAt.TryGetValue(k, out at);
+                    return field == "age" ? (received ? _time - at : -1) : (received && _time - at < bindDef.DynamicTtl ? 100 : 0);
+                }
                 double dVal;
                 if (_dynamicValues.TryGetValue(k, out dVal)) return dVal;
                 return bindDef.DefaultValue;
@@ -1725,9 +1748,26 @@ namespace IngameScript
         // Returns true when the screen was redrawn (something changed).
         private bool RenderScreen(ScreenDef screen)
         {
+            _pageChanged = false;
             IMyTextSurface surface;
             if (!_resolvedOutputs.TryGetValue(screen, out surface))
                 return false;
+
+            if (screen.RotationPages != null)
+            {
+                if (_bootT0.Count > 0 || screen.RotationPage(_time - _rotationEpoch) != screen) return false;
+                ScreenDef previous;
+                _pageChanged = !_shownPages.TryGetValue(surface, out previous) || previous != screen;
+                double due;
+                if (!_pageChanged && _drawAt.TryGetValue(screen, out due) && _time < due) return false;
+                if (screen.RefreshTicks > 0) _drawAt[screen] = _time + screen.RefreshTicks / 60.0;
+                _shownPages[surface] = screen;
+                if (_pageChanged)
+                {
+                    _lastSignature.Remove(screen);
+                    if (screen.Mirror != null) _screenBuffers.Remove(screen);
+                }
+            }
 
             if (screen.Banner != null) return RenderBanner(screen, surface);
             if (screen.Mirror != null) return RenderMirror(screen, surface);
@@ -2331,7 +2371,7 @@ namespace IngameScript
                 BuildGraphicBuffer(screen, surface, buf);
             }
 
-            bool dirty = rebuilt;
+            bool dirty = rebuilt || _pageChanged;
             bool alertPhase = (_time % screen.AlertPeriod) < screen.AlertPeriod / 2.0;
 
             // Calibration sweep after the boot: gauges run 0 to 100, then settle on the live value.
@@ -2688,10 +2728,11 @@ namespace IngameScript
                 }
                 else // Text line
                 {
-                    string dt;
+                    string dt = null;
                     BindDef tb;
                     _bindMap.TryGetValue(line.BindName, out tb);
-                    _dynText.TryGetValue(IsTop(line.Field) ? line.BindName + "." + line.Field : (tb != null && tb.DynamicKey != null ? tb.DynamicKey : line.BindName), out dt);
+                    if (line.Field != "age" && line.Field != "fresh")
+                        _dynText.TryGetValue(IsTop(line.Field) ? line.BindName + "." + line.Field : (tb != null && tb.DynamicKey != null ? tb.DynamicKey : line.BindName), out dt);
                     if (valueChanged || isRedAlert || dt != slot.LastText)
                     {
                         slot.LastText = dt;

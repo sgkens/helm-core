@@ -1,0 +1,1218 @@
+{
+  "schema_version": 2,
+  "source": {
+    "history": "git",
+    "canonical_record": "CHANGELOG.md"
+  },
+  "projection": "Complete canonical changelog notes reconstructed from Git tag history.",
+  "project": "sgkens/helm-core",
+  "versions": [
+    {
+      "version": "unreleased",
+      "date": null,
+      "from": "v0.39.0-release",
+      "to": "e328d6c4d8ccad2365e419da3b71c0299eb2b860",
+      "entries": [
+        {
+          "category": "Fixed",
+          "type": "fix",
+          "scope": "release",
+          "breaking": false,
+          "text": "Handle plain Workshop description headings.",
+          "commit": {
+            "short": "e328d6c",
+            "hash": "e328d6c4d8ccad2365e419da3b71c0299eb2b860",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/e328d6c4d8ccad2365e419da3b71c0299eb2b860"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "release",
+          "breaking": false,
+          "text": "Publish release notes with ZIP and Workshop links.",
+          "commit": {
+            "short": "fa7705f",
+            "hash": "fa7705ff77f3a24844b60aff3361db25c1641171",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/fa7705ff77f3a24844b60aff3361db25c1641171"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": null,
+          "breaking": false,
+          "text": "Extend display controls, toolbox editing, and release publishing.",
+          "commit": {
+            "short": "f1c2021",
+            "hash": "f1c2021610d63f1eabf686f4e2972e0189d37d38",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/f1c2021610d63f1eabf686f4e2972e0189d37d38"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        }
+      ],
+      "included": 6,
+      "excluded_non_version_bump": 3
+    },
+    {
+      "version": "0.39.0-release",
+      "date": "2026-09-29",
+      "from": "v0.39.0",
+      "to": "2bb5b6e58fdac30f383be4e6338e4999b07430cf",
+      "entries": [],
+      "included": 0,
+      "excluded_non_version_bump": 0
+    },
+    {
+      "version": "0.39.0",
+      "date": "2026-09-29",
+      "from": "v0.38.3",
+      "to": "642a2ab8f347d1c24d0121562ce65b02aa00163a",
+      "entries": [
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "tools",
+          "breaking": false,
+          "text": "Add strict semantic version calculator.",
+          "commit": {
+            "short": "27295b0",
+            "hash": "27295b0d8c20c323e61c55e5d3013deeb60c8480",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/27295b0d8c20c323e61c55e5d3013deeb60c8480"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Fixed",
+          "type": "fix",
+          "scope": "core",
+          "breaking": false,
+          "text": "Make display profiles responsive.",
+          "commit": {
+            "short": "c3eacc2",
+            "hash": "c3eacc2f3223b5f1ec3a3607489d27ee54609e83",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/c3eacc2f3223b5f1ec3a3607489d27ee54609e83"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "webutil",
+          "breaking": false,
+          "text": "Add visual layout inspector.",
+          "commit": {
+            "short": "f922382",
+            "hash": "f92238288d2b9e017bcf0b08e553075a49b14cd7",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/f92238288d2b9e017bcf0b08e553075a49b14cd7"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "webutil",
+          "breaking": false,
+          "text": "Add project import export and sharing.",
+          "commit": {
+            "short": "d3e1d33",
+            "hash": "d3e1d3340392e53e86bb676fcb1436832d96690b",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/d3e1d3340392e53e86bb676fcb1436832d96690b"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "docs",
+          "breaking": false,
+          "text": "Add attributed block icon references.",
+          "commit": {
+            "short": "1fe1487",
+            "hash": "1fe1487854bfdf38604e4aede9f02b9c6f81e53c",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/1fe1487854bfdf38604e4aede9f02b9c6f81e53c"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "webutil",
+          "breaking": false,
+          "text": "Add contextual help and diagnostics.",
+          "commit": {
+            "short": "c5214f5",
+            "hash": "c5214f5f456706d3ea65a5d8fc8934a6bf223a82",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/c5214f5f456706d3ea65a5d8fc8934a6bf223a82"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "ci",
+          "breaking": false,
+          "text": "Build and publish webutil alongside the docs site.",
+          "commit": {
+            "short": "39b1d42",
+            "hash": "39b1d42d3062d3c2d3cd9d541d0ed5e2f003c989",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/39b1d42d3062d3c2d3cd9d541d0ed5e2f003c989"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "webutil",
+          "breaking": false,
+          "text": "An alpha of the browser layout tool at /webutil.",
+          "commit": {
+            "short": "12fe677",
+            "hash": "12fe67783059f50cc8e3bcffc263892ed05b07f9",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/12fe67783059f50cc8e3bcffc263892ed05b07f9"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "tools",
+          "breaking": false,
+          "text": "Webutil-wasm reports binds, surface and texture size.",
+          "commit": {
+            "short": "5ac9a68",
+            "hash": "5ac9a68f8e019045ecba9160b22f58a0985a8bc0",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/5ac9a68f8e019045ecba9160b22f58a0985a8bc0"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        }
+      ],
+      "included": 25,
+      "excluded_non_version_bump": 16
+    },
+    {
+      "version": "0.38.3",
+      "date": "2026-09-22",
+      "from": null,
+      "to": "9fa2983e1afc9d80f82d58b07c4bcc3a139a699d",
+      "entries": [
+        {
+          "category": "Fixed",
+          "type": "fix",
+          "scope": "tools",
+          "breaking": false,
+          "text": "Walk commits oldest-first in ccver.ps1.",
+          "commit": {
+            "short": "1e4a9cb",
+            "hash": "1e4a9cb044286b52cacf2d929847c67347ece050",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/1e4a9cb044286b52cacf2d929847c67347ece050"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Fixed",
+          "type": "fix",
+          "scope": "helmv",
+          "breaking": false,
+          "text": "Restore the notes, the gauge_lab preset, the CI comment and the wasm README.",
+          "commit": {
+            "short": "0c0c28f",
+            "hash": "0c0c28f7ba930033ea0dd27010c5bb23e90dcc7a",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/0c0c28f7ba930033ea0dd27010c5bb23e90dcc7a"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Fixed",
+          "type": "fix",
+          "scope": "docs",
+          "breaking": false,
+          "text": "Restore the border, gauge and helmv pages and the frame check.",
+          "commit": {
+            "short": "607bc98",
+            "hash": "607bc982cad59fca1ff5eca132dadafee60bb6ec",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/607bc982cad59fca1ff5eca132dadafee60bb6ec"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Fixed",
+          "type": "fix",
+          "scope": "core",
+          "breaking": false,
+          "text": "Restore the parser modifiers and tests that a stale commit reverted.",
+          "commit": {
+            "short": "d8d86c7",
+            "hash": "d8d86c70ded8965a8ea46c249ada8d2fd06b0246",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/d8d86c70ded8965a8ea46c249ada8d2fd06b0246"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "core",
+          "breaking": false,
+          "text": "Names argument and share:kind:Subtype item field.",
+          "commit": {
+            "short": "9367922",
+            "hash": "9367922d4fdabc5ff167e8594e48bcc49ca59650",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/9367922d4fdabc5ff167e8594e48bcc49ca59650"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "helmv",
+          "breaking": false,
+          "text": "Notes for the dial, bar dressing, segments, rate fields and layout options.",
+          "commit": {
+            "short": "1c57fb5",
+            "hash": "1c57fb537aa3f19aae6ac1ee58d1b59e7d19e917",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/1c57fb537aa3f19aae6ac1ee58d1b59e7d19e917"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "core",
+          "breaking": false,
+          "text": "Gap, padding, value(off), icon and blink.",
+          "commit": {
+            "short": "36d1760",
+            "hash": "36d1760a42f605f98f1934a57a8dc51398848e3c",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/36d1760a42f605f98f1934a57a8dc51398848e3c"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "layouts",
+          "breaking": false,
+          "text": "Gauge_lab preset.",
+          "commit": {
+            "short": "bb9bfdf",
+            "hash": "bb9bfdf69bc3c66060d0cda86b2004867ddb8c3f",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/bb9bfdf69bc3c66060d0cda86b2004867ddb8c3f"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "core",
+          "breaking": false,
+          "text": "Rate, eta and trend fields, and the dial gauge.",
+          "commit": {
+            "short": "a7880c3",
+            "hash": "a7880c313cb0a42a4a5e6f0667453895af9f2959",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/a7880c313cb0a42a4a5e6f0667453895af9f2959"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "core",
+          "breaking": false,
+          "text": "Bar direction, ticks, markers, outline, segment and point counts.",
+          "commit": {
+            "short": "ab4eca1",
+            "hash": "ab4eca1e034b5511442d60cc027fe86444db21b4",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/ab4eca1e034b5511442d60cc027fe86444db21b4"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "core",
+          "breaking": false,
+          "text": "Draw the border styles in game, for screens and panels.",
+          "commit": {
+            "short": "61d124c",
+            "hash": "61d124c7122e966bc4f4f43aa49bba34172602fd",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/61d124c7122e966bc4f4f43aa49bba34172602fd"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Fixed",
+          "type": "fix",
+          "scope": "docs",
+          "breaking": false,
+          "text": "Regenerate stale preview frames before serving.",
+          "commit": {
+            "short": "a2de9aa",
+            "hash": "a2de9aae501973b9fa8e5b237fd117ac2933df25",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/a2de9aae501973b9fa8e5b237fd117ac2933df25"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "tools",
+          "breaking": false,
+          "text": "Webutil-wasm spike builds the real script to WebAssembly.",
+          "commit": {
+            "short": "1b5f905",
+            "hash": "1b5f905b9d6f610cab7510e9a3f44e777ae9ad31",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/1b5f905b9d6f610cab7510e9a3f44e777ae9ad31"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Fixed",
+          "type": "fix",
+          "scope": "helmv",
+          "breaking": false,
+          "text": "-ScreenName, printed warnings and notes on what the preview cannot draw; preset names read from layouts/.",
+          "commit": {
+            "short": "13af01b",
+            "hash": "13af01bdb70364385ddd3b1d2ce2a1a9c5379e12",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/13af01bdb70364385ddd3b1d2ce2a1a9c5379e12"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "core",
+          "breaking": false,
+          "text": "Color_by, mirror_panel, track for every gauge, gradient answers in backgrounds.",
+          "commit": {
+            "short": "676b2ff",
+            "hash": "676b2ffafe3ae048e0aed0c1fb308df6a0495978",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/676b2ffafe3ae048e0aed0c1fb308df6a0495978"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "layouts",
+          "breaking": false,
+          "text": "Bar_sizes and combo_dashboard presets.",
+          "commit": {
+            "short": "05cebbb",
+            "hash": "05cebbb953b896080d0cce38f7479514777fb5b0",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/05cebbb953b896080d0cce38f7479514777fb5b0"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "core",
+          "breaking": false,
+          "text": "Bar sizes, conditional gradients, label and track colours.",
+          "commit": {
+            "short": "444b7cc",
+            "hash": "444b7cc4c9ce260cec05f456ccf57162aa6777d9",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/444b7cc4c9ce260cec05f456ccf57162aa6777d9"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Fixed",
+          "type": "fix",
+          "scope": "core",
+          "breaking": false,
+          "text": "Every line kind takes color rules, gradient or flat colour.",
+          "commit": {
+            "short": "6f40871",
+            "hash": "6f40871f9737ea720eab6a62fe4da8cda0fc2ed3",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/6f40871f9737ea720eab6a62fe4da8cda0fc2ed3"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "core",
+          "breaking": false,
+          "text": "Show lines of another LCD's text with lineN.",
+          "commit": {
+            "short": "ec9b7d4",
+            "hash": "ec9b7d402d9f554ca2635e3f89f6cb945bb2f66d",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/ec9b7d402d9f554ca2635e3f89f6cb945bb2f66d"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "core",
+          "breaking": false,
+          "text": "Mirror another screen with mirror:.",
+          "commit": {
+            "short": "d57c376",
+            "hash": "d57c3765ad21fb101d0926c1be6f939db1ada5c6",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/d57c3765ad21fb101d0926c1be6f939db1ada5c6"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "core",
+          "breaking": false,
+          "text": "Liquid tank gauge and vertical panels.",
+          "commit": {
+            "short": "70800bd",
+            "hash": "70800bd9724bdfe6d21cfe9fa3dc7ddbdee649e7",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/70800bd9724bdfe6d21cfe9fa3dc7ddbdee649e7"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Fixed",
+          "type": "fix",
+          "scope": "core",
+          "breaking": false,
+          "text": "Centre every texture sprite; draw a rebuilt screen once; black background on the block's screen.",
+          "commit": {
+            "short": "4159946",
+            "hash": "4159946065ed91f690f636b12425378e362a97b3",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/4159946065ed91f690f636b12425378e362a97b3"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "core",
+          "breaking": false,
+          "text": "Probe test pattern and starter layout for a block with no configuration.",
+          "commit": {
+            "short": "bfc8cdf",
+            "hash": "bfc8cdfcd6c724979fa49edfcf0dff25b2f45070",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/bfc8cdfcd6c724979fa49edfcf0dff25b2f45070"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Fixed",
+          "type": "fix",
+          "scope": "core",
+          "breaking": false,
+          "text": "One uniform background by default; warn when only some panels have bg:; add screen_bg:.",
+          "commit": {
+            "short": "e41c7af",
+            "hash": "e41c7afdceed697c1e80a494e6342251c23d0442",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/e41c7afdceed697c1e80a494e6342251c23d0442"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Fixed",
+          "type": "fix",
+          "scope": "cli",
+          "breaking": false,
+          "text": "Helmv compiles HelmCore with HELM_TOOLS again, and draws backgrounds.",
+          "commit": {
+            "short": "8a340b0",
+            "hash": "8a340b0bb3d7856b2a980f97023c2822f04c3b7a",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/8a340b0bb3d7856b2a980f97023c2822f04c3b7a"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "core",
+          "breaking": false,
+          "text": "Ranked contents of a cargo group (top1, top2, ...).",
+          "commit": {
+            "short": "d3b07d3",
+            "hash": "d3b07d377990eca1422d035054358ab36c95176e",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/d3b07d377990eca1422d035054358ab36c95176e"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "core",
+          "breaking": false,
+          "text": "Calibration sweep after the boot.",
+          "commit": {
+            "short": "2568d44",
+            "hash": "2568d4418b15059dc0ae23e0161cb5c0e969b883",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/2568d4418b15059dc0ae23e0161cb5c0e969b883"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "core",
+          "breaking": false,
+          "text": "Smooth gradients for bars and borders.",
+          "commit": {
+            "short": "3d57bdc",
+            "hash": "3d57bdcc0c34a8e8f9efd9db7011b3bae64b7e97",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/3d57bdcc0c34a8e8f9efd9db7011b3bae64b7e97"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "core",
+          "breaking": false,
+          "text": "Value-driven and flashing backgrounds, panel and horizontal gradients, textures.",
+          "commit": {
+            "short": "4d5e2ec",
+            "hash": "4d5e2ec5ec9bede70338bb779c47b7b438b6bbb8",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/4d5e2ec5ec9bede70338bb779c47b7b438b6bbb8"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "layouts",
+          "breaking": false,
+          "text": "Add projector_welder and rover_suspension presets, document the field scale.",
+          "commit": {
+            "short": "6bd5fcf",
+            "hash": "6bd5fcfb472e6d185984764b3de7028e5ec8df4e",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/6bd5fcfb472e6d185984764b3de7028e5ec8df4e"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Fixed",
+          "type": "fix",
+          "scope": "core",
+          "breaking": false,
+          "text": "Read state and ratio fields on the 0 to 100 scale; add projector, welder and suspension fields.",
+          "commit": {
+            "short": "047d8a3",
+            "hash": "047d8a3ce8757a00a6f512386894b27b27180e15",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/047d8a3ce8757a00a6f512386894b27b27180e15"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "core",
+          "breaking": false,
+          "text": "Refresh:, alert_period:, scope: all and max(bind.field).",
+          "commit": {
+            "short": "f0c39f9",
+            "hash": "f0c39f98094e5a3ee51ce2b9b2a2e0bbc96d45ee",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/f0c39f98094e5a3ee51ce2b9b2a2e0bbc96d45ee"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Fixed",
+          "type": "fix",
+          "scope": "core",
+          "breaking": false,
+          "text": "Stop painting a second colour behind panels; add gradient and alert backgrounds.",
+          "commit": {
+            "short": "26f6a04",
+            "hash": "26f6a046dbbf9b133d936168c835613c8635e37f",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/26f6a046dbbf9b133d936168c835613c8635e37f"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "build",
+          "breaking": false,
+          "text": "Shorten identifiers in the shipped script and prove it behaves the same.",
+          "commit": {
+            "short": "fcb97ce",
+            "hash": "fcb97cecb8be9826b26ff3a05ff88f616114ee6f",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/fcb97cecb8be9826b26ff3a05ff88f616114ee6f"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "core",
+          "breaking": false,
+          "text": "Max(N) turns an amount into a percentage for bars and charts.",
+          "commit": {
+            "short": "82bda96",
+            "hash": "82bda962c92c2d59084c23d4841175a894d6a21c",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/82bda962c92c2d59084c23d4841175a894d6a21c"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "core",
+          "breaking": false,
+          "text": "Item amounts for cargo and reactor contents.",
+          "commit": {
+            "short": "83df776",
+            "hash": "83df7762f8ca75bc8a1d5eb4d0cfb6f10341e0c4",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/83df7762f8ca75bc8a1d5eb4d0cfb6f10341e0c4"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "core",
+          "breaking": false,
+          "text": "ASCII banners, custom boot logo and boot batches.",
+          "commit": {
+            "short": "3d59901",
+            "hash": "3d59901ad8c0d1580923a88fd4e855fcc4b5a2b3",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/3d59901ad8c0d1580923a88fd4e855fcc4b5a2b3"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Changed",
+          "type": "perf",
+          "scope": "build",
+          "breaking": false,
+          "text": "Drop tool-only code and the redundant private keyword from the script.",
+          "commit": {
+            "short": "4f85d5b",
+            "hash": "4f85d5bd7d0421f8840bb10592746361e1b0d45b",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/4f85d5bd7d0421f8840bb10592746361e1b0d45b"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "core",
+          "breaking": false,
+          "text": "Console in the info pane and on the Programmable Block screen.",
+          "commit": {
+            "short": "00eaf35",
+            "hash": "00eaf3535702d04741c242d003035351371ddea5",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/00eaf3535702d04741c242d003035351371ddea5"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Fixed",
+          "type": "fix",
+          "scope": "core",
+          "breaking": false,
+          "text": "Use only blocks on this construct, never a docked ship's.",
+          "commit": {
+            "short": "1af7400",
+            "hash": "1af7400ab8482aefcaf8325fb8f02ded0f14cb34",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/1af7400ab8482aefcaf8325fb8f02ded0f14cb34"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "core",
+          "breaking": false,
+          "text": "Boot sequence and adaptive update rate.",
+          "commit": {
+            "short": "492c81c",
+            "hash": "492c81c7e8ceeeb06423e48e66f0d63cf74c6ac3",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/492c81c7e8ceeeb06423e48e66f0d63cf74c6ac3"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "core",
+          "breaking": false,
+          "text": "Text values for dynamic binds.",
+          "commit": {
+            "short": "74e93d0",
+            "hash": "74e93d0d442787515e055bdb6560c82cd8344dba",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/74e93d0d442787515e055bdb6560c82cd8344dba"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "tools",
+          "breaking": false,
+          "text": "Compile the script against the game's own assemblies.",
+          "commit": {
+            "short": "180390f",
+            "hash": "180390f8e9f2ec20b7319709cdc619ef9d55e7cd",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/180390f8e9f2ec20b7319709cdc619ef9d55e7cd"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Fixed",
+          "type": "fix",
+          "scope": "core",
+          "breaking": false,
+          "text": "Use block members that exist in the game API (in-game run 2).",
+          "commit": {
+            "short": "77ec4aa",
+            "hash": "77ec4aab29f2fbcff739b4997113649ef571ccec",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/77ec4aab29f2fbcff739b4997113649ef571ccec"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Fixed",
+          "type": "fix",
+          "scope": "build",
+          "breaking": false,
+          "text": "Emit the paste format the game compiles and check it like the game.",
+          "commit": {
+            "short": "c9e4414",
+            "hash": "c9e44143b62ff1d1c20d77a7d99cfd979ba4af67",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/c9e44143b62ff1d1c20d77a7d99cfd979ba4af67"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Fixed",
+          "type": "fix",
+          "scope": "core",
+          "breaking": false,
+          "text": "Compile as C# 6 and avoid prohibited APIs (in-game run 1).",
+          "commit": {
+            "short": "3826c0f",
+            "hash": "3826c0f61d6b3383fb377518fe71ebb6b9f2c329",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/3826c0f61d6b3383fb377518fe71ebb6b9f2c329"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Changed",
+          "type": "perf",
+          "scope": "build",
+          "breaking": false,
+          "text": "Collapse whitespace in the minified script and verify it.",
+          "commit": {
+            "short": "51768ab",
+            "hash": "51768ab6184d01f81a8dde6cde9a0f009788895d",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/51768ab6184d01f81a8dde6cde9a0f009788895d"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Changed",
+          "type": "perf",
+          "scope": "core",
+          "breaking": false,
+          "text": "Cheaper block fallback, cached colours, kept config errors.",
+          "commit": {
+            "short": "d4b77fd",
+            "hash": "d4b77fd1b84cce42f3ba0ffadacd6b67941e4dba",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/d4b77fd1b84cce42f3ba0ffadacd6b67941e4dba"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "layouts",
+          "breaking": false,
+          "text": "Add template_nested preset.",
+          "commit": {
+            "short": "744952a",
+            "hash": "744952a9f8db9d1b0f8792d97da19c231fba907e",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/744952a9f8db9d1b0f8792d97da19c231fba907e"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "core",
+          "breaking": false,
+          "text": "Allow templates to call other templates.",
+          "commit": {
+            "short": "7fb48d1",
+            "hash": "7fb48d1faf066ea3c0dd7c7b3df323c21b220258",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/7fb48d1faf066ea3c0dd7c7b3df323c21b220258"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "core",
+          "breaking": false,
+          "text": "Nested templates and text dynamic values (size trial).",
+          "commit": {
+            "short": "3b97bff",
+            "hash": "3b97bfffffaa5b39391a2cc442baa9625468255c",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/3b97bfffffaa5b39391a2cc442baa9625468255c"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Fixed",
+          "type": "fix",
+          "scope": "docs",
+          "breaking": false,
+          "text": "Keep the spritedump marker out of preset descriptions.",
+          "commit": {
+            "short": "7a22ec8",
+            "hash": "7a22ec845a0efd7e70d5034b0f3d0c37ef8e5386",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/7a22ec845a0efd7e70d5034b0f3d0c37ef8e5386"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "layouts",
+          "breaking": false,
+          "text": "Add missing_binds preset and spritedump unset mode.",
+          "commit": {
+            "short": "abb0b6b",
+            "hash": "abb0b6bb83beb36d2685a882a02fdfad3a44befe",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/abb0b6bb83beb36d2685a882a02fdfad3a44befe"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Fixed",
+          "type": "fix",
+          "scope": "core",
+          "breaking": false,
+          "text": "Draw the error state when a bind resolves to zero blocks.",
+          "commit": {
+            "short": "46fac54",
+            "hash": "46fac5434c695530e99c9ab9f3ea34b52f3db285",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/46fac5434c695530e99c9ab9f3ea34b52f3db285"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Fixed",
+          "type": "fix",
+          "scope": "core",
+          "breaking": false,
+          "text": "Draw bar-only screens on the first frame.",
+          "commit": {
+            "short": "4935317",
+            "hash": "4935317c030cab2113f605d78785199ecb189925",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/4935317c030cab2113f605d78785199ecb189925"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Fixed",
+          "type": "fix",
+          "scope": "release",
+          "breaking": false,
+          "text": "Require a Workshop preview and drop the missing logo reference.",
+          "commit": {
+            "short": "b5e715a",
+            "hash": "b5e715a127138e18a73b3585209daff55ac9c2eb",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/b5e715a127138e18a73b3585209daff55ac9c2eb"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Fixed",
+          "type": "fix",
+          "scope": "docs",
+          "breaking": false,
+          "text": "Remove links to repository files.",
+          "commit": {
+            "short": "4dc793a",
+            "hash": "4dc793ae3f94e0cfc1bace982f90ac7a9c3d8390",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/4dc793ae3f94e0cfc1bace982f90ac7a9c3d8390"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "docs",
+          "breaking": false,
+          "text": "Add documentation site, brand assets and LCD bezel resources.",
+          "commit": {
+            "short": "052f57d",
+            "hash": "052f57da918c2abc02993412d58e5d7efc6790a8",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/052f57da918c2abc02993412d58e5d7efc6790a8"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "layouts",
+          "breaking": false,
+          "text": "Add default preset library.",
+          "commit": {
+            "short": "f51b865",
+            "hash": "f51b865aa4b85ef460f1a07ee96948f8329833e3",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/f51b865aa4b85ef460f1a07ee96948f8329833e3"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "tools",
+          "breaking": false,
+          "text": "Add spritedump frame exporter and release helpers.",
+          "commit": {
+            "short": "37f6589",
+            "hash": "37f658937a63d66b6d4ca8791ba84fd0739eec4a",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/37f658937a63d66b6d4ca8791ba84fd0739eec4a"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        },
+        {
+          "category": "Added",
+          "type": "feat",
+          "scope": "core",
+          "breaking": false,
+          "text": "Add HELM parser, renderer and tests.",
+          "commit": {
+            "short": "f1f36ac",
+            "hash": "f1f36ac1d80764b64440e04a296444fe7c842d25",
+            "url": "https://gitlab.com/sgkens/helm-core/-/commit/f1f36ac1d80764b64440e04a296444fe7c842d25"
+          },
+          "author": {
+            "name": "sgkens",
+            "reference": "@sgkens"
+          }
+        }
+      ],
+      "included": 135,
+      "excluded_non_version_bump": 74
+    }
+  ]
+}

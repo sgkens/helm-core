@@ -5,6 +5,7 @@ A browser tool that renders a HELM layout with the real script, compiled to WebA
 ## What it does today (an alpha, not the full concept tool of Epic 39)
 
 - Write or paste Custom Data in the syntax-highlighted text pane; the preview re-renders about every 200 ms, with the real parser's errors and warnings shown inline. The editor and palette examples use the docs site's shared Prism HELM grammar and selected syntax theme.
+- Undo and redo typing, palette insertions and inspector edits with the toolbar, Ctrl/Cmd Z, Ctrl/Cmd Shift Z or Ctrl Y. Short typing bursts form one step; palette/inspector changes form individual steps. History restores the text selection and inspector position, retains at most 100 snapshots, and starts fresh when a starter, project, import or New Config replaces the document. Other input fields keep their native text undo behavior.
 - Drag the divider between the preview and Custom Data panes to give either one more room. The divider supports keyboard resizing, the editor toolbar has an expand/restore shortcut, and the chosen height is remembered locally.
 - Pick any layout preset or a screen surface profile. The preset picker contains every file in `layouts/default/` (65 at the time of writing), grouped with the same categories and metadata as the docs gallery.
 - A slider per `@bind`, on the script's own 0–100 scale, drives the live values (and the tank wave/bubbles, easing and calibration keep animating on a slow timer). An Alert toggle previews the `alert red` run-argument command (flashes each screen's background to its `alert_bg`).
@@ -19,7 +20,7 @@ A browser tool that renders a HELM layout with the real script, compiled to WebA
 
 ## What it does not do yet
 
-Dragging blocks and gauges directly on the preview canvas, editing mirror relationships (creating ordinary multi-screen layouts is supported), scenario buttons beyond Alert, undo/redo or a command palette, and the CI parity check against `tools/spritedump`. These are tracked under Epic 39 in `DEVTRACKER-PENDING.md` (git-ignored).
+Dragging blocks and gauges directly on the preview canvas, editing mirror relationships (creating ordinary multi-screen layouts is supported), scenario buttons beyond Alert, a command palette, and the CI parity check against `tools/spritedump`. These are tracked under Epic 39 in `DEVTRACKER-PENDING.md` (git-ignored).
 
 ## Layout
 
@@ -69,4 +70,4 @@ The block palette also uses the same cached Official Space Engineers Wiki icon m
 
 ## Verified
 
-The source-model test covers comments and unknown-directive preservation, named/hex/RGBA colours, panel position and title changes, component options, panel/screen creation, implicit panels and every preset in `layouts/default/`. The full interface is also exercised in a real headless Chromium; it has not yet been checked in a non-Chromium browser.
+The source-model test covers comments and unknown-directive preservation, named/hex/RGBA colours, panel position and title changes, component options, panel/screen creation, implicit panels and every preset in `layouts/default/`. The history suite covers grouped typing, atomic mutations, caret/inspector restoration, redo branching and bounded storage. The full interface has previously been exercised in a real headless Chromium; it has not yet been checked in a non-Chromium browser.

@@ -36,6 +36,7 @@ namespace HelmCore
         public double DefaultValue = 0.0;
         public string DefaultText;
         public string DynamicKey;
+        public double DynamicTtl = 10; // ttl: seconds a received dynamic value remains fresh
         public bool AllShips;   // scope: all - also use blocks on ships docked on a connector
     }
 
@@ -241,6 +242,12 @@ namespace HelmCore
 
         public float FontSize = 1.0f;
         public int RefreshTicks = 0;      // refresh: draw this screen at most every N ticks (0 = every run)
+        public double RotateSeconds;     // rotate: seconds per page; pages share the same output and interval
+        public List<ScreenDef> RotationPages;
+        public ScreenDef RotationPage(double seconds)
+        {
+            return RotationPages == null ? this : RotationPages[(int)((Math.Max(0, seconds) / RotateSeconds) % RotationPages.Count)];
+        }
         public float AlertPeriod = 1.6f;  // alert_period: seconds for one on/off flash cycle
         public int GridCols = 1;
         public int GridRows = 1;
@@ -576,6 +583,14 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                         RequireScreen(current, "refresh:");
                         current.RefreshTicks = int.Parse(line.Substring("refresh:".Length).Trim());
                     }
+                    else if (line.StartsWith("rotate:"))
+                    {
+                        RequireScreen(current, "rotate:");
+                        double seconds = double.Parse(line.Substring(7).Trim().TrimEnd('s'), System.Globalization.CultureInfo.InvariantCulture);
+                        if (double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds < 1)
+                            throw new FormatException("rotate: requires at least 1 second");
+                        current.RotateSeconds = seconds;
+                    }
                     else if (line.StartsWith("output:"))
                     {
                         RequireScreen(current, "output:");
@@ -768,6 +783,17 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
 
             foreach (var sc in cfg.Screens)
             {
+                if (sc.RotateSeconds > 0 && sc.RotationPages == null)
+                {
+                    var pages = cfg.Screens.FindAll(s => s.OutputSurfaceIndex == sc.OutputSurfaceIndex &&
+                        string.Equals(s.OutputBlockName, sc.OutputBlockName, StringComparison.OrdinalIgnoreCase));
+                    foreach (var p in pages) p.RotationPages = pages;
+                    if (pages.Any(p => p.RotateSeconds != sc.RotateSeconds))
+                    {
+                        cfg.Errors.Add("output '" + sc.OutputBlockName + "': every rotating page must use the same rotate: interval");
+                        foreach (var p in pages) { p.RotationPages = null; p.RotateSeconds = 0; }
+                    }
+                }
                 // bg: after an @panel line colours that panel only. A screen where only some panels have one shows two colours.
                 int own = sc.Panels.Count(pn => pn.Background != null || pn.BgRules != null || pn.BgGradient != null);
                 if (sc.Panels.Count > 1 && own > 0 && own < sc.Panels.Count)
@@ -1136,6 +1162,12 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
                             def.DefaultValue = defVal;
                         else
                             def.DefaultText = Unquote(kv[1].Trim());
+                    }
+                    else if (kv.Length == 2 && kv[0].Trim().Equals("ttl", StringComparison.OrdinalIgnoreCase))
+                    {
+                        double ttl = double.Parse(kv[1].Trim(), System.Globalization.CultureInfo.InvariantCulture);
+                        if (ttl <= 0 || double.IsNaN(ttl) || double.IsInfinity(ttl)) throw new FormatException("ttl: requires positive seconds");
+                        def.DynamicTtl = ttl;
                     }
                 }
                 return def;

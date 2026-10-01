@@ -50,6 +50,19 @@ refresh: 100
         Check(cfgNoOut.Errors.Count == 1 && cfgNoOut.Errors[0].Contains("output"), "screen without output: produces exactly one clear error");
         Check(Math.Abs(scr.FontSize - 1.0f) < 0.001, "font_size parsed = 1.0");
         Check(scr.RefreshTicks == 100, "refresh = 100");
+        string rotateConfig = "@screen power\noutput: \"LCD\", 0\nrotate: 8s\n@screen cargo\noutput: \"lcd\", 0\nrotate: 8\n@screen fuel\noutput: \"LCD\", 1\nrotate: 2s\n";
+        var rotating = HelmParser.Parse(rotateConfig);
+        Check(rotating.Errors.Count == 0, "rotation: pages parse with seconds suffix or bare seconds");
+        var firstPage = rotating.Screens[0];
+        Check(firstPage.RotationPages.Count == 2, "rotation: pages group by output name and surface index");
+        Check(firstPage.RotationPage(0) == firstPage && firstPage.RotationPage(7.99) == firstPage, "rotation: first page holds for the full interval");
+        Check(firstPage.RotationPage(8) == rotating.Screens[1] && firstPage.RotationPage(16) == firstPage, "rotation: switches at the boundary and wraps");
+        Check(firstPage.RotationPage(-1) == firstPage && firstPage.RotationPage(8e20) != null, "rotation: negative and very large times are safe");
+        foreach (string invalid in new[] { "0", "-1", "0.5", "NaN", "Infinity", "oops" })
+            Check(HelmParser.Parse("@screen s\noutput: \"LCD\"\nrotate: " + invalid).Errors.Count == 1, "rotation: rejects invalid interval " + invalid);
+        Check(HelmParser.Parse(rotateConfig.Replace("rotate: 8\n", "rotate: 7\n")).Errors.Count == 1, "rotation: mismatched page intervals produce one error");
+        Check(HelmParser.Parse(rotateConfig.Replace("rotate: 8\n", "")).Errors.Count == 1, "rotation: every page sharing the output must opt in");
+        Check(scr.RotationPages == null && scr.RotationPage(100) == scr, "rotation: existing screens remain independent");
         Check(scr.Lines.Count == 4, "4 lines parsed, got " + scr.Lines.Count);
 
         var pwr = scr.Lines[0];
@@ -649,6 +662,14 @@ line: ""SPD "" text(ship_speed.val) unit(""m/s"")
         Check(cfgDyn.Binds[1].DynamicKey == "alert.status", "bind 1 key is alert.status");
         Check(cfgDyn.Binds[2].Kind == BindKind.Dynamic, "bind 2 is Dynamic");
         Check(cfgDyn.Binds[2].DynamicKey == "flight.speed", "bind 2 key is flight.speed");
+        Check(cfgDyn.Binds[0].DynamicTtl == 10, "dynamic freshness defaults to ten seconds");
+        foreach (string alias in new[] { "dynamic", "var", "mem" })
+        {
+            var timed = HelmParser.Parse("@bind feed = " + alias + "(\"feed\", TTL: 2.5, default: 64)");
+            Check(timed.Errors.Count == 0 && timed.Binds[0].DynamicTtl == 2.5 && timed.Binds[0].DefaultValue == 64, alias + " parses fractional ttl before default");
+        }
+        foreach (string invalid in new[] { "0", "-1", "NaN", "Infinity", "oops" })
+            Check(HelmParser.Parse("@bind feed = dynamic(\"feed\", ttl: " + invalid + ")").Errors.Count == 1, "invalid ttl rejected: " + invalid);
 
         // Epic 22: Advanced Border Engine, Positional Titles & Title Colors
         string dslEpic22 = @"

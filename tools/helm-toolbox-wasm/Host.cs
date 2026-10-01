@@ -224,6 +224,8 @@ public static partial class Host
                     if (!string.IsNullOrEmpty(b.DynamicKey)) dyn[b.DynamicKey] = v;
                 }
                 var screen = config.Screens[Math.Max(0, Math.Min(screenIndex, config.Screens.Count - 1))];
+                // The screen picker previews each rotation page independently of the game's clock.
+                screen.RotationPages = null;
                 var surface = new MockSurface(width, height);
                 var resolvedOutputs = (Dictionary<ScreenDef, IMyTextSurface>)Get(prog, "_resolvedOutputs");
                 resolvedOutputs[screen] = surface;
@@ -235,7 +237,11 @@ public static partial class Host
                 ScreenDef mirrorSource = screen.Mirror != null
                     ? config.Screens.Find(s => s != screen && s.Name.Equals(screen.Mirror, StringComparison.OrdinalIgnoreCase))
                     : null;
-                if (mirrorSource != null) resolvedOutputs[mirrorSource] = new MockSurface(width, height);
+                if (mirrorSource != null)
+                {
+                    mirrorSource.RotationPages = null;
+                    resolvedOutputs[mirrorSource] = new MockSurface(width, height);
+                }
                 var render = typeof(Program).GetMethod("RenderScreen", BindingFlags.Instance | BindingFlags.NonPublic);
                 var timeField = typeof(Program).GetField("_time", BindingFlags.Instance | BindingFlags.NonPublic);
                 var tickField = typeof(Program).GetField("_tickCounter", BindingFlags.Instance | BindingFlags.NonPublic);

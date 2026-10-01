@@ -9,7 +9,8 @@
 #   3. gate       — Enforce PB 100,000-character hard ceiling; compile, token-check and render the script
 #   4. package    — Create versioned .zip archive + upload to GitLab Generic Packages
 #   4b. gate      — combined-compile-check compiles the minified script against the stand-in API
-#   5. deploy     — Export display frames (docs-frames, build stage), then build the 11ty
+#   5. release    — Create a GitLab Release for vMAJOR.MINOR.PATCH-release tags
+#   6. deploy     — Export display frames (docs-frames, build stage), then build the 11ty
 #                   docs site and publish to GitLab Pages (main only)
 #
 # Steam Workshop deploy is intentionally NOT automated in CI.
@@ -34,6 +35,7 @@ stages:
   - build
   - gate
   - package
+  - release
   - deploy
 
 # Default runner image for every job. It carries PowerShell, mono (mcs), the .NET 8 and 10 SDKs,
@@ -62,6 +64,8 @@ unit-tests:
     - mcs -out:/tmp/test_helm_ci.exe HelmCore.cs Tests.cs
     - echo "Running tests..."
     - mono /tmp/test_helm_ci.exe
+    - pwsh -NoProfile -File tools/tests/Test-GitLabRelease.ps1
+    - pwsh -NoProfile -File tools/tests/Test-WorkshopDescription.ps1
     - echo "All tests passed."
   artifacts:
     when: always
@@ -249,8 +253,14 @@ renderer-smoke:
 package-release:
   stage: package
   needs:
+    - job: build-release
+      artifacts: true
     - budget-gate
     - combined-compile-check
+    - rename-parity
+    - minify-verify
+    - renderer-smoke
+    - scope-test
   script:
     - |
 
@@ -281,7 +291,9 @@ package-release:
         HelmCombined.min.cs \
         layouts/ \
         WORKSHOP.md \
-        README.md
+        README.md \
+        CHANGELOG.md \
+        release-notes/
 
       ARCHIVE_SIZE=$(du -sh "$ARCHIVE" | cut -f1)
       echo "  Archive size : ${ARCHIVE_SIZE}"
@@ -314,12 +326,30 @@ package-release:
   artifacts:
     name: "${HELM_PACKAGE_NAME:-helm-core}-${CI_COMMIT_TAG:-${CI_COMMIT_SHORT_SHA}}"
     paths:
-      - "helm-core-*.zip"
+      - "${HELM_PACKAGE_NAME}-*.zip"
     expire_in: 90 days
   rules:
     - if: '$CI_COMMIT_TAG'
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH =~ /^release\//'
+
+# ---------------------------------------------------------------------------
+# STAGE: release — Publish a GitLab Release backed by Generic Package assets
+#
+# A stable SemVer tag (for example v1.2.3) does not create a release. The
+# explicit release tag (v1.2.3-release) does, after package-release uploads its
+# archive. Publish-GitLabRelease.ps1 discovers every uploaded package file and
+# adds it to the GitLab Release as a permanent asset link.
+# The matching release-notes/<version>.md supplies the release body, with
+# download and Steam Workshop links added by the publisher.
+# ---------------------------------------------------------------------------
+create-release:
+  stage: release
+  dependencies: []
+  script:
+    - pwsh ./tools/Publish-GitLabRelease.ps1 -ProjectId "$CI_PROJECT_ID" -Tag "$CI_COMMIT_TAG" -PackageName "$HELM_PACKAGE_NAME"
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)-release$/'
 
 # ---------------------------------------------------------------------------
 # docs-examples extracts the complete ```helm examples from the docs pages (Bun).

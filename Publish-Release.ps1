@@ -52,7 +52,8 @@
     Skip the GitLab Generic Package upload step entirely.
 
 .PARAMETER Steam
-    Enable the Steam Workshop deploy step via SteamCMD.
+    Enable the Steam Workshop deploy step via SteamCMD. SteamCMD prompts for a
+    Steam Guard code immediately before upload when the account requires one.
 
 .PARAMETER SteamUser
     Steam account username (Workshop item owner).
@@ -62,13 +63,25 @@
     Steam account password.
     ENV: STEAM_PASSWORD
 
-.PARAMETER SteamGuard
-    Steam Guard 2FA code (if required). Rotate before each deploy.
-    ENV: STEAM_GUARD_CODE
-
 .PARAMETER SteamItemId
-    Steam Workshop item ID to update. Leave empty ("0") for a first-time publish.
+    Steam Workshop item ID to update. Leave empty for a first-time publish. After
+    creation, SteamCMD writes the new ID into workshop/build/helm-core.vdf and the
+    script reuses it on later publishes.
     ENV: STEAM_WORKSHOP_ITEM_ID
+
+.PARAMETER WorkshopDir
+    Workshop source and staging directory. The source preview is expected at
+    workshop/preview.jpg; generated content and the persistent VDF are written below
+    workshop/build/. Defaults to the repository workshop directory.
+
+.PARAMETER WorkshopPreviewPath
+    JPEG preview uploaded for the Workshop item and copied to content/thumb.jpg for
+    the Space Engineers script browser. Defaults to workshop/preview.jpg.
+
+.PARAMETER WorkshopReleaseNotesPath
+    Optional UTF-8 text file containing the Workshop change note for this release.
+    When omitted, commit subjects since the previous stable SemVer tag are used.
+    ENV: HELM_WORKSHOP_RELEASE_NOTES
 
 .PARAMETER SteamCmdPath
     Path to steamcmd executable or shell script.
@@ -93,7 +106,7 @@
         -GitLabProjectId "12345678" `
         -GitLabToken "glpat-xxxxxxxxxxxx" `
         -Steam `
-        -SteamUser "mybot" -SteamPass "hunter2" -SteamGuard "AB123" `
+        -SteamUser "mybot" -SteamPass "hunter2" `
         -SteamItemId "3456789012"
 
 .EXAMPLE
@@ -128,11 +141,13 @@ param(
     [switch]$Steam,
     [string]$SteamUser   = $env:STEAM_USERNAME,
     [string]$SteamPass   = $env:STEAM_PASSWORD,
-    [string]$SteamGuard  = $env:STEAM_GUARD_CODE,
-    [string]$SteamItemId = $(if ($env:STEAM_WORKSHOP_ITEM_ID) { $env:STEAM_WORKSHOP_ITEM_ID } else { '0' }),
+    [string]$SteamItemId = $env:STEAM_WORKSHOP_ITEM_ID,
     [string]$SteamCmdPath = $(if ($env:STEAMCMD_PATH) { $env:STEAMCMD_PATH }
                                elseif ($IsWindows)     { 'steamcmd.exe' }
                                else                    { 'steamcmd' }),
+    [string]$WorkshopDir = (Join-Path $PSScriptRoot 'workshop'),
+    [string]$WorkshopPreviewPath = (Join-Path (Join-Path $PSScriptRoot 'workshop') 'preview.jpg'),
+    [string]$WorkshopReleaseNotesPath = $env:HELM_WORKSHOP_RELEASE_NOTES,
 
     # Interactive credential prompting (local use)
     [switch]$Prompt
@@ -170,6 +185,93 @@ function Write-Ok   { param([string]$Msg) Write-Host "      $Msg" -ForegroundCol
 function Write-Info { param([string]$Msg) Write-Host "      $Msg" -ForegroundColor Cyan   }
 function Write-Warn { param([string]$Msg) Write-Host "      $Msg" -ForegroundColor Yellow }
 
+function ConvertTo-VdfString {
+    param(
+        [AllowEmptyString()][string]$Value,
+        [string]$Label = 'VDF value'
+    )
+    if ($null -eq $Value) { return '' }
+    if ($Value.Contains('"')) {
+        throw "$Label contains a double quote, which SteamCMD cannot safely parse in this VDF format."
+    }
+    $escaped = $Value.Replace('\', '\\')
+    $byteCount = [System.Text.Encoding]::UTF8.GetByteCount($escaped)
+    if ($byteCount -ge 4096) {
+        throw "$Label is $byteCount UTF-8 bytes; SteamCMD KeyValues values must be smaller than 4096 bytes."
+    }
+    return $escaped
+}
+
+function Get-WorkshopDescriptionBody {
+    param([string]$Path)
+    $markdown = [System.IO.File]::ReadAllText($Path)
+    $match = [regex]::Match($markdown, '(?ms)^## Steam Workshop Description.*?^```text[ \t]*\r?\n(?<body>.*?)\r?\n^```[ \t]*$')
+    if (-not $match.Success) {
+        throw "Workshop description fenced block not found in $Path"
+    }
+    return $match.Groups['body'].Value.Trim()
+}
+
+function Get-WorkshopDescription {
+    param([string]$Path)
+    $body = Get-WorkshopDescriptionBody $Path
+    $features = [regex]::Match($body, '(?m)^\[h2\][ \t]*Key Features[ \t]*\[/h2\]')
+    $quickStart = [regex]::Match($body, '(?ms)^\[h2\][ \t]*Quick Start[ \t]*\[/h2\].*?(?=^\[h2\]|\z)')
+    if (-not $features.Success -or -not $quickStart.Success) {
+        throw "Workshop introduction or Quick Start section not found in $Path"
+    }
+
+    # Valve KeyValues uses a 4096-byte token buffer. Keep the full description in
+    # WORKSHOP.md for the Steam web editor, but generate a compact initial/update
+    # description that SteamCMD can parse as one VDF value.
+    $introduction = $body.Substring(0, $features.Index).Trim()
+    return ($introduction + "`n`n" + $quickStart.Value.Trim()).Replace('"', "'")
+}
+
+function Get-WorkshopChangeNote {
+    param(
+        [string]$RepositoryPath,
+        [string]$ReleaseVersion,
+        [string]$NotesPath
+    )
+
+    if ($NotesPath) {
+        if (-not (Test-Path $NotesPath -PathType Leaf)) {
+            throw "Workshop release-notes file not found: $NotesPath"
+        }
+        return [System.IO.File]::ReadAllText((Resolve-Path $NotesPath).Path).Trim()
+    }
+
+    $releaseNames = @($ReleaseVersion, $ReleaseVersion.TrimStart('v'), "v$($ReleaseVersion.TrimStart('v'))")
+    $tags = @(& git -C $RepositoryPath tag --merged HEAD --sort=-version:refname)
+    if ($LASTEXITCODE -ne 0) { throw 'Unable to inspect Git tags for Workshop release notes.' }
+    $previousTag = $tags | Where-Object {
+        $_ -match '^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' -and $_ -notin $releaseNames
+    } | Select-Object -First 1
+
+    $range = if ($previousTag) { "$previousTag..HEAD" } else { 'HEAD' }
+    $subjects = @(& git -C $RepositoryPath log --no-merges --format='%s' $range)
+    if ($LASTEXITCODE -ne 0) { throw 'Unable to read Git history for Workshop release notes.' }
+    $subjects = @($subjects | Where-Object { $_ -and $_ -notmatch '^(chore|ci|build)(\([^)]*\))?!?:' })
+
+    $header = "HELM Core $ReleaseVersion"
+    if ($previousTag) { $header += " (changes since $previousTag)" }
+    if ($subjects.Count -eq 0) { return "$header`n`nRelease $ReleaseVersion." }
+
+    $lines = [System.Collections.Generic.List[string]]::new()
+    $lines.Add($header)
+    $lines.Add('')
+    foreach ($subject in $subjects) {
+        $candidate = ($lines + "- $subject") -join "`n"
+        if ([System.Text.Encoding]::UTF8.GetByteCount($candidate) -ge 3900) {
+            $lines.Add('- Additional changes are listed in the GitLab release history.')
+            break
+        }
+        $lines.Add("- $subject")
+    }
+    return ($lines -join "`n").Replace('"', "'")
+}
+
 # ---------------------------------------------------------------------------
 # Resolve Version
 # ---------------------------------------------------------------------------
@@ -187,6 +289,24 @@ $versionClean  = $Version.TrimStart('v')
 $versionTag    = if ($Version.StartsWith('v')) { $Version } else { "v$Version" }
 $archiveName   = "helm-core-${versionTag}.zip"
 $archivePath   = Join-Path $OutDir $archiveName
+
+# SteamCMD updates the VDF with the new publishedfileid after first creation. Keep
+# that generated VDF under workshop/build and reuse its ID when no parameter or
+# environment variable was supplied.
+$workshopBuild = Join-Path $WorkshopDir 'build'
+$workshopContent = Join-Path $workshopBuild 'content'
+$workshopVdfPath = Join-Path $workshopBuild 'helm-core.vdf'
+if ($Steam -and -not $SteamItemId -and (Test-Path $workshopVdfPath)) {
+    $savedVdf = [System.IO.File]::ReadAllText($workshopVdfPath)
+    $savedId = [regex]::Match($savedVdf, '"publishedfileid"\s+"(?<id>[0-9]+)"')
+    if ($savedId.Success -and $savedId.Groups['id'].Value -ne '0') {
+        $SteamItemId = $savedId.Groups['id'].Value
+    }
+}
+if ($Steam -and -not $SteamItemId) { $SteamItemId = '0' }
+if ($Steam -and $SteamItemId -notmatch '^[0-9]+$') {
+    throw "Steam Workshop item ID must contain digits only: $SteamItemId"
+}
 
 # Determine step count based on active stages
 $totalSteps = 2  # package + summary always present
@@ -354,66 +474,109 @@ if ($Steam) {
     # Resolve Steam credentials
     $SteamUser  = Resolve-Credential -Value $SteamUser  -EnvName 'STEAM_USERNAME'         -Label 'Steam username'      -Mandatory -Prompt:$Prompt
     $SteamPass  = Resolve-Credential -Value $SteamPass  -EnvName 'STEAM_PASSWORD'         -Label 'Steam password'      -Mandatory -Prompt:$Prompt
-    $SteamGuard = Resolve-Credential -Value $SteamGuard -EnvName 'STEAM_GUARD_CODE'       -Label 'Steam Guard code'    -Prompt:$Prompt
-    $SteamItemId = if ($SteamItemId) { $SteamItemId } else { '0' }
+    $isNewWorkshopItem = $SteamItemId -eq '0'
 
     if (-not (Get-Command $SteamCmdPath -ErrorAction SilentlyContinue)) {
         throw "SteamCMD not found at '$SteamCmdPath'. Install SteamCMD or set ENV STEAMCMD_PATH."
     }
 
-    # Stage workshop content folder
-    $workshopContent = Join-Path $OutDir "workshop_content"
+    # Stage the exact folder consumed by the Space Engineers in-game script browser.
+    # Keep the build directory and VDF so SteamCMD's first-publish item ID survives.
+    if (-not (Test-Path $workshopBuild)) { New-Item -ItemType Directory -Force -Path $workshopBuild | Out-Null }
     if (Test-Path $workshopContent) { Remove-Item $workshopContent -Recurse -Force }
     New-Item -ItemType Directory -Force -Path $workshopContent | Out-Null
 
     $minCs = Join-Path $ScriptDir "HelmCombined.min.cs"
     if (-not (Test-Path $minCs)) { throw "HelmCombined.min.cs not found — run without -SkipBuild first." }
 
-    Copy-Item $minCs (Join-Path $workshopContent "HelmCombined.cs")
-    Copy-Item (Join-Path $ScriptDir "layouts") $workshopContent -Recurse
-    Copy-Item (Join-Path $ScriptDir "WORKSHOP.md") $workshopContent
+    if (-not (Test-Path $WorkshopPreviewPath -PathType Leaf)) {
+        throw "Workshop preview not found: $WorkshopPreviewPath (add workshop/preview.jpg; JPEG, at least 512x288 and under 1 MB)."
+    }
+    $preview = Get-Item $WorkshopPreviewPath
+    if ($preview.Extension -notin @('.jpg', '.jpeg')) {
+        throw "Workshop preview must be a JPEG file: $WorkshopPreviewPath"
+    }
+    if ($preview.Length -ge 1MB) {
+        throw "Workshop preview must be under 1 MB: $WorkshopPreviewPath"
+    }
 
-    # Steam Workshop preview: PNG, JPG or GIF. A missing file must stop the publish, not skip it.
-    $previewSrc = Join-Path (Join-Path $ScriptDir "brand") "preview.png"
-    if (-not (Test-Path $previewSrc)) { throw "Workshop preview not found: $previewSrc (add a PNG, ideally 512x512 or larger)." }
-    Copy-Item $previewSrc (Join-Path $workshopContent "preview.png")
+    Copy-Item $minCs (Join-Path $workshopContent 'Script.cs')
+    Copy-Item $WorkshopPreviewPath (Join-Path $workshopContent 'thumb.jpg')
 
-    # Generate VDF manifest
-    $vdfPath = Join-Path ([System.IO.Path]::GetTempPath()) "helm_workshop.vdf"
+    # Generate the persistent VDF manifest. SteamCMD mutates publishedfileid in this
+    # file after creating an item, so do not use a temporary path.
     $workshopContentAbs = (Resolve-Path $workshopContent).Path
-    $previewAbs = Join-Path $workshopContentAbs "preview.png"
+    $previewAbs = (Resolve-Path $WorkshopPreviewPath).Path
+    $workshopMarkdownPath = Join-Path $ScriptDir 'WORKSHOP.md'
+    $fullDescription = Get-WorkshopDescriptionBody $workshopMarkdownPath
+    if ($fullDescription.Length -gt 8000) {
+        throw "Full Workshop description is $($fullDescription.Length) characters; keep the Steam web-editor copy at or below 8000 characters."
+    }
+    $description = Get-WorkshopDescription $workshopMarkdownPath
+    $changeNote = Get-WorkshopChangeNote -RepositoryPath $ScriptDir -ReleaseVersion $versionTag -NotesPath $WorkshopReleaseNotesPath
+    $contentVdf = ConvertTo-VdfString $workshopContentAbs 'Workshop content path'
+    $previewVdf = ConvertTo-VdfString $previewAbs 'Workshop preview path'
+    $descriptionVdf = ConvertTo-VdfString $description 'Workshop description'
+    $titleVdf = ConvertTo-VdfString 'HELM: High-Efficiency Lightweight Monitor' 'Workshop title'
+    $changeVdf = ConvertTo-VdfString $changeNote 'Workshop change note'
 
-    Set-Content -Path $vdfPath -Encoding UTF8 -Value @"
+    $fullDescriptionPath = Join-Path $workshopBuild 'description.bbcode.txt'
+    $releaseNotesPath = Join-Path $workshopBuild 'release-notes.txt'
+    [System.IO.File]::WriteAllText($fullDescriptionPath, $fullDescription, [System.Text.UTF8Encoding]::new($false))
+    [System.IO.File]::WriteAllText($releaseNotesPath, $changeNote, [System.Text.UTF8Encoding]::new($false))
+
+    # Omitting description on updates preserves the full page entered in Steam's
+    # Owner Controls. Only new items receive the compact bootstrap description.
+    $descriptionLine = if ($isNewWorkshopItem) { '    "description"      "' + $descriptionVdf + '"' } else { '' }
+
+    $vdf = @"
 "workshopitem"
 {
     "appid"            "244850"
     "publishedfileid"  "$SteamItemId"
-    "contentfolder"    "$($workshopContentAbs.Replace('\','/'))"
-    "previewfile"      "$($previewAbs.Replace('\','/'))"
+    "contentfolder"    "$contentVdf"
+    "previewfile"      "$previewVdf"
     "visibility"       "0"
-    "title"            "HELM: High-Efficiency Lightweight Monitor"
-    "changenote"       "Release $versionTag"
+    "title"            "$titleVdf"
+$descriptionLine
+    "changenote"       "$changeVdf"
 }
 "@
+    [System.IO.File]::WriteAllText($workshopVdfPath, $vdf, [System.Text.UTF8Encoding]::new($false))
 
-    Write-Info "Workshop item  : $SteamItemId"
+    Write-Info "Workshop item  : $(if ($isNewWorkshopItem) { 'new item' } else { $SteamItemId })"
     Write-Info "Content folder : $workshopContent"
-    Write-Info "VDF manifest   : $vdfPath"
+    Write-Info "Preview        : $WorkshopPreviewPath"
+    Write-Info "VDF manifest   : $workshopVdfPath"
+    Write-Info "Full page      : $fullDescriptionPath"
+    Write-Info "Release notes  : $releaseNotesPath"
 
-    if ($PSCmdlet.ShouldProcess("Steam Workshop Item $SteamItemId", "SteamCMD workshop_build_item")) {
+    if ($PSCmdlet.ShouldProcess("Steam Workshop Item $(if ($isNewWorkshopItem) { 'new' } else { $SteamItemId })", "SteamCMD workshop_build_item")) {
         $steamArgs = @(
             "+login", $SteamUser, $SteamPass
         )
-        if ($SteamGuard) { $steamArgs += $SteamGuard }
-        $steamArgs += @("+workshop_build_item", $vdfPath, "+quit")
+        $steamArgs += @("+workshop_build_item", $workshopVdfPath, "+quit")
 
+        Write-Info "Starting SteamCMD; enter the current Steam Guard code if prompted."
         & $SteamCmdPath @steamArgs
         if ($LASTEXITCODE -ne 0) {
-            throw "SteamCMD exited with code $LASTEXITCODE — check Steam credentials and try again."
+            throw "SteamCMD exited with code $LASTEXITCODE — review the SteamCMD output above for the specific login, VDF, or upload error."
         }
+
+        # SteamCMD writes the assigned ID back into the VDF for a newly created item.
+        $publishedVdf = [System.IO.File]::ReadAllText($workshopVdfPath)
+        $publishedId = [regex]::Match($publishedVdf, '"publishedfileid"\s+"(?<id>[0-9]+)"')
+        if (-not $publishedId.Success -or $publishedId.Groups['id'].Value -eq '0') {
+            throw "SteamCMD completed but did not write a Workshop item ID to $workshopVdfPath"
+        }
+        $SteamItemId = $publishedId.Groups['id'].Value
         Write-Ok "Workshop deploy complete."
-        if ($SteamItemId -ne '0') {
-            Write-Info "URL: https://steamcommunity.com/sharedfiles/filedetails/?id=$SteamItemId"
+        Write-Info "URL: https://steamcommunity.com/sharedfiles/filedetails/?id=$SteamItemId"
+        Write-Info "Paste the full page from $fullDescriptionPath through Workshop Owner Controls."
+        Write-Warn "SteamCMD cannot set Space Engineers' normal Workshop type/category tags; confirm Type: IngameScript in the game or Owner Controls."
+        if ($isNewWorkshopItem) {
+            Write-Warn "For reliable Type: IngameScript assignment, create the item once from Space Engineers' Browse Scripts screen, then use its ID for future SteamCMD updates."
+            Write-Warn "First publish: open the URL and accept the Workshop legal agreement if prompted."
         }
     }
 }

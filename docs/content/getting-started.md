@@ -9,6 +9,8 @@ badge: "Quickstart"
 ## Prerequisites
 
 Before installing HELM Core:
+
+- Enable **Experimental Mode** in the game options.
 - Ensure **In-Game Scripts** are enabled in your Space Engineers world settings:
   `World Settings -> Advanced -> Enable In-Game Scripts [x]`.
 - Have at least one **Programmable Block** and at least one **Text Panel** or cockpit surface on your grid.
@@ -33,15 +35,23 @@ flowchart LR
 
 ## Installing the Script
 
+For a Workshop installation, subscribe to the HELM item, then open the Programmable Block's **Edit → Browse Scripts**, select HELM and check the code. Use an **IngameScript** item, not the world's Mods list.
+
+For direct installation, download `HelmCombined.min.cs` from a [release](https://gitlab.com/sgkens/helm-core/-/releases), or run `pwsh ./Build-Release.ps1` in a local checkout to generate it. Generated combined scripts are not tracked in Git.
+
 1. Build or locate a **Programmable Block** on your grid.
 2. Open its terminal interface and click **Edit Code**.
-3. Select everything in the editor and replace it with the contents of **`HelmCombined.min.cs`** (under 100,000 characters, the Programmable Block limit). `HelmCombined.cs` is the same script with comments for reading; it is too long to paste.
+3. Select everything in the editor and replace it with the contents of **`HelmCombined.min.cs`**. The release build checks the 100,000-character Programmable Block limit; use the minified output, not the readable combined file.
 4. Click **Check Code**.
 5. Click **OK** and ensure the Programmable Block is powered **ON**.
 
 ```
 [Programmable Block] -> Edit -> Paste -> Check Code -> OK
 ```
+
+When updating, replace the code again: a Workshop subscription update does not automatically replace a Programmable Block's existing copy. Layouts stay in the separate Custom Data field; run `reload` after installing the new code.
+
+The [HELM Toolbox](/docs/helm-toolbox/) can browse presets, edit layouts and preview hardware profiles before you copy the result into Custom Data.
 
 ## Configuring Custom Data
 

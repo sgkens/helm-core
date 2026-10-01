@@ -169,12 +169,14 @@ namespace Sandbox.ModAPI.Ingame
     public partial interface IMyPowerProducer : IMyTerminalBlock { }
     public partial interface IMyFunctionalBlock : IMyTerminalBlock { }
     public partial interface IMyShipToolBase : IMyTerminalBlock { }
-    public interface IMyBroadcastListener { bool HasPendingMessage { get; } void SetMessageCallback(string arg = ""); MyIGCMessage AcceptMessage(); }
+    public interface IMyMessageProvider { bool HasPendingMessage { get; } void SetMessageCallback(string arg = ""); MyIGCMessage AcceptMessage(); }
+    public interface IMyBroadcastListener : IMyMessageProvider { }
+    public interface IMyUnicastListener : IMyMessageProvider { }
     public struct MyIGCMessage { public object Data; public string Tag; }
     public interface IMyCubeGrid { }
     public partial interface IMyGridTerminalSystem { }
     public interface IMyBlockGroup { string Name { get; } void GetBlocks(List<IMyTerminalBlock> blocks, Func<IMyTerminalBlock, bool> collect = null); }
-    public interface IMyIntergridCommunicationSystem { IMyBroadcastListener RegisterBroadcastListener(string tag); }
+    public interface IMyIntergridCommunicationSystem { IMyBroadcastListener RegisterBroadcastListener(string tag); IMyUnicastListener UnicastListener { get; } }
     public interface IMyGridProgramRuntimeInfo { UpdateFrequency UpdateFrequency { get; set; } double LastRunTimeMs { get; } TimeSpan TimeSinceLastRun { get; } int CurrentInstructionCount { get; } int MaxInstructionCount { get; } int CurrentCallChainDepth { get; } int MaxCallChainDepth { get; } }
 
     public abstract class MyGridProgram
@@ -186,7 +188,8 @@ namespace Sandbox.ModAPI.Ingame
         public string Storage;
         public Action<string> Echo = s => { };
         public IMyGridProgramRuntimeInfo Runtime = new StubRuntime();
-        public IMyIntergridCommunicationSystem IGC = new StubIgc();
+        public static IMyIntergridCommunicationSystem BootstrapIgc;
+        public IMyIntergridCommunicationSystem IGC = BootstrapIgc ?? new StubIgc();
         public static IMyGridTerminalSystem BootstrapGts;
         public IMyGridTerminalSystem GridTerminalSystem = BootstrapGts ?? new StubGts();
     }
@@ -203,6 +206,7 @@ namespace Sandbox.ModAPI.Ingame
     }
     public class StubIgc : IMyIntergridCommunicationSystem
     {
+        public IMyUnicastListener UnicastListener { get { return null; } }
         public IMyBroadcastListener RegisterBroadcastListener(string tag) { return null; }
     }
 }

@@ -16,8 +16,8 @@ tools/fonts/*.otf
 tools/fonts/*.woff
 tools/fonts/*.woff2
 
-# Workshop staging directory (created by Publish-Release.ps1)
-workshop_content/
+# Workshop staging directory and persistent local Steam item state
+workshop/build/
 
 # Release archives (created by Publish-Release.ps1 / CI)
 helm-core-*.zip
@@ -54,3 +54,13 @@ gx/
 # HelmCombined and helm minified
 HelmCombined.min.cs
 HelmCombined.cs
+
+
+# local issues
+/issues
+
+# Local publishing helper may contain account credentials.
+/ixpr.ps1
+
+# rivet
+rivet/

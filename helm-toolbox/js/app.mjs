@@ -12,6 +12,7 @@ import {
 import { Lume } from "../vendor/lume.mjs";
 import logcad from "../vendor/logcad.mjs";
 import { initializeI18n, t } from "./i18n.mjs";
+import { EditHistory } from "./edit-history.mjs";
 
 await initializeI18n();
 
@@ -59,6 +60,8 @@ let debounceTimer = null;
 let renderToken = 0;
 let inspectorModel = null;
 const inspectorSelection = { screen: 0, panel: 0, line: 0 };
+const editHistory = new EditHistory({ dsl: "", selectionStart: 0, selectionEnd: 0 });
+let baselineDsl = "";
 const logger = { name: "helm-toolbox", logname: " HELM ", bg: "#0891b2", logbg: "#0f172a" };
 
 new Lume({ motion: "lift", showDelay: 120, hideDelay: 40, offset: 10 });
@@ -83,6 +86,7 @@ async function loadData() {
 }
 
 function insertAtCursor(text) {
+  editHistory.capture(editorSnapshot());
   const ta = $("#dsl-editor");
   const start = ta.selectionStart, end = ta.selectionEnd;
   ta.value = ta.value.slice(0, start) + text + ta.value.slice(end);
@@ -93,6 +97,7 @@ function insertAtCursor(text) {
 }
 
 function insertPaletteSnippet(snippet, suggestions = {}) {
+  editHistory.capture(editorSnapshot());
   const ta = $("#dsl-editor");
   if (!inspectorModel?.screens.length) {
     ta.value = createBaseConfig();
@@ -368,6 +373,7 @@ function showInspectorTab(name) {
 }
 
 function applyInspectorDsl(dsl) {
+  editHistory.capture(editorSnapshot());
   const ta = $("#dsl-editor"), selection = Math.min(ta.selectionStart, dsl.length);
   ta.value = dsl;
   ta.selectionStart = ta.selectionEnd = selection;
@@ -574,8 +580,11 @@ function replaceDsl(dsl) {
   $("#dsl-editor").value = dsl;
   state.values = {};
   state.screenIndex = 0;
-  onDslChanged();
+  onDslChanged(true, false);
   dslDirty = false; // baseline: this is what was just loaded, not yet edited
+  baselineDsl = state.dsl;
+  editHistory.reset(editorSnapshot());
+  updateHistoryButtons();
 }
 
 function saveProject() {
@@ -648,11 +657,42 @@ function decodeShare() {
   } catch (e) { return null; }
 }
 
-function onDslChanged(followInspector = true) {
+function editorSnapshot() {
+  const editor = $("#dsl-editor");
+  return {
+    dsl: editor.value, selectionStart: editor.selectionStart, selectionEnd: editor.selectionEnd,
+    inspector: { ...inspectorSelection }, screenIndex: state.screenIndex, starterName: currentStarterName,
+  };
+}
+
+function updateHistoryButtons() {
+  $("#undo-dsl").disabled = !editHistory.canUndo;
+  $("#redo-dsl").disabled = !editHistory.canRedo;
+}
+
+function restoreEdit(direction) {
+  const snapshot = editHistory[direction](editorSnapshot());
+  if (!snapshot) return;
+  const editor = $("#dsl-editor");
+  editor.value = snapshot.dsl;
+  editor.setSelectionRange(snapshot.selectionStart, snapshot.selectionEnd);
+  Object.assign(inspectorSelection, snapshot.inspector);
+  state.screenIndex = snapshot.screenIndex;
+  currentStarterName = snapshot.starterName;
+  $("#starter-picker").value = currentStarterName;
+  dslDirty = snapshot.dsl !== baselineDsl;
+  if (location.hash.startsWith("#dsl=")) history.replaceState(null, "", location.pathname + location.search);
+  onDslChanged(false, false);
+  editor.focus();
+}
+
+function onDslChanged(followInspector = true, record = true, group = null) {
   state.dsl = $("#dsl-editor").value;
   updateDslHighlight();
   try { localStorage.setItem(DSL_KEY, state.dsl); } catch (e) {}
   refreshInspector(followInspector);
+  if (record) editHistory.record(editorSnapshot(), group);
+  updateHistoryButtons();
   scheduleRender();
 }
 
@@ -805,12 +845,21 @@ function loadStarter(name) {
 function wireControls() {
   wirePaneResizer();
   wireInspector();
-  $("#dsl-editor").addEventListener("input", () => {
+  $("#undo-dsl").addEventListener("click", () => restoreEdit("undo"));
+  $("#redo-dsl").addEventListener("click", () => restoreEdit("redo"));
+  $("#dsl-editor").addEventListener("beforeinput", (event) => {
+    if (event.inputType === "historyUndo" || event.inputType === "historyRedo") {
+      event.preventDefault();
+      restoreEdit(event.inputType === "historyUndo" ? "undo" : "redo");
+    } else editHistory.capture(editorSnapshot());
+  });
+  $("#dsl-editor").addEventListener("input", (event) => {
     // Once a shared layout is edited, a refresh should restore that edit from autosave rather
     // than silently replacing it with the original fragment.
     if (location.hash.startsWith("#dsl=")) history.replaceState(null, "", location.pathname + location.search);
     dslDirty = true;
-    onDslChanged();
+    const group = event.isComposing ? "composition" : /^(insertText|deleteContentBackward|deleteContentForward)$/.test(event.inputType) ? event.inputType : null;
+    onDslChanged(true, true, group);
   });
   $("#dsl-editor").addEventListener("scroll", syncEditorScroll);
 
@@ -940,8 +989,15 @@ function wireControls() {
   reduceMotion.addEventListener("change", () => setPlaying(!reduceMotion.checked));
   $("#close-shortcuts").addEventListener("click", () => shortcutDialog.close());
   document.addEventListener("keydown", (event) => {
+    if (event.isComposing) return;
     const mod = event.ctrlKey || event.metaKey;
-    if (mod && event.key.toLowerCase() === "s") { event.preventDefault(); saveProject(); }
+    const target = document.activeElement;
+    const otherEditor = target !== $("#dsl-editor") && (target?.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target?.tagName));
+    if (mod && !event.altKey && !otherEditor && (event.key.toLowerCase() === "z" || event.key.toLowerCase() === "y")) {
+      event.preventDefault();
+      restoreEdit(event.shiftKey || event.key.toLowerCase() === "y" ? "redo" : "undo");
+    }
+    else if (mod && event.key.toLowerCase() === "s") { event.preventDefault(); saveProject(); }
     else if (mod && event.key.toLowerCase() === "o") { event.preventDefault(); $("#import-file").click(); }
     else if (mod && event.shiftKey && event.key.toLowerCase() === "e") { event.preventDefault(); exportDsl(); }
     else if (event.key === "?" && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement && document.activeElement.tagName)) {

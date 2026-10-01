@@ -7,6 +7,7 @@ function Request-GenericPackage {
         [string]$PackageVersion,
         [string]$NameSpace,
         [string]$projectName,
+        [string]$ProjectUrl,
         [string]$ApiUrl,
         [string]$ApiKey,
         [switch]$ci
@@ -17,9 +18,13 @@ function Request-GenericPackage {
     if(!$ApiUrl) { $ApiUrl = "https://gitlab.com/api/v4" }
     if(!$projectName){ $projectName = $ENV:CI_PROJECT_NAME }
     if(!$NameSpace){ $NameSpace = $ENV:CI_PROJECT_NAMESPACE }
+    if(!$ProjectUrl) {
+        if ($ENV:CI_PROJECT_URL) { $ProjectUrl = $ENV:CI_PROJECT_URL }
+        else { $ProjectUrl = "https://gitlab.com/$NameSpace/$projectName" }
+    }
 
         # Construct the API URL for fetching the package details
-    $url = "$ApiUrl/projects/$ProjectId/packages?package_name=$PackageName&package_version=$PackageVersion&package_Type=generic"
+    $url = "$ApiUrl/projects/$ProjectId/packages?package_name=$PackageName&package_version=$PackageVersion&package_type=generic"
 
     Write-Host "Requesting package info from URL: $url"
 
@@ -45,7 +50,7 @@ function Request-GenericPackage {
 
             foreach($package in $package_files){
                 #$download_url = "$ApiUrl/projects/$ProjectId/packages/generic/$generic_package_id/package_files/$($package.id)/download"
-                $download_url = "https://gitlab.com/$NameSpace/$projectName/-/package_files/$($package.id)/download"
+                $download_url = "$ProjectUrl/-/package_files/$($package.id)/download"
                 # NOTE: THE API LINK IS NOT CORRECT and downloads the file with the name download
                 write-host "Generating Generic Package File: $($package.package_id) Metadata for: $NameSpace/$projectName/-/package_files/$($package.id)"
                 $generic_package_files_reponse += [pscustomobject]@{

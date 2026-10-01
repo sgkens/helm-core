@@ -32,7 +32,7 @@ Block icons are cached from the [Official Space Engineers Wiki](https://spaceeng
 | **Storage** | Connector | `IMyShipConnector` | **[x]** | `.percent`, `.locked`, `.connected`, `.status` | `checkbox`, `status`, `toggle` | - |
 | **Storage** | Conveyor Sorter | `IMyConveyorSorter` | **[ ]** | `.enabled` (on/off only) | `toggle`, `status`, `led` | - |
 | **Drive** | Thruster (Atmo / Ion / H2) | `IMyThrust` | **[x]** | `.percent`, `.thrust`, `.max`, `.override` | `chevron`, `bar`, `spark` | `kN` / `%` |
-| **Drive** | Gyroscope | `IMyGyro` | **[x]** | `.percent`, `.pitch`, `.yaw`, `.roll`, `.override` | `balance`, `bar` | `deg` / `°` |
+| **Drive** | Gyroscope | `IMyGyro` | **[x]** | `.percent`, `.pitch`, `.yaw`, `.roll`, `.override` | `text`, `bar` | Rotation commands, not attitude angles; `.override` is a 0–100 state |
 | **Drive** | Jump Drive | `IMyJumpDrive` | **[x]** | `.percent`, `.stored`, `.max`, `.charge`, `.distance` | `bar`, `dots`, `status` | `km` / `%` |
 | **Production**| Refinery / Blast Furnace | `IMyRefinery` | **[x]** | `.percent`, `.producing`, `.queue` | `status`, `bar`, `flow` | - |
 | **Production**| Assembler | `IMyAssembler` | **[x]** | `.percent`, `.producing`, `.queue`, `.repeat` | `status`, `bar` | - |

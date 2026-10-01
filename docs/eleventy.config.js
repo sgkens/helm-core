@@ -7,10 +7,14 @@ const registerHelmGrammar = require("./helm-prism.js");
 const { exampleId, isCompleteExample } = require("./scripts/extract-examples.js");
 const { hardwareProfile } = require("./profile-hardware.js");
 const blockIcons = require("./_data/blockIcons.json");
+const discovery = require("./discovery.js");
 
 const REPO_ROOT = path.resolve(__dirname, "..");
 
 module.exports = function (eleventyConfig) {
+  for (const [name, filter] of Object.entries(discovery)) {
+    eleventyConfig.addFilter(name, filter);
+  }
   const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
   }[char]));
