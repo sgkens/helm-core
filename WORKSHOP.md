@@ -11,18 +11,26 @@ The fenced BBCode below is the published page source, exported to `workshop/buil
 
 ```text
 [h1]HELM: High-Efficiency Lightweight Monitor[/h1]
-[b]A configurable LCD and cockpit dashboard script for vanilla Space Engineers Programmable Blocks.[/b]
+[b]A configurable LCD and cockpit dashboard script for Space Engineers Programmable Blocks.[/b]
 
-HELM turns LCDs and cockpit surfaces into telemetry dashboards. Define screens, panels, gauges, colours and block bindings in the Programmable Block's Custom Data. No client mod is required.
+
+HELM turns LCDs and cockpit surfaces into telemetry dashboards. Define screens, panels, gauges, colours and block bindings in the Programmable Block's Custom Data.
+
+[img]https://r2os.staticcanvas.me/misc/hr/hr-style-pencel-gradient-blue.svg[/img]
 
 [h2]Online Tools and Documentation[/h2]
+[hr][/hr]
 [list]
 [*][url=https://sgkens.gitlab.io/helm-core/helm-toolbox/]HELM Toolbox[/url] - build layouts visually using the real parser and renderer in your browser.
-[*][url=https://sgkens.gitlab.io/helm-core/docs/]Complete Documentation[/url] - installation, DSL reference, gauges, telemetry fields, hardware profiles and preset gallery.
+[*][url=https://sgkens.gitlab.io/helm-core/docs/]Documentation[/url] - installation, DSL reference, gauges, telemetry fields, hardware profiles and preset gallery.
 [*][url=https://gitlab.com/sgkens/helm-core]Source and Issue Tracker[/url] - source code, releases and problem reports.
 [/list]
 
+[img]https://r2os.staticcanvas.me/misc/hr/hr-style-pencel-gradient-blue.svg[/img]
+
 [h2]Key Features[/h2]
+[hr][/hr]
+[img src="https://r2os.staticcanvas.me/misc/hr/hr-style-pencel-gradient-blue.svg"][/img]
 [list]
 [*][b]Declarative layouts[/b] - configure screens in Custom Data instead of editing C#.
 [*][b]Automatic block discovery[/b] - bind exact names, groups and wildcards such as [code]Battery*[/code]
@@ -36,6 +44,7 @@ HELM turns LCDs and cockpit surfaces into telemetry dashboards. Define screens, 
 [/list]
 
 [h2]Quick Start[/h2]
+[hr][/hr]
 [olist]
 [*]Enable [b]Experimental Mode[/b] and [b]In-game Scripts[/b] for the world.
 [*]Subscribe, place a Programmable Block, open [b]Edit → Browse Scripts[/b], select HELM Core, then run it.
@@ -45,6 +54,7 @@ HELM turns LCDs and cockpit surfaces into telemetry dashboards. Define screens, 
 [/olist]
 
 [h2]Minimal Display Example[/h2]
+[hr][/hr]
 [code]
 @bind power = group("Main Batteries", agg: avg)
 
@@ -58,6 +68,7 @@ line: "BATTERY" bar(power.percent) gradient(green, yellow, red)
 Name a battery group [b]Main Batteries[/b] and an LCD [b]Bridge LCD[/b], paste the example into Custom Data, and run [code]reload[/code]. See the [url=https://sgkens.gitlab.io/helm-core/docs/getting-started/]Getting Started guide[/url] for multi-screen setup and cockpit surface numbers.
 
 [h2]In-Game Commands & Micro-API[/h2]
+[hr][/hr]
 Run the Programmable Block with the following arguments:
 [list]
 [*][code]reload[/code] - re-read Custom Data and rebuild the layout.
@@ -73,10 +84,12 @@ Run the Programmable Block with the following arguments:
 [/list]
 
 [h2]Headless Display Server (IGC Micro-Framework)[/h2]
+[hr][/hr]
 External scripts (autopilots, combat computers, sorters) can broadcast directly to HELM over IGC channel [b]"HELM"[/b] without writing any UI code:
 [code]IGC.SendBroadcastMessage("HELM", "target.lock=1;dist=1420;speed=104");[/code]
 
 [h2]Configuration Essentials[/h2]
+[hr][/hr]
 [list]
 [*]Use [code]@bind[/code] for each alias; groups require [code]agg: avg|sum|min|max[/code]. Add [code]scope: all[/code] only when you intentionally want docked ships included.
 [*]Use [code]layout: grid(2, 2)[/code] and [code]@panel power at(0, 0, 1, 1)[/code] to split a screen. Reusable [code]@template[/code] and [code]@use[/code] directives avoid repeating layouts.
@@ -85,6 +98,7 @@ External scripts (autopilots, combat computers, sorters) can broadcast directly 
 [/list]
 
 [h2]Troubleshooting[/h2]
+[hr][/hr]
 [list]
 [*][b]Blank display:[/b] run [code]reload[/code], check the Programmable Block detail output, verify the exact LCD name and confirm the surface index.
 [*][b]Bind error or zero value:[/b] every alias used by a gauge needs a matching [code]@bind[/code]. Run [code]names[/code] to copy exact block/group names and consult the [url=https://sgkens.gitlab.io/helm-core/docs/block-matrix/]telemetry matrix[/url].
@@ -94,6 +108,7 @@ External scripts (autopilots, combat computers, sorters) can broadcast directly 
 [/list]
 
 [h2]Reference Links[/h2]
+[hr][/hr]
 For deeper help, use the links below or open Toolbox to browse presets and preview your actual screen profile. The repository Workshop reference also includes the layout catalogue and a compact DSL reference.
 [list]
 [*][url=https://gitlab.com/sgkens/helm-core/-/blob/main/WORKSHOP.md]Workshop reference and layout catalogue[/url]
@@ -107,6 +122,7 @@ For deeper help, use the links below or open Toolbox to browse presets and previ
 [/list]
 
 [h2]Support Information[/h2]
+[hr][/hr]
 When reporting a problem, include the HELM version, the smallest Custom Data example that reproduces it, block and surface type, Programmable Block detail output, and whether the same layout fails in Toolbox. Remove private server details first.
 
 [b]Platform note:[/b] Programmable Block scripts run on PC and dedicated servers. Consoles cannot execute user scripts unless the script runs server-side on a compatible cross-play server.
