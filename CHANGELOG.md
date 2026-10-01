@@ -24,4 +24,8 @@
 
 - Added coverage for rotating pages, dynamic freshness, edit history, documentation discovery, and GitLab release publishing.
 
+### Fixed
+
+- Workshop description extraction accepts plain section headings, including Quick Start at the end of the description, so the current Workshop page can be staged for publishing.
+
 Earlier release history is available in the [GitLab tags](https://gitlab.com/sgkens/helm-core/-/tags).

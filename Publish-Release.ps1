@@ -215,16 +215,16 @@ function Get-WorkshopDescriptionBody {
 function Get-WorkshopDescription {
     param([string]$Path)
     $body = Get-WorkshopDescriptionBody $Path
-    $featuresAt = $body.IndexOf('[h2]✦ Key Features[/h2]', [System.StringComparison]::Ordinal)
-    $quickStart = [regex]::Match($body, '(?ms)^\[h2\]✦ Quick Start\[/h2\].*?(?=^\[h2\])')
-    if ($featuresAt -lt 0 -or -not $quickStart.Success) {
+    $features = [regex]::Match($body, '(?m)^\[h2\][ \t]*Key Features[ \t]*\[/h2\]')
+    $quickStart = [regex]::Match($body, '(?ms)^\[h2\][ \t]*Quick Start[ \t]*\[/h2\].*?(?=^\[h2\]|\z)')
+    if (-not $features.Success -or -not $quickStart.Success) {
         throw "Workshop introduction or Quick Start section not found in $Path"
     }
 
     # Valve KeyValues uses a 4096-byte token buffer. Keep the full description in
     # WORKSHOP.md for the Steam web editor, but generate a compact initial/update
     # description that SteamCMD can parse as one VDF value.
-    $introduction = $body.Substring(0, $featuresAt).Trim()
+    $introduction = $body.Substring(0, $features.Index).Trim()
     return ($introduction + "`n`n" + $quickStart.Value.Trim()).Replace('"', "'")
 }
 
