@@ -1,0 +1,35 @@
+{
+    "schemaVersion": 1,
+    "provider": "gitlab",
+    "scope": "project",
+    "project": {
+        "description": "A declarative LCD telemetry script for Space Engineers.",
+        "topics": ["steam-workshop", "swsi", "space-engineers", "script", "lcd", "telemetry", "performant"]
+    },
+    "labels": [
+        {
+            "name": "workshop",
+            "description": "Workshop item content and listing.",
+            "color": "#0d6efd",
+            "textColor": "#FFFFFF"
+        },
+        {
+            "name": "release",
+            "description": "Versioning, packaging, and publication.",
+            "color": "#6f42c1",
+            "textColor": "#FFFFFF"
+        },
+        {
+            "name": "ci",
+            "description": "Continuous integration and deployment.",
+            "color": "#6610f2",
+            "textColor": "#FFFFFF"
+        },
+        {
+            "name": "tests",
+            "description": "Integration, visual regression, browser, and accessibility tests.",
+            "color": "#198754",
+            "textColor": "#FFFFFF"
+        }
+    ]
+}
