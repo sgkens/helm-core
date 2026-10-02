@@ -117,13 +117,6 @@ For deeper help, use the links below or open Toolbox to browse presets and previ
 [*][url=https://gitlab.com/sgkens/helm-core/-/issues]Report a problem[/url]
 [/list]
 
-[h2]Build and Reference[/h2]
-[hr][/hr]
-[list]
-[*]Generic package Artifacts: [url=https://gitlab.com/sgkens/helm-core/-/packages/]Gitlab Generic Packages[/url]
-[*]HelmCombined.cs: run [code]pwsh -c Build-Release[/code]
-[/list]
-
 [h2]Support Information[/h2]
 [hr][/hr]
 When reporting a problem, include the HELM version, the smallest Custom Data example that reproduces it, block and surface type, Programmable Block detail output, and whether the same layout fails in Toolbox. Remove private server details first.
