@@ -69,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Make display profiles responsive. ([c3eacc2](https://gitlab.com/sgkens/helm-core/-/commit/c3eacc2f3223b5f1ec3a3607489d27ee54609e83) — @sgkens)
+  eeee
 
 ## [0.38.3]
 

@@ -9,6 +9,8 @@ The HELM Workshop item must be published as a Space Engineers in-game script and
 
 Space Engineers assigns the reliable item type when the initial item is published from a Programmable Block's **Edit → Browse Scripts** screen. Use SteamCMD only after recording that item's published file ID.
 
+This release VDF does not assign normal tags. `kvtags` metadata cannot assign the visible type or browsing tags. To repair an existing untyped item while retaining its ID, use a publisher that calls Steam's `SetItemTags` API. A category-editing option in Steam Owner Controls has not been verified.
+
 ## Description search terms
 
 The Workshop title and description already use these relevant terms for text search:
