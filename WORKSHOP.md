@@ -16,21 +16,17 @@ The fenced BBCode below is the published page source, exported to `workshop/buil
 
 HELM turns LCDs and cockpit surfaces into telemetry dashboards. Define screens, panels, gauges, colours and block bindings in the Programmable Block's Custom Data.
 
-[img]https://r2os.staticcanvas.me/misc/hr/hr-style-pencel-gradient-blue.svg[/img]
-
-[h2]Online Tools and Documentation[/h2]
+[h2]Tools and Documentation[/h2]
 [hr][/hr]
 [list]
 [*][url=https://sgkens.gitlab.io/helm-core/helm-toolbox/]HELM Toolbox[/url] - build layouts visually using the real parser and renderer in your browser.
 [*][url=https://sgkens.gitlab.io/helm-core/docs/]Documentation[/url] - installation, DSL reference, gauges, telemetry fields, hardware profiles and preset gallery.
 [*][url=https://gitlab.com/sgkens/helm-core]Source and Issue Tracker[/url] - source code, releases and problem reports.
+[*]Helmv.ps1 - local powershell similation script similar to the tool box if you prefer conceptign with files and the cli[/*]
 [/list]
-
-[img]https://r2os.staticcanvas.me/misc/hr/hr-style-pencel-gradient-blue.svg[/img]
 
 [h2]Key Features[/h2]
 [hr][/hr]
-[img src="https://r2os.staticcanvas.me/misc/hr/hr-style-pencel-gradient-blue.svg"][/img]
 [list]
 [*][b]Declarative layouts[/b] - configure screens in Custom Data instead of editing C#.
 [*][b]Automatic block discovery[/b] - bind exact names, groups and wildcards such as [code]Battery*[/code]

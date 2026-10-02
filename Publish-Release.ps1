@@ -83,6 +83,11 @@
     When omitted, commit subjects since the previous stable SemVer tag are used.
     ENV: HELM_WORKSHOP_RELEASE_NOTES
 
+.PARAMETER PreserveWorkshopDescription
+    Omit the description field when updating an existing Workshop item to preserve
+    a full page maintained through Steam Owner Controls. By default, every upload
+    updates the compact BBCode description generated from WORKSHOP.md.
+
 .PARAMETER SteamCmdPath
     Path to steamcmd executable or shell script.
     Defaults: Linux/macOS → "steamcmd" (on PATH), Windows → "steamcmd.exe"
@@ -148,6 +153,7 @@ param(
     [string]$WorkshopDir = (Join-Path $PSScriptRoot 'workshop'),
     [string]$WorkshopPreviewPath = (Join-Path (Join-Path $PSScriptRoot 'workshop') 'preview.jpg'),
     [string]$WorkshopReleaseNotesPath = $env:HELM_WORKSHOP_RELEASE_NOTES,
+    [switch]$PreserveWorkshopDescription,
 
     # Interactive credential prompting (local use)
     [switch]$Prompt
@@ -525,9 +531,11 @@ if ($Steam) {
     [System.IO.File]::WriteAllText($fullDescriptionPath, $fullDescription, [System.Text.UTF8Encoding]::new($false))
     [System.IO.File]::WriteAllText($releaseNotesPath, $changeNote, [System.Text.UTF8Encoding]::new($false))
 
-    # Omitting description on updates preserves the full page entered in Steam's
-    # Owner Controls. Only new items receive the compact bootstrap description.
-    $descriptionLine = if ($isNewWorkshopItem) { '    "description"      "' + $descriptionVdf + '"' } else { '' }
+    # Update the compact BBCode page unless the caller preserves a manually
+    # maintained description. New items always need an initial description.
+    $descriptionLine = if ($isNewWorkshopItem -or -not $PreserveWorkshopDescription) {
+        '    "description"      "' + $descriptionVdf + '"'
+    } else { '' }
 
     $vdf = @"
 "workshopitem"
@@ -550,6 +558,7 @@ $descriptionLine
     Write-Info "VDF manifest   : $workshopVdfPath"
     Write-Info "Full page      : $fullDescriptionPath"
     Write-Info "Release notes  : $releaseNotesPath"
+    Write-Info "Description    : $(if ($descriptionLine) { 'updating compact BBCode page' } else { 'preserving existing page' })"
 
     if ($PSCmdlet.ShouldProcess("Steam Workshop Item $(if ($isNewWorkshopItem) { 'new' } else { $SteamItemId })", "SteamCMD workshop_build_item")) {
         $steamArgs = @(
@@ -572,8 +581,12 @@ $descriptionLine
         $SteamItemId = $publishedId.Groups['id'].Value
         Write-Ok "Workshop deploy complete."
         Write-Info "URL: https://steamcommunity.com/sharedfiles/filedetails/?id=$SteamItemId"
-        Write-Info "Paste the full page from $fullDescriptionPath through Workshop Owner Controls."
-        Write-Warn "SteamCMD cannot set Space Engineers' normal Workshop type/category tags; confirm Type: IngameScript in the game or Owner Controls."
+        if ($descriptionLine) {
+            Write-Info "Compact BBCode description submitted with this upload."
+        } else {
+            Write-Info "Existing description preserved; edit the full page through Workshop Owner Controls using $fullDescriptionPath."
+        }
+        Write-Warn "This SteamCMD upload does not assign normal Workshop tags. Verify Type: IngameScript on the item page; kvtags metadata cannot assign it."
         if ($isNewWorkshopItem) {
             Write-Warn "For reliable Type: IngameScript assignment, create the item once from Space Engineers' Browse Scripts screen, then use its ID for future SteamCMD updates."
             Write-Warn "First publish: open the URL and accept the Workshop legal agreement if prompted."
