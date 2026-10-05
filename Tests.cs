@@ -607,7 +607,7 @@ line: ""SPEED"" text(ship.speed) unit(""auto"")
         float fontCompact = Layout.GetProfileFontSize("compact", 256f, 256f, 1.0f);
         Check(fontCompact == 0.75f, "GetProfileFontSize compact scales to 0.75");
         float fontCorner = Layout.GetProfileFontSize("corner", 256f, 128f, 1.0f);
-        Check(fontCorner == 0.55f, "GetProfileFontSize corner scales to 0.55");
+        Check(fontCorner == 0.30f, "GetProfileFontSize 256x128 corner scales to 0.30");
         float fontWide = Layout.GetProfileFontSize("wide", 1024f, 512f, 1.0f);
         Check(fontWide == 1.15f, "GetProfileFontSize wide scales to 1.15");
 
@@ -630,7 +630,13 @@ line: ""SPEED"" text(ship.speed) unit(""auto"")
         Check(Layout.ResolveProfile("standard", 128f, 128f) == "standard", "explicit standard overrides a small surface");
         Check(Layout.ResolveProfile("auto", 0f, 128f) == "standard", "invalid auto dimensions fall back safely");
         Check(Layout.GetProfileFontSize("CockpitSmall", 512f, 256f, 1f) == 0.75f, "hardware alias applies compact font scale");
-        Check(Layout.GetProfileFontSize("CornerLCD", 512f, 128f, 1f) == 0.55f, "hardware alias applies corner font scale");
+        Check(Layout.GetProfileFontSize("CornerLCD", 512f, 128f, 1f) == 0.40f, "512x128 corner alias uses reduced font scale");
+        Check(Layout.GetProfileFontSize("CockpitCorner", 256f, 128f, 1f) == 0.30f, "256x128 corner alias uses smaller font scale");
+        Check(Layout.GetProfileFontSize("auto", 512f, 128f, 1f) == 0.40f, "auto applies 512x128 corner font scale");
+        Check(Layout.GetProfileFontSize("auto", 128f, 512f, 1f) == 0.40f, "rotated corner LCD keeps the same font scale");
+        Check(Layout.GetProfileFontSize("auto", 128f, 256f, 1f) == 0.30f, "rotated cockpit corner keeps the same font scale");
+        Check(Math.Abs(Layout.GetProfileFontSize("corner", 256f, 128f, 2f) - 0.60f) < 0.001f, "screen font_size still multiplies corner scaling");
+        Check(Layout.GetProfileFontSize("standard", 256f, 128f, 1f) == 1f, "explicit standard font size remains fixed");
 
         // Titles retain their old size on roomy panels and yield space on dense short-panel grids.
         Check(Math.Abs(Layout.GetPanelTitleHeaderHeight(128f, 1f) - 20f) < 0.001f, "roomy panel keeps the normal title header");

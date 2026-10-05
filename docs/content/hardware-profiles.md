@@ -24,6 +24,22 @@ The five named hardware types in the table are valid DSL aliases. They select a 
 
 The Toolbox's **Preview** selector controls only the simulated hardware dimensions. The screen's `profile:` directive remains visible and editable in the Base inspector, so testing another LCD never silently rewrites the configuration.
 
+## Text Size
+
+The graphical renderer uses these multipliers on the screen's `font_size:` (default `1.0`):
+
+| Layout profile | Surface | Text scale |
+| :--- | :--- | :--- |
+| `standard` | 512 x 512 | 1.00 |
+| `wide` | 1024 x 512 | 1.15 |
+| `compact` | 512 x 256 | 0.75 |
+| `corner` | 512 x 128 | 0.40 |
+| `corner` | 256 x 128 | 0.30 |
+
+Corner profiles use `0.30` when the longest surface side is at most 256 pixels, otherwise `0.40`. Rotating a surface keeps the same multiplier. The smaller corner text leaves room for labels, gauges and values on short displays.
+
+HELM Toolbox runs the same C# renderer and uses the text scale exported by each sprite. Its LCD selector changes the surface dimensions; use `profile: auto` or a corner profile in Custom Data to apply corner scaling. An explicit `standard`, `wide` or `compact` profile keeps its own multiplier. A panel's `font_size:` overrides the screen's scaled size. Panel titles may shrink further to fit their header.
+
 ---
 
 ## TextPanel (512x512, 1:1)

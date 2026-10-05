@@ -21,7 +21,7 @@ const CATEGORIES = [
 
 function categoryFor(name) {
   if (/(fighter_hud|lander|rover|thruster|jump_drive|flight_deck|bridge_matrix|deep_space)/.test(name)) return "flight-vehicles";
-  if (/(assembler|battery|reactor|refinery|hydrogen|solar|mining_rig|piston|power_only)/.test(name)) return "industry-power";
+  if (/(assembler|battery|reactor|refinery|hydrogen|solar|mining_rig|piston|power_)/.test(name)) return "industry-power";
   if (/(cargo|docking|projector|trading|planetary_base|mining_fleet|survival_essentials)/.test(name)) return "cargo-logistics";
   if (/(airlock|hazard|medical|security|tactical|hangar|command_carrier)/.test(name)) return "combat-safety";
   return "examples-tests";

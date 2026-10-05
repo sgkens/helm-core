@@ -23,6 +23,7 @@ If the requested screen is a `mirror:`, its source screen is rendered first on e
 # repository root, bash. Needs the .NET 10 SDK (the WebAssembly SDK is part of it; no workload is required).
 dotnet publish tools/helm-toolbox-wasm -c Release -o /tmp/helm-toolbox
 node tools/helm-toolbox-wasm/run-node.mjs /tmp/helm-toolbox layouts/default/tank_trio.txt
+node tools/helm-toolbox-wasm/test-renderer.mjs /tmp/helm-toolbox
 ```
 
 ## Spike results (22 SEP 2026)
@@ -40,4 +41,8 @@ Further savings: the stand-in API uses `dynamic`, which pulls in `System.Linq.Ex
 
 CI image: `sgkens/phellams-automator:2.22.0` (.NET SDK 8.0.424 and 10.0.400, Bun, Node 24) publishes this project and runs `run-node.mjs` on it with the same result, so a HELM Toolbox job needs no extra image.
 
-Not yet checked: a run in a real browser (only Node so far), output parity against `tools/spritedump` for every preset, and multi-screen `mirror:` (the host renders one screen at a time).
+The Toolbox CI job runs `test-renderer.mjs` against the published WASM build: tank animation, machinery rotation, fixed-time frames, exact default/custom alert phases, themed power screens and corner text sizing. The host's settling replay ends at the requested `seconds`, rather than advancing beyond it. Machinery uses the shared script clock instead of a per-render angle increment.
+
+The 6 October 2026 audit fixed frozen machinery, the alert replay offset, stale bind metadata controls, drawing-error recovery and missing vendor maps. Firefox and Chromium checks pass on both source and staged Toolbox builds; run them using the [Toolbox browser regression instructions](../../helm-toolbox/README.md#verified). The user's exact failing environment and the captured `file:///` security error remain unconfirmed. See [the #5 log](../../issues/issue-005-toolbox-animation.md) and [raw console evidence](../../issues/animation-issue.md).
+
+Not yet checked: output parity against `tools/spritedump` for every preset, and multi-screen `mirror:` (the host renders one screen at a time).

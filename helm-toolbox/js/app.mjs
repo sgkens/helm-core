@@ -130,40 +130,39 @@ async function doRender() {
   try {
     $("#preview-status").textContent = t("preview.rendering");
     result = await wasmRender(state.dsl, prof.w, prof.h, state.values, state.seconds, state.screenIndex, state.alert);
+    if (myToken !== renderToken) return; // a newer render started while this one was in flight
+
+    state.lastResult = result;
+    $("#preview-status").textContent = "";
+    renderIssues(result.errors || [], result.warnings || []);
+    renderValueSliders(result.binds || []);
+
+    // Host.cs's own catch block (an unexpected exception, not a normal DSL parse error) returns only
+    // errors/warnings/screens/sprites, with no surface/texture/binds. Drawing must not assume they
+    // exist, or a host-level crash leaves the UI stuck showing "Rendering..." with an unhandled
+    // exception instead of the error message rendered above.
+    if (!result.surface || !result.texture) {
+      stage.innerHTML = `<p class="text-error font-mono text-sm p-2">${escapeHtml(t("preview.drawFailed"))}</p>`;
+      return;
+    }
+
+    const bezel = buildBezel(state.profile, {});
+    stage.innerHTML = bezel;
+    const svg = stage.querySelector("svg");
+    svg.removeAttribute("height");
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", t("preview.aria", { profile: state.profile, screen: state.screenIndex + 1 }));
+    const slot = svg.querySelector("#content-slot");
+    const ox = (result.texture[0] - result.surface[0]) / 2;
+    const oy = (result.texture[1] - result.surface[1]) / 2;
+    renderSprites(slot, result.sprites, { ox, oy, fontChoice: "auto" });
+
+    renderScreenPicker(result.screens || []);
   } catch (e) {
     if (myToken !== renderToken) return;
     $("#preview-status").textContent = t("preview.loadFailed", { message: e.message });
     logcad.logd(logger, "render", "Renderer failed", { message: e.message });
-    return;
   }
-  if (myToken !== renderToken) return; // a newer render started while this one was in flight
-
-  state.lastResult = result;
-  $("#preview-status").textContent = "";
-  renderIssues(result.errors || [], result.warnings || []);
-  renderValueSliders(result.binds || []);
-
-  // Host.cs's own catch block (an unexpected exception, not a normal DSL parse error) returns only
-  // errors/warnings/screens/sprites, with no surface/texture/binds. Drawing must not assume they
-  // exist, or a host-level crash leaves the UI stuck showing "Rendering..." with an unhandled
-  // exception instead of the error message rendered above.
-  if (!result.surface || !result.texture) {
-    stage.innerHTML = `<p class="text-error font-mono text-sm p-2">${escapeHtml(t("preview.drawFailed"))}</p>`;
-    return;
-  }
-
-  const bezel = buildBezel(state.profile, {});
-  stage.innerHTML = bezel;
-  const svg = stage.querySelector("svg");
-  svg.removeAttribute("height");
-  svg.setAttribute("role", "img");
-  svg.setAttribute("aria-label", t("preview.aria", { profile: state.profile, screen: state.screenIndex + 1 }));
-  const slot = svg.querySelector("#content-slot");
-  const ox = (result.texture[0] - result.surface[0]) / 2;
-  const oy = (result.texture[1] - result.surface[1]) / 2;
-  renderSprites(slot, result.sprites, { ox, oy, fontChoice: "auto" });
-
-  renderScreenPicker(result.screens || []);
 }
 
 function renderScreenPicker(screens) {
@@ -194,9 +193,9 @@ function renderIssues(errors, warnings) {
 
 function renderValueSliders(binds) {
   const box = $("#value-sliders");
-  const names = binds.map((b) => b.name).join(",");
-  if (box.dataset.names === names) return; // same binds as last render: keep the sliders (and their values) as they are
-  box.dataset.names = names;
+  const key = JSON.stringify(binds.map(({ name, kind, target, isText }) => [name, kind, target, isText]));
+  if (box.dataset.binds === key) return; // retain controls until their metadata changes
+  box.dataset.binds = key;
   if (binds.length === 0) { box.innerHTML = `<p class="text-xs text-base-content/50 font-mono">${escapeHtml(t("empty.binds"))}</p>`; return; }
   box.innerHTML = binds.map((b) => {
     const v = state.values[b.name] ?? 50;
@@ -579,6 +578,7 @@ function refreshProjectPicker(selected = "") {
 function replaceDsl(dsl) {
   $("#dsl-editor").value = dsl;
   state.values = {};
+  delete $("#value-sliders").dataset.binds;
   state.screenIndex = 0;
   onDslChanged(true, false);
   dslDirty = false; // baseline: this is what was just loaded, not yet edited
@@ -947,6 +947,11 @@ function wireControls() {
   let animTimer = null, animStart = null, animBase = state.seconds, animGeneration = 0;
   const TICK_MS = 150;
   const playToggle = $("#play-toggle");
+  function updatePlaybackNote() {
+    const note = $("#playback-note");
+    note.textContent = state.alert && !state.playing ? t("preview.alertPaused") : "";
+    note.classList.toggle("hidden", !note.textContent);
+  }
   async function tick(generation) {
     if (!state.playing || generation !== animGeneration) return;
     state.seconds = animBase + (performance.now() - animStart) / 1000;
@@ -961,6 +966,8 @@ function wireControls() {
     }
     state.playing = playing;
     playToggle.textContent = state.playing ? t("preview.pause") : t("preview.play");
+    playToggle.setAttribute("aria-pressed", String(state.playing));
+    updatePlaybackNote();
     clearTimeout(animTimer);
     animGeneration++;
     if (state.playing) {
@@ -980,6 +987,7 @@ function wireControls() {
     state.alert = !state.alert;
     alertToggle.classList.toggle("btn-error", state.alert);
     alertToggle.setAttribute("aria-pressed", String(state.alert));
+    updatePlaybackNote();
     scheduleRender();
   });
 

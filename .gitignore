@@ -56,8 +56,9 @@ HelmCombined.min.cs
 HelmCombined.cs
 
 
-# local issues
-/issues
+# Share issue investigation logs; keep new image captures local unless added explicitly.
+/issues/*
+!/issues/*.md
 
 # Local publishing helper may contain account credentials.
 /ixpr.ps1

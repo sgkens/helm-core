@@ -24,7 +24,7 @@ function Request-GenericPackage {
     }
 
         # Construct the API URL for fetching the package details
-    $url = "$ApiUrl/projects/$ProjectId/packages?package_name=$PackageName&package_version=$PackageVersion&package_type=generic"
+    $url = "$ApiUrl/projects/$ProjectId/packages?package_name=$PackageName&package_version=$PackageVersion&package_type=generic&order_by=created_at&sort=desc"
 
     Write-Host "Requesting package info from URL: $url"
 
@@ -44,7 +44,21 @@ function Request-GenericPackage {
 
         if ($response -and $response.Count -gt 0) {
             $generic_package_id = $response[0].id
-            $package_files = Invoke-RestMethod -Uri "$ApiUrl/projects/$ProjectId/packages/$generic_package_id/package_files?per_page=100" -Headers $Headers
+            $package_files = @()
+            $page = 1
+            do {
+                $batch = @(Invoke-RestMethod -Uri "$ApiUrl/projects/$ProjectId/packages/$generic_package_id/package_files?per_page=100&page=$page" -Headers $Headers)
+                $package_files += $batch
+                $page++
+            } while ($batch.Count -eq 100)
+
+            # Re-uploading a generic package keeps earlier files with the same name.
+            # Release asset names and paths must be unique, so retain the newest upload.
+            $seenNames = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+            $package_files = @($package_files |
+                Sort-Object @{ Expression = { $_.created_at }; Descending = $true },
+                    @{ Expression = { [long]$_.id }; Descending = $true } |
+                Where-Object { $seenNames.Add($_.file_name) })
 
             $generic_package_files_reponse = @()
 

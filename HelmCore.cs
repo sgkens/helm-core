@@ -1589,7 +1589,9 @@ line:""ENERGY"" bar(pwr_$screen.percent) dir:up");
         {
             string p = ResolveProfile(profile, surfaceWidth, surfaceHeight);
             if (p == "compact") return defaultFontSize * 0.75f;
-            if (p == "corner") return defaultFontSize * 0.55f;
+            // Short corner surfaces need smaller text; the 256x128 pod also has
+            // half the width available for labels, gauges and values.
+            if (p == "corner") return defaultFontSize * (Math.Max(surfaceWidth, surfaceHeight) <= 256f ? 0.30f : 0.40f);
             if (p == "wide") return defaultFontSize * 1.15f;
             return defaultFontSize;
         }

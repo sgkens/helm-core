@@ -185,6 +185,28 @@ line: "H2" tank(h2.percent) gradient(#1e3a8a, #38bdf8)
 - **Border modes**: With `border: ascii` a tank is drawn as a text line. `helmv.ps1` draws it as a plain bar.
 - **Presets**: `tank_fullscreen`, `tank_trio`, `vertical_bars`.
 
+`power_liquid_themes` gives reactors, batteries, solar panels and hydrogen engines separate animated liquid gauges with matching colours. Battery fill represents stored charge; generator fill represents output as a percentage of maximum output. These are power gauges, not fuel or temperature sensors. Rename the groups and LCD outputs to match your grid.
+
+### Small Displays and Dense Vertical Layouts
+
+Vertical bars need room for the value above and label below the gauge. On 512×128 and 256×128 corner LCDs, use short labels and fewer columns. Give a dense panel more grid cells before reducing its font size. Panel spans use `at(column, row, width, height)`; `w{2}` is not supported syntax.
+
+This panel spans the whole 2×2 grid, leaving space for two vertical gauges. Keep its occupied cells free of other panels.
+
+```helm
+@bind battery = group("Batteries", agg: avg)
+@bind hydrogen = group("Hydrogen Tanks", agg: avg)
+@screen SmallPower
+output: "Cockpit LCD", 0
+profile: auto
+layout: grid(2, 2)
+@panel power at(0, 0, 2, 2) title: "POWER" orientation: vertical
+line: "PWR" bar(battery.percent) gradient(#ef4444, #eab308, #22c55e)
+line: "H2" tank(hydrogen.percent) gradient(#1e3a8a, #38bdf8)
+```
+
+Move extra gauges to another screen if labels still overlap. Explicit panel font overrides take precedence over the profile's automatic scaling.
+
 ---
 
 ## Dial (`dial`, `gauge`, `arc`)
