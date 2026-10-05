@@ -18,10 +18,11 @@ function Invoke-RestMethod {
         $global:helmReleaseTestPosted = $Body | ConvertFrom-Json
         return @{ tag_name = $global:helmReleaseTestPosted.tag_name; _links = @{ self = 'https://example.invalid/release' } }
     }
-    if ($Uri -match '/packages/42/package_files\?per_page=100$') {
-        return ,$global:helmReleaseTestFiles
+    if ($Uri -match '/packages/42/package_files\?per_page=100&page=(\d+)$') {
+        $offset = ([int]$Matches[1] - 1) * 100
+        return $global:helmReleaseTestFiles | Select-Object -Skip $offset -First 100
     }
-    if ($Uri -eq "https://example.invalid/api/v4/projects/123/packages?package_name=$global:helmReleaseTestPackage&package_version=0.39.0-release&package_type=generic") {
+    if ($Uri -eq "https://example.invalid/api/v4/projects/123/packages?package_name=$global:helmReleaseTestPackage&package_version=0.39.0-release&package_type=generic&order_by=created_at&sort=desc") {
         return ,@([pscustomobject]@{ id = 42 })
     }
     throw "Unexpected HTTP request: $Method $Uri"
@@ -71,6 +72,21 @@ try {
     Assert-Release ($zip.url -eq 'https://example.invalid/helm/-/package_files/7/download') 'Wrong ZIP asset target.'
     Assert-Release ($zip.direct_asset_path -eq '/packages/helm-core-v0.39.0-release.zip') 'Permanent ZIP download path missing.'
 
+    # Repeated uploads can put the newest ZIP beyond the first page of files.
+    Set-TestPackage
+    $global:helmReleaseTestFiles[1].created_at = '2026-09-29T00:00:00Z'
+    foreach ($id in 10..107) {
+        $global:helmReleaseTestFiles += @{ package_id = 42; id = $id; file_name = "file-$id.txt" }
+    }
+    $global:helmReleaseTestFiles += @{ package_id = 42; id = 108; file_name = 'helm-core-v0.39.0-release.zip'; created_at = '2026-10-01T00:00:00Z' }
+    $global:helmReleaseTestFiles += @{ package_id = 42; id = 109; file_name = 'helm-core-v0.39.0-release.zip'; created_at = '2026-10-01T00:00:00Z' }
+    & $publisher @parameters
+    $links = $global:helmReleaseTestPosted.assets.links
+    $zip = @($links | Where-Object name -eq 'helm-core-v0.39.0-release.zip')
+    Assert-Release ($zip.Count -eq 1) 'Duplicate ZIP assets were attached.'
+    Assert-Release ($zip[0].url -eq 'https://example.invalid/helm/-/package_files/109/download') 'Newest ZIP upload was not selected.'
+    Assert-Release ($links.Count -eq 100) 'Paginated package files were lost.'
+
     Set-TestPackage -Name 'custom-package'
     & $publisher @parameters -PackageName custom-package -WorkshopItemId 123456
     Assert-Release ($global:helmReleaseTestPosted.description.Contains('/custom-package/0.39.0-release/custom-package-v0.39.0-release.zip')) 'Custom package ZIP missing.'
@@ -87,7 +103,7 @@ try {
     $parameters.Remove('ReleaseNotesPath')
     Set-TestPackage -WithoutZip
     Assert-Rejected $parameters 'Release archive helm-core-v0.39.0-release.zip was not found'
-    Write-Host 'GitLab release checks passed: notes, ZIP assets, Workshop link, overrides, WhatIf, and missing-input rejection.'
+    Write-Host 'GitLab release checks passed: notes, ZIP assets, duplicate uploads, pagination, Workshop link, overrides, WhatIf, and missing-input rejection.'
 }
 finally {
     $env:CI_JOB_TOKEN = $previousJobToken
