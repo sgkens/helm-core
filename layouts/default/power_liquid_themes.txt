@@ -1,0 +1,39 @@
+# Power Liquid Themes
+# Animated power gauges on four independent screens; rename groups and LCDs to match your grid.
+# Battery percent is stored charge. Generator percent is output divided by maximum output, not fuel or temperature.
+@bind reactor = group("Reactors", agg: avg)
+@bind battery = group("Batteries", agg: avg)
+@bind solar = group("Solar Panels", agg: avg)
+@bind engine = group("Hydrogen Engines", agg: avg)
+
+@screen ReactorOutput
+output: "Reactor Power LCD", 0
+profile: auto
+bg: #170d05
+border_color: #f59e0b
+@panel core at(0, 0, 1, 1) title: "REACTOR OUTPUT"
+line: "PWR" tank(reactor.percent) gradient(#78350f, #f59e0b, #fef3c7)
+
+@screen BatteryCharge
+output: "Battery Power LCD", 0
+profile: auto
+bg: #06130c
+border_color: #22c55e
+@panel cell at(0, 0, 1, 1) title: "BATTERY CHARGE"
+line: "PWR" tank(battery.percent) gradient(#14532d, #22c55e, #bbf7d0)
+
+@screen SolarOutput
+output: "Solar Power LCD", 0
+profile: auto
+bg: #171205
+border_color: #facc15
+@panel flux at(0, 0, 1, 1) title: "SOLAR OUTPUT"
+line: "PWR" tank(solar.percent) gradient(#854d0e, #facc15, #fef9c3)
+
+@screen HydrogenEngineOutput
+output: "Engine Power LCD", 0
+profile: auto
+bg: #080b1a
+border_color: #818cf8
+@panel engine at(0, 0, 1, 1) title: "H2 ENGINE OUTPUT"
+line: "PWR" tank(engine.percent) gradient(#312e81, #818cf8, #c7d2fe)

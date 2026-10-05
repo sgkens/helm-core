@@ -17,15 +17,6 @@ layout: base.njk
 
   <!-- Document Header -->
   <header class="mb-8 pb-6 border-b border-base-300">
-    <div class="flex flex-wrap items-center gap-2 mb-3">
-      {% if section %}
-      <span class="badge badge-sm badge-neutral font-mono">{{ section }}</span>
-      {% endif %}
-      {% if badge %}
-      <span class="badge badge-sm badge-secondary font-mono">{{ badge }}</span>
-      {% endif %}
-    </div>
-
     <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-base-content font-mono mb-3">
       {{ title }}
     </h1>

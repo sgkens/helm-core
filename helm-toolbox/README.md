@@ -7,7 +7,7 @@ A browser tool that renders a HELM layout with the real script, compiled to WebA
 - Write or paste Custom Data in the syntax-highlighted text pane; the preview re-renders about every 200 ms, with the real parser's errors and warnings shown inline. The editor and palette examples use the docs site's shared Prism HELM grammar and selected syntax theme.
 - Undo and redo typing, palette insertions and inspector edits with the toolbar, Ctrl/Cmd Z, Ctrl/Cmd Shift Z or Ctrl Y. Short typing bursts form one step; palette/inspector changes form individual steps. History restores the text selection and inspector position, retains at most 100 snapshots, and starts fresh when a starter, project, import or New Config replaces the document. Other input fields keep their native text undo behavior.
 - Drag the divider between the preview and Custom Data panes to give either one more room. The divider supports keyboard resizing, the editor toolbar has an expand/restore shortcut, and the chosen height is remembered locally.
-- Pick any layout preset or a screen surface profile. The preset picker contains every file in `layouts/default/` (65 at the time of writing), grouped with the same categories and metadata as the docs gallery.
+- Pick any layout preset or a screen surface profile. The preset picker contains every file in `layouts/default/`, grouped with the same categories and metadata as the docs gallery.
 - A slider per `@bind`, on the script's own 0–100 scale, drives the live values (and the tank wave/bubbles, easing and calibration keep animating on a slow timer). An Alert toggle previews the `alert red` run-argument command (flashes each screen's background to its `alert_bg`).
 - Pick any `@screen`, including a `mirror:`/`mirror_panel:` one — its source is rendered alongside it so the copy is never blank, the same as the game's own round-robin fills it in over several ticks.
 - A block and field reference on the left, generated from `docs/content/block-matrix.md`; click a field to insert a `line:` for it at the cursor. A Components tab, generated from `docs/content/gauges.md`, lists every supported gauge kind with its example DSL and which blocks support it; click to insert. A Templates tab lists every `@template` the real parser knows — the 8 built into `HelmCore.cs` plus `layouts/templates.txt`'s 4, embedded into the WASM build (`tools/helm-toolbox-wasm/Host.cs`) the same way `helmv.ps1` and `tools/spritedump` load it — as a form of that template's own parameters; fill it in and insert the `@use` line
@@ -17,6 +17,8 @@ A browser tool that renders a HELM layout with the real script, compiled to WebA
 - Copy, import or export the Custom Data as plain text. The current DSL is auto-saved to the browser's `localStorage` between visits.
 - Save multiple named projects locally, including their selected LCD profile, or copy a share URL that carries the DSL in its fragment.
 - Use the keyboard shortcut sheet (`?`) and pause simulated time manually or through the operating system's reduced-motion preference. Animation renders are serialized so slower WASM runs cannot starve the visible preview, and resuming continues from the paused simulated time.
+
+Play advances the clock for waves, machinery rotation and alerts; telemetry stays at the values set by the sliders. Pause holds the current alert flash phase, which can be the normal background. The Alert control shows a reminder to press Play when paused. Machinery uses the same elapsed-time calculation in the game and the preview.
 
 ## What it does not do yet
 
@@ -70,4 +72,15 @@ The block palette also uses the same cached Official Space Engineers Wiki icon m
 
 ## Verified
 
-The source-model test covers comments and unknown-directive preservation, named/hex/RGBA colours, panel position and title changes, component options, panel/screen creation, implicit panels and every preset in `layouts/default/`. The history suite covers grouped typing, atomic mutations, caret/inspector restoration, redo branching and bounded storage. The full interface has previously been exercised in a real headless Chromium; it has not yet been checked in a non-Chromium browser.
+The source-model test covers comments and unknown-directive preservation, named/hex/RGBA colours, panel position and title changes, component options, panel/screen creation, implicit panels and every preset in `layouts/default/`. The history suite covers grouped typing, atomic mutations, caret/inspector restoration, redo branching and bounded storage. `bun run wasm:test` checks tank animation, machinery rotation, fixed-time frames, alert phases and corner text sizing.
+
+The browser regression runs in Firefox and Chromium against a running Toolbox server:
+
+```bash
+bunx playwright install chromium firefox
+bun run browser:test http://127.0.0.1:8891/
+# To also check a staged docs build served on 8890:
+bun run browser:test http://127.0.0.1:8891/ http://127.0.0.1:8890/helm-toolbox/
+```
+
+It covers component edits, slider metadata refresh, Play/Pause and repeated Alert transitions, reduced-motion defaults, drawing-error recovery and vendor source-map loading. Linux hosts also need Playwright's browser system dependencies.

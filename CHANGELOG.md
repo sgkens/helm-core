@@ -26,6 +26,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- rivet:changelog:end -->
 
+## [0.40.1]
+
+> 2026-10-06
+
+### Added
+
+- Animated liquid power presets for reactors, batteries, solar panels and hydrogen engines.
+- Guidance for vertical gauges and panel spans on small displays.
+- WASM and browser regression checks for animation, alerts, component edits and corner text sizing.
+
+### Changed
+
+- Reduce corner text scale from `0.55` to `0.40` on 512×128 surfaces and `0.30` on 256×128 surfaces in HELM Core and Toolbox.
+- Explain that Play advances animation time while sliders control telemetry; show a reminder when Alert is paused.
+
+### Fixed
+
+- Frozen machinery spinners in Toolbox.
+- WASM alert phases drifting from the requested preview time.
+- Stale value controls after bind metadata changes.
+- Animation stopping after a preview drawing error.
+- Missing vendor source maps.
+- Hydrogen-engine percentage using enabled status instead of output/max output.
+- Overlapping text on dense corner LCD dashboards.
+- Duplicate documentation header badges beneath breadcrumbs.
+- Invalid Workshop simulator link markup.
+
 ## [0.39.0-release]
 
 > 2026-09-29

@@ -159,10 +159,11 @@
           <span id="screen-picker-wrap" class="hidden">
             <select id="screen-picker" aria-label="Screen to preview" class="select select-xs select-bordered font-mono"></select>
           </span>
-          <button type="button" id="play-toggle" class="btn btn-xs font-mono" data-lume="Pause or resume simulated time for animated gauges." data-lume-direction="bottom" data-i18n="preview.pause">Pause animation</button>
+          <button type="button" id="play-toggle" class="btn btn-xs font-mono" aria-pressed="true" data-lume="Animate waves, machinery and alert flashes. Telemetry values stay set until you change the sliders." data-lume-direction="bottom" data-i18n="preview.pause">Pause animation</button>
           <button type="button" id="alert-toggle" class="btn btn-xs font-mono" aria-pressed="false" data-lume="Preview the &quot;alert red&quot; run-argument command: flashes each screen's background to its alert_bg color." data-lume-direction="bottom" data-i18n="preview.alert">Alert</button>
           <span id="preview-status" class="text-xs font-mono text-base-content/50 ml-auto" role="status" aria-live="polite"></span>
         </div>
+        <p id="playback-note" class="hidden text-xs font-mono text-base-content/60 mb-2" role="status" aria-live="polite"></p>
         <div id="preview-stage" class="flex-1 flex items-center justify-center min-h-0 overflow-hidden">
           <p class="text-base-content/40 font-mono text-sm">Loading the renderer…</p>
         </div>

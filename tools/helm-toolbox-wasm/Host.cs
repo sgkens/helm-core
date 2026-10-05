@@ -245,11 +245,13 @@ public static partial class Host
                 var render = typeof(Program).GetMethod("RenderScreen", BindingFlags.Instance | BindingFlags.NonPublic);
                 var timeField = typeof(Program).GetField("_time", BindingFlags.Instance | BindingFlags.NonPublic);
                 var tickField = typeof(Program).GetField("_tickCounter", BindingFlags.Instance | BindingFlags.NonPublic);
-                // Several passes let the eased values settle, as the game's repeated runs do.
+                // Settle values over earlier ticks, ending at the requested preview time.
+                // Advancing beyond it changes the alert phase and breaks paused snapshots.
                 for (int i = 0; i < 40; i++)
                 {
-                    timeField.SetValue(prog, seconds + i * 0.1);
-                    tickField.SetValue(prog, i);
+                    double sampleTime = Math.Max(0, seconds - (39 - i) / 6.0);
+                    timeField.SetValue(prog, sampleTime);
+                    tickField.SetValue(prog, (int)(sampleTime * 6));
                     if (mirrorSource != null) render.Invoke(prog, new object[] { mirrorSource });
                     render.Invoke(prog, new object[] { screen });
                 }

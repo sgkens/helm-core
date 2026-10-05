@@ -7,6 +7,8 @@
     "data": "node scripts/gen-blocks.js && node scripts/gen-starters.js && node scripts/gen-components.js",
     "vendor": "node scripts/copy-vendor.js",
     "wasm": "dotnet publish ../tools/helm-toolbox-wasm -c Release -o wasm",
+    "wasm:test": "node ../tools/helm-toolbox-wasm/test-renderer.mjs wasm",
+    "browser:test": "node scripts/test-preview-browser.mjs",
     "stage": "node scripts/stage.js",
     "test": "node scripts/test-dsl-model.mjs && node scripts/test-edit-history.mjs",
     "build": "bun run data && bun run vendor && bun run wasm && bun run stage",
@@ -17,5 +19,8 @@
     "@staticcanvas/logcad": "0.6.0",
     "@staticcanvas/lume": "0.37.1",
     "prismjs": "1.30.0"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
   }
 }

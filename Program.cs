@@ -1339,6 +1339,10 @@ namespace IngameScript
             if (wind != null)
                 return wind.MaxOutput > 0 ? (wind.CurrentOutput / wind.MaxOutput) * 100.0 : 0.0;
 
+            var producer = block as IMyPowerProducer;
+            if (producer != null)
+                return producer.MaxOutput > 0 ? (producer.CurrentOutput / producer.MaxOutput) * 100.0 : 0.0;
+
             var door = block as IMyDoor;
             if (door != null)
                 return (double)door.OpenRatio * 100.0;
@@ -2700,7 +2704,7 @@ namespace IngameScript
                     {
                         if (value > 0.0)
                         {
-                            slot.DisplayValue = (slot.DisplayValue + 0.3927f) % 6.28318f;
+                            slot.DisplayValue = (float)((_time * 2.3562) % 6.28318);
                             rot = slot.DisplayValue;
                             flowCol = new Color(34, 197, 94);
                             flowText = "RUN";
